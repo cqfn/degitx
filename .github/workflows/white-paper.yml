@@ -3,7 +3,7 @@ name: Build white paper document
 "on":
   push:
     branches: [master]
-    # paths: ["white-paper/**"]
+    paths: ["white-paper/**"]
 jobs:
   build_latex:
     runs-on: ubuntu-latest
