@@ -86,6 +86,25 @@ Because of frequent writes, distributed teams can't use region replicas of repos
 and going to master repo to perform `fetch`. For big repossitories and teams it may
 reaches master repository IO thresholds and lead to master repo shutdown.
 
+Merge is not the only way to "update" the repository. Lots of activities can do that,
+here is the list of some:
+\begin{description}
+  \item[Branch create/delete]
+    Create or delete branches by git push or by using web page.
+  \item[Tag create/delete]
+    Create or delete tags by git push or by releasing new version on web page.
+  \item[Branch update]
+    Developer can update feature branches byself, it can also triggers CI builds.
+  \item[Tag update]
+    Tag could be updated using git push.
+  \item[Special REF create/update]
+    On GitLab, when new merge request is created, the new `refs/merge-requests/IID/head` named ref
+    is created. When source branch of merge request is updated, the ref is also updated.
+  \item[Migration]
+    Sometimes repository administrator can migrate source code to another phisical device, it also
+    could be treated as an update.
+\end{description}
+
 \section{Requirements}
 \label{sec:requirements}
 
@@ -130,6 +149,7 @@ The most important \href{https://en.wikipedia.org/wiki/Functional_requirement}{f
   \item[Access Control]
     Node knows who can read and write to repository,
     updates on master node should eventually affect all replica nodes.
+    Also, node logs the identity who accessed repository.
   \item[Control mechanism]
     Repository administrators are able to add or delete node for repository and
     get all nodes status for repository.
