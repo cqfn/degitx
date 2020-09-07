@@ -22,5 +22,5 @@ jobs:
             -X PUT https://central.artipie.com/degit/wp/white-paper-$(echo $GITHUB_SHA | cut -c 1-6).pdf \
             --upload-file wp.pdf
           curl -u "${{ secrets.ARTIPIE_USERNAME }}:${{ secrets.ARTIPIE_PASSWORD }}" \
-            -X PUT https://central.artipie.com/degit/wp/white-paper-latest.pdf
+            -X PUT https://central.artipie.com/degit/wp/white-paper-latest.pdf \
             --upload-file wp.pdf
