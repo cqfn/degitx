@@ -12,9 +12,11 @@ jobs:
         uses: actions/checkout@v1
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@master
+        working-directiry: ./white-paper
         with:
-          root_file: white-paper/wp.tex
+          root_file: wp.tex
       - name: Upload PDFs to Artipie central
+        working-directiry: ./white-paper
         run: |
           curl -u "${{ secrets.ARTIPIE_USERNAME }}:${{ secrets.ARTIPIE_PASSWORD }}" \
             -X PUT https://central.artipie.com/degit/wp/white-paper-$(echo $GITHUB_SHA | cut -c 1-6).pdf \
