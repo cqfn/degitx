@@ -12,8 +12,8 @@ jobs:
         uses: actions/checkout@v1
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@master
-        working-directory: ./white-paper
         with:
+          working_directory: ./white-paper
           root_file: wp.tex
       - name: Upload PDFs to Artipie central
         working-directory: ./white-paper
