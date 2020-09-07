@@ -1,0 +1,159 @@
+\documentclass[12pt,oneside]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage[bottom]{footmisc}
+\usepackage{bookmark}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{multicol}
+\usepackage{mdframed}
+\usepackage{setspace}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage[absolute]{textpos}\TPGrid{16}{16}
+\usepackage{tikz}
+  \usetikzlibrary{shapes}
+  \usetikzlibrary{arrows.meta}
+  \usetikzlibrary{arrows}
+  \usetikzlibrary{shadows}
+  \usetikzlibrary{trees}
+  \usetikzlibrary{fit}
+  \usetikzlibrary{calc}
+  \usetikzlibrary{positioning}
+  \usetikzlibrary{decorations.pathmorphing}
+\usepackage{./tikz-uml}
+\usepackage{everypage}
+  \AddEverypageHook{
+    \begin{textblock}{0.5}[0,0](0,0)
+      \tikz \node[fill=myred,minimum width=0.5\TPHorizModule,minimum height=16\TPVertModule] {};
+    \end{textblock}
+    \begin{textblock}{0.125}[0,0](0.5,0)
+      \tikz \node[fill=myblack,inner sep=0, minimum width=0.125\TPHorizModule,minimum height=16\TPVertModule] {};
+    \end{textblock}
+  }
+\usepackage{xcolor}
+  \definecolor{firebrick}{HTML}{B22222}
+  \definecolor{myred}{HTML}{CF0A2C}
+  \definecolor{myblack}{HTML}{232527}
+\newcommand\dd[1]{\colorbox{gray!30}{\texttt{#1}}}
+\usepackage{hyperref}
+  \hypersetup{colorlinks=true,allcolors=blue!40!black}
+\setlength{\topskip}{6pt}
+\setlength{\parindent}{0pt} % indent first line
+\setlength{\parskip}{6pt} % before par
+% \let\oldsection\section\renewcommand\section{\newpage\oldsection}
+\date{\small\today}
+\title{%
+  Distributed git repository manager\\
+  \colorbox{firebrick}{\small\sffamily\color{white}{White Paper}}}
+\usepackage[style=authoryear,sorting=nyt,backend=biber,
+  hyperref=true,abbreviate=true,
+  maxcitenames=1,maxbibnames=1]{biblatex}
+  \renewbibmacro{in:}{}
+  \addbibresource{books.bib}
+\tikzset{node distance=1.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
+\tikzstyle{block} = [draw=myblack, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
+\tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
+\begin{document}
+\raggedbottom
+
+\maketitle
+\begin{abstract}
+Big software compines may have millions of code repositories,
+and use them extensively by programmers and CI pipelines.
+One git server is not able to satisfy performance expectations,
+many servers with load-balancing can't solve this issue too because
+of inability storage IO scaling.
+Also, a big company may have distributed teams around the world,
+where each team collaborates with others in one git repo.
+Cross-region repo access could be slow in such cases.
+The solution for this problem is distributed git repository manager
+which replicates active repositories across region nodes on updates.
+\end{abstract}
+
+% \onehalfspace
+
+\section{The problem}
+
+Repository user's activity is not distributed uniformly over the time.
+Usually, each team uses pull or merge requests to update `master` branch,
+master branch can be updated only after review, reviewers may approve multiple
+pull requests in short amoun of time, and merge it into `master` branch.
+After merge CI starts a new build for each new merge commit, it include repository cloning.
+It produces peaks of load for git repository with frequent writes and reads IO operations.
+Because of frequent writes, distributed teams can't use region replicas of repository
+and going to master repo to perform `fetch`. For big repossitories and teams it may
+reaches master repository IO thresholds and lead to master repo shutdown.
+
+\section{Requirements}
+\label{sec:requirements}
+
+\subsection{Features}
+\label{sec:features}
+
+The most critical
+\href{https://en.wikipedia.org/wiki/Non-functional_requirement}{Non-functional requirements}
+are:
+
+\begin{description}
+  \item[Read scalability]
+    The solution should scale out the read capacity of a system, each region should be able
+    to access repository without connecting to master repo frequently.
+  \item[Strong consistency]
+    All active replica repositories should be synchronized on updates in master
+    with immediate consistency.
+  \item[Self cloning]
+    A node shold be able to find and synchronize new repository on read,
+    after that it should be up to date on new updates.
+  \item[Reliability]
+    The system must have enough replicas to recover itself in case of curruption.
+    Corrupted repository is reposnsible to recover itself using replica nodes.
+  \item[Self management]
+    Each node performs cleanup when needed (using `git gc`) and may remove replica
+    from storage on read inactivity for some time.
+\end{description}
+
+\subsection{Functional Requirements}
+\label{sec:nfr}
+
+The most important \href{https://en.wikipedia.org/wiki/Functional_requirement}{functional requirements} are:
+
+\begin{description}
+  \item[Front end]
+    The system potentically may have different kinds of front-ends,
+    but it's required to support gRPC of GitLab to integrate the system
+    into GitLab service and replace \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly}.
+  \item[Back end]
+    Each node may be connected to different types of storage for git repos,
+    but it's required to support file-system storage.
+  \item[Access Control]
+    Node knows who can read and write to repository,
+    updates on master node should eventually affect all replica nodes.
+  \item[Control mechanism]
+    Repository administrators are able to add or delete node for repository and
+    get all nodes status for repository.
+  \item[Analytics]
+    Node collects statistics for each repository and usage metrics, such as
+    push and pull operations, etc. The system keeps the whole statistics about
+    nodes, e.g. how many nodes contains each repository, the state of nodes, etc.
+\end{description}
+
+\subsection{Expected Metrics}
+\label{ref:metrics}
+
+In a large enterprise it is expected to have the following
+numbers, in terms of load, size, and speed:
+
+\begin{tabular}{ll}
+  Repositories & 2M \\
+  Active users & 100K/day \\
+  Merges & 100K/day \\
+  Fetches & 15M/day, 15K/m - peak \\
+  Push & 200K/day \\
+  Traffic - download & 200Tb/day \\
+  Traffic - update & 250Gb/day \\
+\end{tabular}
+
+\printbibliography%
+\end{document}

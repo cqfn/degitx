@@ -1,0 +1,13 @@
+target/
+.idea/
+*.iml
+.DS_Store
+*.aux
+*.log
+*.bcf
+*.bbl
+*.fdb_latexmk
+*.fls
+*.run.xml
+*.blg
+wp.pdf
