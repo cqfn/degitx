@@ -14,7 +14,7 @@ jobs:
         uses: xu-cheng/latex-action@master
         with:
           working-directiry: white-paper
-          root_file: wp.tex
+          root_file: white-paper/wp.tex
       - name: Upload PDFs to Artipie central
         run: |
           curl -u "${{ secrets.ARTIPIE_USERNAME }}:${{ secrets.ARTIPIE_PASSWORD }}" \
