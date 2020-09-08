@@ -131,6 +131,9 @@ are:
   \item[Self management]
     Each node performs cleanup when needed (using `git gc`) and may remove replica
     from storage on read inactivity for some time.
+  \item[Migration]
+    Node administrator can change the storage and perform data migration from one storage
+    to another.
 \end{description}
 
 \subsection{Functional Requirements}
@@ -146,10 +149,9 @@ The most important \href{https://en.wikipedia.org/wiki/Functional_requirement}{f
   \item[Back end]
     Each node may be connected to different types of storage for git repos,
     but it's required to support file-system storage.
-  \item[Access Control]
-    Node knows who can read and write to repository,
-    updates on master node should eventually affect all replica nodes.
-    Also, node logs the identity who accessed repository.
+  \item[Access audit]
+    Node doesn't perform access control operations, but logs all
+    requests with identity and performed operation.
   \item[Control mechanism]
     Repository administrators are able to add or delete node for repository and
     get all nodes status for repository.
