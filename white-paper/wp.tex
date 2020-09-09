@@ -45,7 +45,7 @@
 % \let\oldsection\section\renewcommand\section{\newpage\oldsection}
 \date{\small\today}
 \title{%
-  Distributed git repository manager\\
+  DRAFT: Distributed git repository manager\\
   \colorbox{firebrick}{\small\sffamily\color{white}{White Paper}}}
 \usepackage[style=authoryear,sorting=nyt,backend=biber,
   hyperref=true,abbreviate=true,
@@ -64,46 +64,65 @@ Big software compines may have millions of code repositories,
 and use them extensively by programmers and CI pipelines.
 One git server is not able to satisfy performance expectations,
 many servers with load-balancing can't solve this issue too because
-of inability storage IO scaling.
+of inability storage IO scaling for read operations.
 Also, a big company may have distributed teams around the world,
-where each team collaborates with others in one git repo.
-Cross-region repo access could be slow in such cases.
-The solution for this problem is distributed git repository manager
-which replicates active repositories across region nodes on updates.
+where each team collaborates with others in one git repo,
+cross-region repo access could be slow in such cases.
+The solution for this problem is distributed git repository storage,
+which replicates repositories across region nodes.
 \end{abstract}
 
 % \onehalfspace
 
 \section{The problem}
 
-Repository user's activity is not distributed uniformly over the time.
-Usually, each team uses pull or merge requests to update `master` branch,
-master branch can be updated only after review, reviewers may approve multiple
-pull requests in short amoun of time, and merge it into `master` branch.
-After merge CI starts a new build for each new merge commit, it include repository cloning.
-It produces peaks of load for git repository with frequent writes and reads IO operations.
-Because of frequent writes, distributed teams can't use region replicas of repository
-and going to master repo to perform `fetch`. For big repossitories and teams it may
-reaches master repository IO thresholds and lead to master repo shutdown.
+There was an attempt to implement POC distributed repository manager with
+eventually consistency guarantee, but it fails because of two reasons:
+1) fetch traffic correlates with push frequency because of huge amount of
+CI systems involved in development process: each push event usually triggers
+CI build which clones the repository.
+2) push and fetch frequency is not distributed uniformly over the time: in each
+repository, team members may have different responsibilities for review and merge process,
+project technical lead can merge all approved pull-requests in short period of time
+which causes frequent push operations in git repo.
+
+These two conditions leads to high fetch traffic peaks for git repositories:
+frequent push operations turns replication nodes into inconsistent state,
+and leads to high fetch traffic from different regions to primary repository node
+which can shutdown the node and becomes the whole repository unavailable for some time.
 
 Merge is not the only way to "update" the repository. Lots of activities can do that,
 here is the list of some:
+
 \begin{description}
-  \item[Branch create/delete]
-    Create or delete branches by git push or by using web page.
-  \item[Tag create/delete]
-    Create or delete tags by git push or by releasing new version on web page.
-  \item[Branch update]
-    Developer can update feature branches byself, it can also triggers CI builds.
-  \item[Tag update]
-    Tag could be updated using git push.
-  \item[Special REF create/update]
-    On GitLab, when new merge request is created, the new `refs/merge-requests/IID/head` named ref
+  \item Create or delete branches by git push or by using web page.
+  \item Create or delete tags by git push or by releasing new version on web page.
+  \item Developer can update feature branches byself, it can also triggers CI builds.
+  \item Tag could be updated using git push.
+  \item Special REF create/update: on GitLab, when new merge request is created,
+    the new \texttt{refs/merge-requests/IID/head} named ref
     is created. When source branch of merge request is updated, the ref is also updated.
-  \item[Migration]
-    Sometimes repository administrator can migrate source code to another phisical device, it also
-    could be treated as an update.
+  \item Migrations: sometimes repository administrator can migrate source code to
+    another phisical device, it also could be treated as an update.
 \end{description}
+
+\section{Solution}
+
+The solution could be the implementation of distributed Git repository manager with
+replica nodes in regions and with strong consistency.
+GitHub announced \href{https://github.blog/2016-04-05-introducing-dgit/}{DGit}
+in 2016 (renamed to \href{https://github.blog/2016-09-07-building-resilience-in-spokes/}{Spokes})
+where they \href{https://github.blog/2016-09-07-building-resilience-in-spokes/#defining-resilience}{pay attention}
+to the consistency:
+\begin{quote}
+Spokes puts the highest priority on consistency and partition tolerance.
+In worst-case failure scenarios, it will refuse to accept writes that it cannot commit,
+synchronously, to at least two replicas.
+\end{quote}
+
+?It could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} algorithm
+
+TODO: add more
 
 \section{Requirements}
 \label{sec:requirements}
@@ -120,20 +139,29 @@ are:
     The solution should scale out the read capacity of a system, each region should be able
     to access repository without connecting to master repo frequently.
   \item[Strong consistency]
-    All active replica repositories should be synchronized on updates in master
+    All? active replica repositories should be synchronized on updates in master node
     with immediate consistency.
   \item[Self cloning]
     A node shold be able to find and synchronize new repository on read,
     after that it should be up to date on new updates.
-  \item[Reliability]
+  \item[Durability]
     The system must have enough replicas to recover itself in case of curruption.
-    Corrupted repository is reposnsible to recover itself using replica nodes.
-  \item[Self management]
-    Each node performs cleanup when needed (using `git gc`) and may remove replica
-    from storage on read inactivity for some time.
-  \item[Migration]
-    Node administrator can change the storage and perform data migration from one storage
+    Corrupted repository could be reposnsible to recover itself using replica nodes.
+  \item[Self management (rename?)]
+    Each node performs cleanup when needed (\texttt{git gc}) and may remove replica
+    from storage on read inactivity.
+  \item[Maintainability]
+    Node administrator can change the storage, and perform data migration from one storage
     to another.
+    Repository administrators are able to add or delete node for new region and
+    get all nodes status for repository.
+  \item[Auditability]
+    Node doesn't perform access control operations, but logs all
+    requests with identity and performed operation.
+  \item[Analytics]
+    Node collects statistics for each repository and usage metrics, such as
+    push and pull operations, etc. The system keeps the whole statistics about
+    nodes, e.g. how many nodes contains each repository, the state of nodes, etc.
 \end{description}
 
 \subsection{Functional Requirements}
@@ -144,21 +172,13 @@ The most important \href{https://en.wikipedia.org/wiki/Functional_requirement}{f
 \begin{description}
   \item[Front end]
     The system potentically may have different kinds of front-ends,
-    but it's required to support gRPC of GitLab to integrate the system
-    into GitLab service and replace \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly}.
+    but it's required to support \href{https://grpc.io/}{gRPC}
+    of \href{https://about.gitlab.com/}{GitLab} to integrate the system
+    into GitLab service and replace
+    \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly}.
   \item[Back end]
     Each node may be connected to different types of storage for git repos,
     but it's required to support file-system storage.
-  \item[Access audit]
-    Node doesn't perform access control operations, but logs all
-    requests with identity and performed operation.
-  \item[Control mechanism]
-    Repository administrators are able to add or delete node for repository and
-    get all nodes status for repository.
-  \item[Analytics]
-    Node collects statistics for each repository and usage metrics, such as
-    push and pull operations, etc. The system keeps the whole statistics about
-    nodes, e.g. how many nodes contains each repository, the state of nodes, etc.
 \end{description}
 
 \subsection{Expected Metrics}
