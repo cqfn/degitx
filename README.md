@@ -6,15 +6,13 @@ DeGit multiplexer with gRPC API
 ### Links
 
 Consensus algorithms:
-
-http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html
-https://en.wikipedia.org/wiki/Paxos_algorithm
-https://raft.github.io/
+ - http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html
+ - https://en.wikipedia.org/wiki/Paxos_algorithm
+ - https://raft.github.io/
 
 Researches:
-
-https://dl.acm.org/doi/10.1145/98163.98167
-https://web.archive.org/web/20060508040935/http://www.eecs.harvard.edu/cs262/DSbook.c7.pdf
+ - https://dl.acm.org/doi/10.1145/98163.98167
+ - https://web.archive.org/web/20060508040935/http://www.eecs.harvard.edu/cs262/DSbook.c7.pdf
 
 Implementations:
  - [Spokes](https://github.blog/2016-09-07-building-resilience-in-spokes/) by GitHub
