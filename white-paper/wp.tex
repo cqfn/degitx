@@ -141,15 +141,14 @@ are:
   \item[Strong consistency]
     All? active replica repositories should be synchronized on updates in master node
     with immediate consistency.
-  \item[Self cloning]
-    A node shold be able to find and synchronize new repository on read,
-    after that it should be up to date on new updates.
   \item[Durability]
     The system must have enough replicas to recover itself in case of curruption.
     Corrupted repository could be reposnsible to recover itself using replica nodes.
   \item[Self management (rename?)]
     Each node performs cleanup when needed (\texttt{git gc}) and may remove replica
     from storage on read inactivity.
+    A node shold be able to find and synchronize new repository on read,
+    after that it should be up to date on new updates.
   \item[Maintainability]
     Node administrator can change the storage, and perform data migration from one storage
     to another.
