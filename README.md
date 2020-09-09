@@ -17,5 +17,8 @@ https://dl.acm.org/doi/10.1145/98163.98167
 https://web.archive.org/web/20060508040935/http://www.eecs.harvard.edu/cs262/DSbook.c7.pdf
 
 Implementations:
-
-https://etcd.io/
+ - [Spokes](https://github.blog/2016-09-07-building-resilience-in-spokes/) by GitHub
+ (previously known as [DGit](https://github.blog/2016-04-05-introducing-dgit/))
+ - [etcd](https://etcd.io/)
+ - [IPFS](https://medium.com/a-weekend-with/a-weekend-with-ipfs-9f2647fc231)
+ - [brig](https://github.com/sahib/brig)
