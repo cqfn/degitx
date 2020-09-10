@@ -22,7 +22,7 @@ jobs:
         with:
           repo: "degit/wp"
           file: "./white-paper/wp.pdf"
-          path: "white-paper-latest"
+          path: "white-paper-latest.pdf"
           username: "${{ secrets.ARTIPIE_USERNAME }}"
           password: "${{ secrets.ARTIPIE_PASSWORD }}"
       - name: Upload to Artipie with version
@@ -30,6 +30,6 @@ jobs:
         with:
           repo: "degit/wp"
           file: "./white-paper/wp.pdf"
-          path: "white-paper-${{ env.GITHUB_SHA_SHORT }}"
+          path: "white-paper-${{ env.GITHUB_SHA_SHORT }}.pdf"
           username: "${{ secrets.ARTIPIE_USERNAME }}"
           password: "${{ secrets.ARTIPIE_PASSWORD }}"
