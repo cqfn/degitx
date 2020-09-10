@@ -30,6 +30,6 @@ jobs:
         with:
           repo: "degit/wp"
           file: "./white-paper/wp.pdf"
-          path: "white-paper-${GITHUB_SHA_SHORT}"
+          path: "white-paper-${{ env.GITHUB_SHA_SHORT }}"
           username: "${{ secrets.ARTIPIE_USERNAME }}"
           password: "${{ secrets.ARTIPIE_PASSWORD }}"
