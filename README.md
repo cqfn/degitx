@@ -18,5 +18,8 @@ Implementations:
  - [Spokes](https://github.blog/2016-09-07-building-resilience-in-spokes/) by GitHub
  (previously known as [DGit](https://github.blog/2016-04-05-introducing-dgit/))
  - [etcd](https://etcd.io/)
- - [IPFS](https://medium.com/a-weekend-with/a-weekend-with-ipfs-9f2647fc231)
+ - IPFS:
+   - [home-page](https://ipfs.io/)
+   - [white-paper](https://raw.githubusercontent.com/ipfs-inactive/papers/master/ipfs-cap2pfs/ipfs-p2p-file-system.pdf)
+   - [blog-post](https://medium.com/a-weekend-with/a-weekend-with-ipfs-9f2647fc231)
  - [brig](https://github.com/sahib/brig)
