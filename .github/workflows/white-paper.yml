@@ -3,7 +3,7 @@ name: Build white paper document
 "on":
   push:
     branches: [master]
-    paths: ["white-paper/**"]
+#     paths: ["white-paper/**"]
 jobs:
   build_latex:
     runs-on: ubuntu-latest
@@ -15,12 +15,21 @@ jobs:
         with:
           working_directory: ./white-paper
           root_file: wp.tex
-      - name: Upload PDFs to Artipie central
-        working-directory: ./white-paper
-        run: |
-          curl -u "${{ secrets.ARTIPIE_USERNAME }}:${{ secrets.ARTIPIE_PASSWORD }}" \
-            -X PUT https://central.artipie.com/degit/wp/white-paper-$(echo $GITHUB_SHA | cut -c 1-6).pdf \
-            --upload-file wp.pdf
-          curl -u "${{ secrets.ARTIPIE_USERNAME }}:${{ secrets.ARTIPIE_PASSWORD }}" \
-            -X PUT https://central.artipie.com/degit/wp/white-paper-latest.pdf \
-            --upload-file wp.pdf
+      - name: Set env
+        run: echo ::set-env name=GITHUB_SHA_SHORT::$(echo $GITHUB_SHA | cut -c 1-6)
+      - name: Upload to Artipie as latest
+        uses: "artipie/upload-action@v0.1"
+        with:
+          repo: "degit/wp"
+          file: "./white-paper/wp.pdf"
+          path: "white-paper-latest"
+          username: "${{ secrets.ARTIPIE_USERNAME }}"
+          password: "${{ secrets.ARTIPIE_PASSWORD }}"
+      - name: Upload to Artipie with version
+        uses: "artipie/upload-action@v0.1"
+        with:
+          repo: "degit/wp"
+          file: "./white-paper/wp.pdf"
+          path: "white-paper-${GITHUB_SHA_SHORT}"
+          username: "${{ secrets.ARTIPIE_USERNAME }}"
+          password: "${{ secrets.ARTIPIE_PASSWORD }}"
