@@ -45,7 +45,7 @@
 % \let\oldsection\section\renewcommand\section{\newpage\oldsection}
 \date{\small\today}
 \title{%
-  DRAFT: Distributed git repository manager\\
+  DRAFT: DeGit - distributed git repository manager\\
   \colorbox{firebrick}{\small\sffamily\color{white}{White Paper}}}
 \usepackage[style=authoryear,sorting=nyt,backend=biber,
   hyperref=true,abbreviate=true,
@@ -55,6 +55,13 @@
 \tikzset{node distance=1.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
 \tikzstyle{block} = [draw=myblack, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
 \tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
+
+% custom commands
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+
+\author{Kirill Chernyavskiy}
+
 \begin{document}
 \raggedbottom
 
@@ -100,7 +107,7 @@ here is the list of some:
   \item Developer can update feature branches byself, it can also triggers CI builds.
   \item Tag could be updated using git push.
   \item Special REF create/update: on GitLab, when new merge request is created,
-    the new \texttt{refs/merge-requests/IID/head} named ref
+    the new \code{refs/merge-requests/IID/head} named ref
     is created. When source branch of merge request is updated, the ref is also updated.
   \item Migrations: sometimes repository administrator can migrate source code to
     another phisical device, it also could be treated as an update.
@@ -109,20 +116,43 @@ here is the list of some:
 \section{Solution}
 
 The solution could be the implementation of distributed Git repository manager with
-replica nodes in regions and with strong consistency.
-GitHub announced \href{https://github.blog/2016-04-05-introducing-dgit/}{DGit}
-in 2016 (renamed to \href{https://github.blog/2016-09-07-building-resilience-in-spokes/}{Spokes})
-where they \href{https://github.blog/2016-09-07-building-resilience-in-spokes/#defining-resilience}{pay attention}
-to the consistency:
-\begin{quote}
-Spokes puts the highest priority on consistency and partition tolerance.
-In worst-case failure scenarios, it will refuse to accept writes that it cannot commit,
-synchronously, to at least two replicas.
-\end{quote}
+strong consistent replica nodes. It guarantees high availability across
+different regions, durability by replicating repositories on different server racks,
+read scalability by routing fetch traffic on different nodes.
 
-?It could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} algorithm
+DeGit is a peer-to-peer system, no persistent master nodes
+exists\footnote{The system may have temporary master node for repository elected to perform some command}.
+Each DeGit node stores multiple repositories on local storage
+and exposes RPC API to manage repositories.
+If API call referes to repository which doesn't exist on storage, it performs lookup
+for repository on other nodes and synchronize it on local storage.
+When new repository is created in a system via push operation, the node
+replicates to at least 3 other nodes synchronously and propagetes metadata for future repository
+lookup.
+Update operation can be reouted to any node which contains the repository.
+The node synchronously updates all replicas on push, if update failed due to concurency issue,
+the whole update fails.
+The system autmatically rebalances repository storage: when repository is not used actively for a
+long time, it can remove it from storage if 3 replicas exists on other nodes; if some node
+has a lot of free space on storage, and storage of another node is almost full,
+full node can transfer (move) some repositories to another node.
+The system can accept new nodes and automatically fill it with replica repository and
+move some repository to new node. Same for dosconnecting: if node was disconnected from the system or crashed,
+it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
 
-TODO: add more
+
+Main system protocol components are (under discussion):
+\begin{description}
+  \item[Locators] - unique node identity.
+  \item[Network] - node peers connection.
+  \item[Repository lookup] - a mapping of repository to node relations (many to many).
+  \item[State] - node repository state,
+    DHT\footnote{distributed hash table: https://en.wikipedia.org/wiki/Distributed\_hash\_table}
+  \item[commands] - node repository state machine command protocol to change its state
+\end{description}
+
+Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} algorithm.
+\todo{search for more algorithms}.
 
 \section{Requirements}
 \label{sec:requirements}
@@ -139,13 +169,14 @@ are:
     The solution should scale out the read capacity of a system, each region should be able
     to access repository without connecting to master repo frequently.
   \item[Strong consistency]
-    All? active replica repositories should be synchronized on updates in master node
+    All? (\todo{discuss, maybe not all but the majority of replicas})
+    active replica repositories should be synchronized on updates in master node
     with immediate consistency.
   \item[Durability]
     The system must have enough replicas to recover itself in case of curruption.
     Corrupted repository could be reposnsible to recover itself using replica nodes.
   \item[Self management (rename?)]
-    Each node performs cleanup when needed (\texttt{git gc}) and may remove replica
+    Each node performs cleanup when needed (\code{git gc}) and may remove replica
     from storage on read inactivity.
     A node shold be able to find and synchronize new repository on read,
     after that it should be up to date on new updates.
