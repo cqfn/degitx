@@ -55,6 +55,13 @@
 \tikzset{node distance=1.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
 \tikzstyle{block} = [draw=myblack, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
 \tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
+
+% custom commands
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+
+\author{Kirill Chernyavskiy}
+
 \begin{document}
 \raggedbottom
 
@@ -161,6 +168,47 @@ are:
     Node collects statistics for each repository and usage metrics, such as
     push and pull operations, etc. The system keeps the whole statistics about
     nodes, e.g. how many nodes contains each repository, the state of nodes, etc.
+\end{description}
+
+
+\section{Compare to other solutions}
+
+These products are similar to DeGit by some aspects:
+\begin{description}
+  \item[Spokes]
+    GitHub announced \href{https://github.blog/2016-04-05-introducing-dgit/}{DGit}
+    in 2016 (renamed to \href{https://github.blog/2016-09-07-building-resilience-in-spokes/}{Spokes})
+    where they \href{https://github.blog/2016-09-07-building-resilience-in-spokes/#defining-resilience}{pay attention}
+    to the consistency:
+    \begin{quote}
+      Spokes puts the highest priority on consistency and partition tolerance.
+      In worst-case failure scenarios, it will refuse to accept writes that it cannot commit,
+      synchronously, to at least two replicas.
+    \end{quote}
+    It's a proprietary software that can't be used for free and the source code is closed.
+    Spokes papers claims that it pays attention to consistency, but on the
+    \href{https://www.youtube.com/watch?v=DY0yNRNkYb0}{conference talk} they mentioned that
+    it's rarely possible to break the consistency which requires manual intervention.
+    Therefore the approach of distributed system design used by Spokes is not suitable for open
+    source project, where maintainance team doesn't exist.
+  \item[Gitaly]
+    \href{https://docs.gitlab.com/ee/README.html}{Gitlab} has
+    \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly} service which provides
+    \code{gRPC} API for Gitlab website and git-ssh proxy to perform all git operations via API.
+    It's \href{https://gitlab.com/gitlab-org/gitaly}{open source} component.
+    Gitaly proposed new design for service which claims to provide
+    \href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/doc/design\_ha.md\#strong-consistency-design}{strong concistency}
+    but in fact it doesn't provide linearability of commands in system \todo{arguments and proves}.
+    Futhermore, it's possible that GitLab may change HA licensing \todo{find cases},
+    or restrict HA support \href{https://news.ycombinator.com/item?id=21437334}{based on country residence}.
+  \item[JGit]
+    \todo{Analyze this project:}
+    \href{https://www.eclipse.org/jgit/}{jgit}.
+  \item[IPFS]
+    \href{https://ipfs.io/}{IPFS} is not exactly distributed git repository project, but has similar ideas
+    and cound be helpfull for us. \todo{analyze IPFS project}.
+  \item[brig]
+    \todo{analyze the project} \href{https://github.com/sahib/brig}{brig}.
 \end{description}
 
 \subsection{Functional Requirements}
