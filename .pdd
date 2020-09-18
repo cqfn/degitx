@@ -1,0 +1,6 @@
+--source=.
+--verbose
+--exclude white-paper/**/*
+--rule min-words:16
+--rule min-estimate:15
+--rule max-estimate:90
