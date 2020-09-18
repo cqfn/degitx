@@ -1,7 +1,10 @@
-![Build white paper document](https://github.com/cqfn/degitx/workflows/Build%20white%20paper%20document/badge.svg) Latest white paper is available at https://central.artipie.com/degit/wp/white-paper-latest.pdf
+![CI](https://github.com/cqfn/degitx/workflows/CI/badge.svg?branch=master&event=push) ![Build white paper document](https://github.com/cqfn/degitx/workflows/Build%20white%20paper%20document/badge.svg)
 
 
-DeGit multiplexer with gRPC API
+DeGit multiplexer with gRPC API.
+
+Latest white paper is available at https://central.artipie.com/degit/wp/white-paper-latest.pdf
+
 
 ### Links
 
