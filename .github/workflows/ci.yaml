@@ -23,6 +23,7 @@ jobs:
       - name: Build
         run: |
           go build -v
+          go install -v
           go build -v ./cmd/node
       - name: Test
         run: go test -v
