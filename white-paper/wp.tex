@@ -160,9 +160,13 @@ Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft
 \begin{description}
   \item[Git] is a simple key-value data store and stores 3 main types of Objects: blob, tree, commit, and one additional: tag.
   \item[Blob] - content of file w/o filename.
-  \item[Tree] - corresponding to UNIX directory.\\
-  Tree contains SHA-1 hash of a blob that located in this directory and other trees
-  (subdirectories) with its associated mode, type, and filename.
+  \item[Tree] - A single tree object contains one or more entries, each of which is the SHA-1 hash of a blob or subtree with its associated mode, type, and filename.
+  For example, the most recent tree in a project may look something like this:\\
+  \\
+  \code{\$ git cat-file -p master\^\{tree\}}\\
+  \code{100644 blob a906cb2a4a904a152e80877d4088654daad0c859      README}\\
+  \code{100644 blob 8f94139338f9404f26296befa88755fc2598c289      Rakefile}\\
+  \code{040000 tree 99f1a6d12cb4b6f19c8655fca46c3ecf317074e0      lib}
   \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{data-model-1.png}
