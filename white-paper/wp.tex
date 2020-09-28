@@ -141,6 +141,7 @@ move some repository to new node. Same for dosconnecting: if node was disconnect
 it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
 
 
+\subsection{Protocol}
 Main system protocol components are (under discussion):
 \begin{description}
   \item[Locators] - unique node identity.
@@ -151,14 +152,14 @@ Main system protocol components are (under discussion):
   \item[commands] - node repository state machine command protocol to change its state
 \end{description}
 
-\subsection{Locators}
+\subsubsection{Locators}
 Locators are unique \code{256} bit identifiers of node \todo{more details}.
 
-\subsection{Network}
+\subsubsection{Network}
 DeGitX can use different network protocols for RPC calls, \code{TCP} is supported by default
 \todo{other protocols, e.g. NAT traversing?}.
 
-\subsection{Lookup}
+\subsubsection{Lookup}
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
 \todo{research and compare different solutions}.
 
