@@ -151,6 +151,17 @@ Main system protocol components are (under discussion):
   \item[commands] - node repository state machine command protocol to change its state
 \end{description}
 
+\subsection{Locators}
+Locators are unique \code{256} bit identifiers of node \todo{more details}.
+
+\subsection{Network}
+DeGitX can use different network protocols for RPC calls, \code{TCP} is supported by default
+\todo{other protocols, e.g. NAT traversing?}.
+
+\subsection{Lookup}
+Repository mapping could be stored in distributed hash table (e.g. Kademlia),
+\todo{research and compare different solutions}.
+
 Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} algorithm.
 \todo{search for more algorithms}.
 
@@ -326,8 +337,16 @@ These products are similar to DeGit by some aspects:
     Futhermore, it's possible that GitLab may change HA licensing \todo{find cases},
     or restrict HA support \href{https://news.ycombinator.com/item?id=21437334}{based on country residence}.
   \item[JGit]
-    \todo{Analyze this project:}
-    \href{https://www.eclipse.org/jgit/}{jgit}.
+    \href{https://www.eclipse.org/jgit/}{Jgit} is a Java git server created by \href{https://www.eclipse.org/}{Eclipse}.
+    Google \href{https://www.eclipse.org//lists/jgit-dev/msg03073.html}{contributed} to this project with Ketch module:
+    \begin{quote}
+      Git Ketch is a multi-master Git repository management system. Writes
+      (such as git push) can be started on any server, at any time. Writes
+      are successful only if a majority of participant servers agree.
+      Acked writes are durable against server failure, due to a majority of
+      the participants storing all required objects.
+    \end{quote}
+    But this is the only place where Ketch is mentioned. \todo{Analyze source code of Ketch module}.
   \item[IPFS]
     \href{https://ipfs.io/}{IPFS} is not exactly distributed git repository project, but has similar ideas
     and cound be helpfull for us. \todo{analyze IPFS project}.
