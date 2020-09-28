@@ -6,7 +6,7 @@ before perform operation we should:
  
  Praefect cares about last lo steps.
   
- ###Praefect
+ ### Praefect
  
  Praefect is a router and transaction manager for Gitaly, and a required component for running a Gitaly Cluster.
  
