@@ -16,7 +16,7 @@ func main() {
 		Usage:       "Manage degit node",
 		Description: "DeGitX node CLI",
 		Commands: []*cli.Command{
-			&cli.Command{
+			{
 				Name:    "run",
 				Aliases: []string{"r"},
 				Usage:   "run the node",
@@ -30,6 +30,6 @@ func main() {
 }
 
 func cmdRun(ctx *cli.Context) error {
-	degitx.Stub()
+	degitx.Start()
 	return nil
 }

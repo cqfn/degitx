@@ -8,5 +8,4 @@ import (
 )
 
 func TestStub(tst *testing.T) {
-	Stub()
 }
