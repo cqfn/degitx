@@ -1,4 +1,6 @@
-![CI](https://github.com/cqfn/degitx/workflows/CI/badge.svg?branch=master&event=push) ![Build white paper document](https://github.com/cqfn/degitx/workflows/Build%20white%20paper%20document/badge.svg)
+![CI](https://github.com/cqfn/degitx/workflows/CI/badge.svg?branch=master&event=push)
+![Build white paper document](https://github.com/cqfn/degitx/workflows/Build%20white%20paper%20document/badge.svg)
+![Lines of code](https://img.shields.io/tokei/lines/github/cqfn/degitx)
 
 
 DeGit multiplexer with gRPC API.
