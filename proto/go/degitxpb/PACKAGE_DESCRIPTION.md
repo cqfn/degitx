@@ -1,0 +1,1 @@
+Target package for generated .pb.go files
