@@ -21,7 +21,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - uses: arduino/setup-protoc@master
-      - name: Build
-        run: make build
-      - name: Test
-        run: make test
+      - name: Build and test
+        run: make
