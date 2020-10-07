@@ -3,9 +3,7 @@
 ![Lines of code](https://img.shields.io/tokei/lines/github/cqfn/degitx)
 
 
-DeGit multiplexer with gRPC API.
-
-Latest white paper is available at https://central.artipie.com/degit/wp/white-paper-latest.pdf
+DeGitX - distributed git repository manager, see explanation in the [white paper](https://central.artipie.com/degit/wp/white-paper-latest.pdf).
 
 ## Build
 
@@ -17,7 +15,11 @@ Use `make` to build this project:
  - `make test` - run tests
  - `make node` - build `node` binary
 
-### Links
+
+<!--
+@todo #1:30min Process links in the readme.
+ Remove already analyzed links. If link is not analyzed, then
+ Handle it, extract summary and add research result to white paper document.
 
 Consensus algorithms:
  - http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html
@@ -37,3 +39,5 @@ Implementations:
    - [white-paper](https://raw.githubusercontent.com/ipfs-inactive/papers/master/ipfs-cap2pfs/ipfs-p2p-file-system.pdf)
    - [blog-post](https://medium.com/a-weekend-with/a-weekend-with-ipfs-9f2647fc231)
  - [brig](https://github.com/sahib/brig)
+
+-->
