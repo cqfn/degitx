@@ -7,6 +7,15 @@ DeGit multiplexer with gRPC API.
 
 Latest white paper is available at https://central.artipie.com/degit/wp/white-paper-latest.pdf
 
+## Build
+
+Use `make` to build this project:
+ - `make` - install all dependencies, generate proto files, run tests and build node
+ - `make install-deps` - install required dependencies
+ - `make proto` - generate protobuf source code
+ - `make build` - build core package
+ - `make test` - run tests
+ - `make node` - build `node` binary
 
 ### Links
 
