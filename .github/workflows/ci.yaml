@@ -21,13 +21,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - uses: arduino/setup-protoc@master
-      - name: Generete proto
-        run: |
-          go get -u github.com/golang/protobuf/protoc-gen-go
-          protoc --proto_path=./proto --go_out=plugins=grpc:./proto/go/degitxpb --go_opt=paths=source_relative ./proto/*.proto
       - name: Build
-        run: |
-          go build -v
-          go build -v ./cmd/node
+        run: make build
       - name: Test
-        run: go test -v
+        run: make test
