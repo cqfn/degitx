@@ -98,19 +98,18 @@ frequent push operations turn replication nodes into inconsistent state,
 and lead to high fetch traffic from different regions to primary repository node
 which can shutdown the node and become the whole repository unavailable for some time.
 
-Merge is not the only way to "update" the repository. Lots of activities can do that,
+Merge is not the only way to ``update'' the repository. Lots of activities can do that,
 here is the list of some:
 
 \begin{description}
-  \item Create or delete branches by git push or by using web page.
-  \item Create or delete tags by git push or by releasing new version on web page.
-  \item Developer can update feature branches byself, it can also triggers CI builds.
-  \item Tag could be updated using git push.
-  \item Special REF create/update: on GitLab, when new merge request is created,
-    the new \code{refs/merge-requests/IID/head} named ref
-    is created. When source branch of merge request is updated, the ref is also updated.
-  \item Migrations: sometimes repository administrator can migrate source code to
-    another physical device, it also could be treated as an update.
+  \item[branches changing] \verb|create|/\verb|delete|/\verb|update| branches by git push or by using web page.
+  \item[tags changing] \verb|create|/\verb|delete|/\verb|update| tags by git push or by releasing new version on web page.
+  \item[special refs changing] when new merge request is created, a new\\
+    \emph{\code{refs/merge-requests/IID\footnote{Internal id of a project on gitlab}/head}} named ref
+    is created. When source branch of the merge request is updated, the ref is also updated.
+  \item[migrations] sometimes repository administrator can migrate the repository to
+    another physical device or another region node, it also could be treated as an update.
+    Also, delete a repository could be treated as migrate it to a trash area.
 \end{description}
 
 \section{Solution}
@@ -118,7 +117,7 @@ here is the list of some:
 The solution could be the implementation of distributed Git repository manager with
 strong consistent replica nodes. It guarantees high availability across
 different regions, durability by replicating repositories on different server racks,
-read scalability by routing fetch traffic on different nodes.
+read scalability by routing fetch traffic to different nodes.
 
 DeGit is a peer-to-peer system, no persistent master nodes
 exists\footnote{The system may have temporary master node for repository elected to perform git command}.
@@ -130,7 +129,7 @@ which is not located on local storage, in that case it performs lookup
 for repository on other nodes and synchronizes it on local storage, and performs RPC command
 after that.
 
-When a new repository is created in a system via push operation, the node replicates this repository
+When a new repository is created in a system, the node replicates this repository
 to at least 3 other nodes synchronously and propagetes metadata for future repository lookup.
 
 Update operation can be routed to any node which contains the repository. The node synchronously
@@ -142,12 +141,12 @@ to most frequently used nodes based on this statistics.
 The system autmatically rebalances repository storage: when repository is not used actively for a
 long time, the node can remove a repository from storage if 3 replicas of this repository exists on other nodes;
 if some node has a lot of free space on storage, and storage of another node is almost full,
-full node can transfer (move) some repositories to another node.
+full node can transfer (move) some repositories to another node, and IOPS of storage device is also
+a importance measure.
 
 The system can accept new nodes and automatically fill it with replica repository and
-move some repository to new node. Same for dosconnecting: if node was disconnected from the system or crashed,
+move some repository to new node. Same for disconnecting: if node was disconnected from the system or crashed,
 it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
-
 
 \subsection{Protocol}
 Main system protocol components are (under discussion):
@@ -160,17 +159,17 @@ Main system protocol components are (under discussion):
 \end{description}
 
 \subsubsection{Locators}
-Each node has peristant public and private keys to identify itself in a system.
+Each node has persistant public and private keys to identify itself in a system.
 Unique identifier\footnote{In this document, node identifier, node-id and node locator refer to the same definition}
-is a cryptographic hash of public key of the node in \href{https://multiformats.io/multihash/}{Multihash} format.
-Private and public keys can be used to sign requests to other nodes or to build trusted \hyperref[sec:discovery]{discovery}
+is a cryptographic hash of public key of the node in \emph{\href{https://multiformats.io/multihash/}{Multihash}} format.
+Private and public keys can be used to sign requests to other nodes or to build trusted \emph{\hyperref[sec:discovery]{discovery}}
 point in a system: when a new system is created, administrator can create CA (certification authority) for issuing
 digital certificates for node public keys, so each node will be able to verify certificate of any other node when
 using seed list URLs. Node instances uses locators to talk with each other, it can find real network address of nodes using
 this identity. Also, system uses locators for node-repository mapping, the item of mapping table consists of
 locator and unique repository name.
 
-Related: "A Practicable Approach Towards Secure Key-Based Routing" by I. Baumgart and S. Mies;
+Related: ``A Practicable Approach Towards Secure Key-Based Routing'' by I. Baumgart and S. Mies;
 Identities and Network design of IPFS by J. Benet.
 
 \subsubsection{Network}
@@ -182,8 +181,8 @@ DeGitX can use different network protocols for RPC calls, \code{TCP} is supporte
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
 \todo{research and compare different solutions}.
 
-Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} or
-\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos} algorithm.
+Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
+\emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
 \todo{search for more algorithms}.
 
 \subsection{Git Internals}
@@ -325,7 +324,6 @@ are:
     push and pull operations, etc. The system keeps the whole statistics about
     nodes, e.g. how many nodes contains each repository, the state of nodes, etc.
 \end{description}
-
 
 \section{Compare to other solutions}
 
