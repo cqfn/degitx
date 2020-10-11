@@ -3,7 +3,7 @@ RMRF := rm -rf
 GO := go
 FLAGS := -v
 
-.PHONY: all build clean install-deps $(PROTODIR)
+.PHONY: all build clean lint install-deps $(PROTODIR)
 
 all: build test node
 
@@ -31,3 +31,12 @@ clean:
 # install required dependencies
 install-deps:
 	$(MAKE) -C $(PROTODIR) install-deps
+
+# install and run golangci-lint. sudo required
+lint:
+	@echo "install golangci-lint"
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
+	@golangci-lint --version
+	@echo "lint degitx"
+	@golangci-lint run
+	@echo "degitx linted"

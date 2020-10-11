@@ -4,10 +4,12 @@
 package main
 
 import (
-	"github.com/urfave/cli/v2"
 	"log"
-	"org.cqfn/degitx"
 	"os"
+
+	"github.com/urfave/cli/v2"
+
+	"org.cqfn/degitx"
 )
 
 func main() {
