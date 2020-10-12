@@ -11,6 +11,7 @@
 \usepackage{pgfplots}
 \usepackage{graphicx}
 \usepackage{fancyvrb}
+\usepackage{listings}
 \usepackage[absolute]{textpos}\TPGrid{16}{16}
 \usepackage{tikz}
   \usetikzlibrary{shapes}
@@ -98,19 +99,18 @@ frequent push operations turn replication nodes into inconsistent state,
 and lead to high fetch traffic from different regions to primary repository node
 which can shutdown the node and become the whole repository unavailable for some time.
 
-Merge is not the only way to "update" the repository. Lots of activities can do that,
+Merge is not the only way to ``update'' the repository. Lots of activities can do that,
 here is the list of some:
 
 \begin{description}
-  \item Create or delete branches by git push or by using web page.
-  \item Create or delete tags by git push or by releasing new version on web page.
-  \item Developer can update feature branches byself, it can also triggers CI builds.
-  \item Tag could be updated using git push.
-  \item Special REF create/update: on GitLab, when new merge request is created,
-    the new \code{refs/merge-requests/IID/head} named ref
-    is created. When source branch of merge request is updated, the ref is also updated.
-  \item Migrations: sometimes repository administrator can migrate source code to
-    another physical device, it also could be treated as an update.
+  \item[branches changing] \verb|create|/\verb|delete|/\verb|update| branches by git push or by using web page.
+  \item[tags changing] \verb|create|/\verb|delete|/\verb|update| tags by git push or by releasing new version on web page.
+  \item[special refs changing] when new merge request is created, a new\\
+    \emph{\code{refs/merge-requests/IID\footnote{Internal id of a project on gitlab}/head}} named ref
+    is created. When source branch of the merge request is updated, the ref is also updated.
+  \item[migrations] sometimes repository administrator can migrate the repository to
+    another physical device or another region node, it also could be treated as an update.
+    Also, delete a repository could be treated as migrate it to a trash area.
 \end{description}
 
 \section{Solution}
@@ -118,7 +118,7 @@ here is the list of some:
 The solution could be the implementation of distributed Git repository manager with
 strong consistent replica nodes. It guarantees high availability across
 different regions, durability by replicating repositories on different server racks,
-read scalability by routing fetch traffic on different nodes.
+read scalability by routing fetch traffic to different nodes.
 
 DeGit is a peer-to-peer system, no persistent master nodes
 exists\footnote{The system may have temporary master node for repository elected to perform git command}.
@@ -130,7 +130,7 @@ which is not located on local storage, in that case it performs lookup
 for repository on other nodes and synchronizes it on local storage, and performs RPC command
 after that.
 
-When a new repository is created in a system via push operation, the node replicates this repository
+When a new repository is created in a system, the node replicates this repository
 to at least 3 other nodes synchronously and propagetes metadata for future repository lookup.
 
 Update operation can be routed to any node which contains the repository. The node synchronously
@@ -142,12 +142,12 @@ to most frequently used nodes based on this statistics.
 The system autmatically rebalances repository storage: when repository is not used actively for a
 long time, the node can remove a repository from storage if 3 replicas of this repository exists on other nodes;
 if some node has a lot of free space on storage, and storage of another node is almost full,
-full node can transfer (move) some repositories to another node.
+full node can transfer (move) some repositories to another node, and IOPS of storage device is also
+a importance measure.
 
 The system can accept new nodes and automatically fill it with replica repository and
-move some repository to new node. Same for dosconnecting: if node was disconnected from the system or crashed,
+move some repository to new node. Same for disconnecting: if node was disconnected from the system or crashed,
 it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
-
 
 \subsection{Protocol}
 Main system protocol components are (under discussion):
@@ -160,17 +160,17 @@ Main system protocol components are (under discussion):
 \end{description}
 
 \subsubsection{Locators}
-Each node has peristant public and private keys to identify itself in a system.
+Each node has persistant public and private keys to identify itself in a system.
 Unique identifier\footnote{In this document, node identifier, node-id and node locator refer to the same definition}
-is a cryptographic hash of public key of the node in \href{https://multiformats.io/multihash/}{Multihash} format.
-Private and public keys can be used to sign requests to other nodes or to build trusted \hyperref[sec:discovery]{discovery}
+is a cryptographic hash of public key of the node in \emph{\href{https://multiformats.io/multihash/}{Multihash}} format.
+Private and public keys can be used to sign requests to other nodes or to build trusted \emph{\hyperref[sec:discovery]{discovery}}
 point in a system: when a new system is created, administrator can create CA (certification authority) for issuing
 digital certificates for node public keys, so each node will be able to verify certificate of any other node when
 using seed list URLs. Node instances uses locators to talk with each other, it can find real network address of nodes using
 this identity. Also, system uses locators for node-repository mapping, the item of mapping table consists of
 locator and unique repository name.
 
-Related: "A Practicable Approach Towards Secure Key-Based Routing" by I. Baumgart and S. Mies;
+Related: ``A Practicable Approach Towards Secure Key-Based Routing'' by I. Baumgart and S. Mies;
 Identities and Network design of IPFS by J. Benet.
 
 \subsubsection{Network}
@@ -182,8 +182,8 @@ DeGitX can use different network protocols for RPC calls, \code{TCP} is supporte
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
 \todo{research and compare different solutions}.
 
-Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} or
-\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos} algorithm.
+Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
+\emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
 \todo{search for more algorithms}.
 
 \subsection{Git Internals}
@@ -286,6 +286,198 @@ The most important updates of remote repo for us listed in the table below:
   \end{tabular}\label{tab:update-workflow}
 \end{table}
 
+\subsubsection{Git file storage internals}
+
+\textbullet\textbf{\large{ loose object storage}}\\
+
+As we metioned, a git repository take cares of several types of objects:
+\code{blob}, \code{tree}, \code{commit}, \code{tag}. Let's take a look at the details of object storage:\\
+
+git default write the objects to directory \code{GIT\_DIR\footnote{the .git directory}/objects}.
+Each object is named by a sha1 value for example \emph{\code{b98191cf971f2418e42877410a6c40fc112a0a93}}\\
+it's storage path will be
+\begin{center}
+\emph{\code{GIT\_DIR/objects/b9/8191cf971f2418e42877410a6c40fc112a0a93}}
+\end{center}
+the directories under \code{GIT\_DIR/objects} is named by \code{SHA[0,2]} of objects' sha1 value,
+this can avoid too much files in one directory because some filesystem has the max link number of files,
+such as ext3 has the definition:
+\begin{flushleft}
+  \code{include/linux/ext3\_fs.h:\#define EXT3\_LINK\_MAX           32000}
+\end{flushleft}
+
+One object file is consist of three portions:
+\begin{description}
+  \item[type] can be one of `blob', `tree', `commit', `tag'
+  \item[size] the number of bytes of the content
+  \item[content] the content of object
+\end{description}
+
+and the object file will be compressed using zlib:
+
+\begin{tikzpicture}
+  \node at (0,0.25) {binary};
+  \node at (4,0.25) {\code{7370 6163 657d 0a5c ...}};
+  \draw (1,0) rectangle (7,0.5);
+  \node at (3.1,1.25) {compress};
+  \draw[-latex] (2,1.5) -- (2,1);
+  \node at (0,2.25) {buffer};
+  \node at (1.5,2.25) {type};
+  \node at (3.5,2.25) {size};
+  \node at (6,2.25) {content};
+  \draw (1,2) rectangle (2.95,2.5);
+  \draw (3,2) rectangle (4.95,2.5);
+  \draw (5,2) rectangle (10,2.5);
+\end{tikzpicture}
+
+the compression level can be set by `\textbf{\code{core.compression}}' or `\textbf{\code{core.loosecompression}}'.
+\\
+
+\textbullet\textbf{\large{ pack file storage}}\\
+
+When we do \emph{\code{git gc}} or \emph{\code{git repack}}, pack files with the suffix \code{.pack}
+maybe be created under directory \emph{\code{GIT\_DIR/objects/pack}}. A pack is a collection of objects,
+individually compressed, with delta compression applied, stored in a single file, with an associated
+index file. Packs are used to reduce the load on mirror systems, backup engines, disk storage, etc.
+
+\begin{lstlisting}[basicstyle=\ttfamily]
+$ tree .git/objects/pack
+.git/objects/pack
+|-- pack-24fcb83682e5a2848ef7bd00a9eda0bff1a372fc.idx
+|-- pack-24fcb83682e5a2848ef7bd00a9eda0bff1a372fc.pack
+|-- pack-915d8b4ae03b03179912c589cee932e5a990b7f0.idx
+|-- pack-915d8b4ae03b03179912c589cee932e5a990b7f0.pack
+|-- ...
+\end{lstlisting}
+
+Conceptually there are only four object types in a pack file: commit, tree, tag and blob.
+However to save space, an object could be stored as a ``delta'' of another ``base'' object.
+These representations are assigned new types \code{ofs-delta} and \code{ref-delta}.
+
+\begin{description}
+  \item[delta object]
+    Both ofs-delta and ref-delta store the ``delta'' to be applied to another object
+    (called `base object') to reconstruct the object. The difference between them is,
+    ref-delta directly encodes 20-byte base object name. If the base object is in the same pack,
+    ofs-delta encodes the offset of the base object in the pack instead.
+  \item[base object]
+    The base object could also be deltified if it's in the same pack.
+    Ref-delta can also refer to an object outside the pack. When stored on disk however,
+    the pack should be self contained to avoid cyclic dependency.
+\end{description}
+
+And usualy we have lots of versions of a single file in a repository, a new pack file will
+store the last version's content as the base object, and computes the earlier versioins to
+to be delta objects and store them referring to the base object:
+
+\begin{tikzpicture}
+  % loose objects
+  \filldraw[fill=yellow, draw=white] (3.75,2.5) rectangle (8.5,5.5);
+
+  \node at(0,5){v3};
+  \node[rectangle,rounded corners, draw=gray,] (v3) at(2,5){README.md};
+  \node[rectangle,rounded corners, draw=gray,] (v3obj) at(6,5){.git/objects/77/652063...};
+  \node at(0,4){v2};
+  \node[rectangle,rounded corners, draw=gray,] (v2) at(2,4){README.md};
+  \node[rectangle,rounded corners, draw=gray,] (v2obj) at(6,4){.git/objects/6e/6f7420...};
+  \node at(0,3){v1};
+  \node[rectangle,rounded corners, draw=gray,] (v1) at(2,3){README.md};
+  \node[rectangle,rounded corners, draw=gray,] (v1obj) at(6,3){.git/objects/28/753a20...};
+  \draw (v3) -- (v3obj);
+  \draw (v2) -- (v2obj);
+  \draw (v1) -- (v1obj);
+
+  % arrow
+  \draw (8.5,2) -- (8.5,0.35);
+  \draw[-latex] (8.5,0.35) -- (6.5,0.35);
+  \node at(7,1.5){pack-objects};
+
+  % pack file
+  \filldraw[fill=yellow, draw=white] (0.8,0) rectangle (6.2,0.75);
+  \node at (0,0.35) {pack file};
+  \node (base) at (2.5,0.35) {base object};
+  \node (deltav2) at (4.5,0.35) {delta};
+  \node (deltav1) at (5.5,0.35) {delta};
+  \draw (1,0.1) rectangle (3.95,0.6);
+  \draw (4,0.1) rectangle (4.95,0.6);
+  \draw (5,0.1) rectangle (5.95,0.6);
+
+  \draw[dashed, ultra thick, -latex] (v3obj) -- (base);
+  \draw[dashed, very thick, -latex] (v2obj) -- (deltav2);
+  \draw[dashed, -latex] (v1obj) -- (deltav1);
+\end{tikzpicture}
+
+Usually objects contained in the pack are compressed using zlib, the compression level
+can be set by `\textbf{\code{core.compression}}' or `\textbf{\code{pack.compression}}'.
+
+When objects contained in the pack are stored using delta compression. The objects
+are first internally sorted by type, size and optionally names and compared against
+the other objects to see if using delta compression saves space. `\textbf{\code{pack.depth}}'
+limits the maximum delta depth; Making it too deep affects the performance on the unpacker side,
+because delta data needs to be applied that many times to get to the necessary object.
+\\
+
+To quickly find objects in the pack file, an associated index file is created with the
+\emph{\href{https://github.com/git/git/blob/master/Documentation/technical/pack-format.txt\#L161}{format}},
+And `\emph{\code{git index-pack}}' can be used to regenerate the *.idx file on the *.pack file.
+\\
+
+\textbullet\textbf{\large{ when pack file is created}}\\
+
+When we talk about the pack files, we said that packs are used to reduce the load on mirror systems,
+backup engines, disk storage, etc. So pack files will created in several scenes:
+
+\begin{description}
+  \item[git gc] `\emph{\code{git gc}}' runs a number of housekeeping tasks within the repository,
+    such as compressing file revisions (to reduce disk space and increase performance), removing
+    unreachable objects which may have been created from prior git commands.
+    We can run it manually, and it may create a new pack file.
+  \item[git repack] `\emph{\code{git repack}}' is used to combine all objects that do not currently
+    reside in a pack file into a pack. It can also be used to re-organize existing packs into
+    a single, more efficient pack.
+  \item[git push] `\emph{\code{git push}}' will run \code{send-pack} to connects to the remote side,
+    it gets one file descriptor which is either a socket (over the network) or a pipe (local).
+    What's written to this file descriptor goes to `\emph{\code{git-receive-pack}}' to be unpacked.
+    We can get the following pipeline flow from\\
+    \emph{\href{https://github.com/git/git/blob/master/Documentation/technical/send-pack-pipeline.txt}{Documentation/technical/send-pack-pipeline.txt}}:
+    \begin{lstlisting}[basicstyle=\ttfamily]
+    send-pack
+       |
+       pack_objects() --> fd --> receive-pack
+          | ^ (pipe)
+          v |
+       (child)
+    \end{lstlisting}
+    so we can see that `\emph{\code{git push}}' will create a pack file and send it to the remote side.
+  \item[git-receive-pack] As menthioned above, `\emph{\code{git-receive-pack}}' will receive a pack file
+    from `\emph{\code{git push}}'. And `\emph{\code{git receive-pack}}' will also forked a child
+    `\emph{\code{git gc --auto --quiet}}' to check if there are too many loose objects to pack.
+    Ususaly the threshold is 6700 loose files, we can set it by `\textbf{\code{gc.auto}}'.
+  \item[git-upload-pack] When clients runs `\emph{\code{git clone}}' or `\emph{\code{git fetch}}', the
+    client connects to the remote side and invokes `\emph{\code{git-upload-pack}}'.
+    `\emph{\code{git-upload-pack}}' will communicate with client and compute how many objects the client
+    want then fork and exec child `\emph{\code{git-pack-objects}}' to create a pack file for all the
+    needed objects and pipe the pack file to client.
+    \begin{lstlisting}[basicstyle=\ttfamily]
+    upload-pack
+       |
+       pack_objects() --> fd --> fetch-pack
+          | ^ (pipe)
+          v |
+       (child)
+    \end{lstlisting}
+
+    We can also use the `\textbf{\code{repack.writeBitmaps}}' to let git write a bitmap index when packing
+    all objects to disk (e.g., when git repack -a is run). This index can speed up the "counting
+    objects" phase of subsequent packs created for clones and fetches, at the cost of some disk space
+    and extra time spent on the initial repack.
+
+\end{description}
+
+\subsubsection{what makes repository slow}
+
+\todo{}
+
 \section{Requirements}
 \label{sec:requirements}
 
@@ -325,7 +517,6 @@ are:
     push and pull operations, etc. The system keeps the whole statistics about
     nodes, e.g. how many nodes contains each repository, the state of nodes, etc.
 \end{description}
-
 
 \section{Compare to other solutions}
 
