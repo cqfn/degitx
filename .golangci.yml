@@ -67,7 +67,7 @@ linters-settings:
     statements: 40
   nestif:
     # minimal complexity of if statements to report, 5 by default
-    min-complexity: 5
+    min-complexity: 3
   goconst:
     # minimal length of string constant, 3 by default
     min-len: 3
@@ -153,9 +153,6 @@ linters-settings:
     # if it's called for subdir of a project it can't find funcs usages. All text editor integrations
     # with golangci-lint call it on a directory with the changed file.
     check-exported: false
-  testpackage:
-    # regexp pattern to skip files
-    skip-regexp: degitx_test\.go
 linters:
   disable-all: true
   enable:

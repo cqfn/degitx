@@ -32,11 +32,7 @@ clean:
 install-deps:
 	$(MAKE) -C $(PROTODIR) install-deps
 
-# install and run golangci-lint. sudo required
+# run golangci-lint
 lint:
-	@echo "install golangci-lint"
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
 	@golangci-lint --version
-	@echo "lint degitx"
-	@golangci-lint run
-	@echo "degitx linted"
+	golangci-lint run

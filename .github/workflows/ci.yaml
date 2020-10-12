@@ -27,6 +27,9 @@ jobs:
         with:
           name: generated-pb-go-files
           path: proto/go/degitxpb/
+#It has a bug if executed in a same job. See:
+#https://github.com/cqfn/degitx/pull/33#discussion_r503274557
+#https://github.com/golangci/golangci-lint-action/issues/23
   golangci:
     name: lint
     needs: build-and-test
