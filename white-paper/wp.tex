@@ -67,7 +67,7 @@
 
 \maketitle
 \begin{abstract}
-Big software compines may have millions of code repositories,
+Big software companies may have millions of code repositories,
 and use them extensively by programmers and CI pipelines.
 One git server is not able to satisfy performance expectations,
 many servers with load-balancing can't solve this issue too because
@@ -93,10 +93,10 @@ repository, team members may have different responsibilities for review and merg
 project technical lead can merge all approved pull-requests in short period of time
 which causes frequent push operations in git repo.
 
-These two conditions leads to high fetch traffic peaks for git repositories:
-frequent push operations turns replication nodes into inconsistent state,
-and leads to high fetch traffic from different regions to primary repository node
-which can shutdown the node and becomes the whole repository unavailable for some time.
+These two conditions lead to high fetch traffic peaks for git repositories:
+frequent push operations turn replication nodes into inconsistent state,
+and lead to high fetch traffic from different regions to primary repository node
+which can shutdown the node and become the whole repository unavailable for some time.
 
 Merge is not the only way to "update" the repository. Lots of activities can do that,
 here is the list of some:
@@ -110,7 +110,7 @@ here is the list of some:
     the new \code{refs/merge-requests/IID/head} named ref
     is created. When source branch of merge request is updated, the ref is also updated.
   \item Migrations: sometimes repository administrator can migrate source code to
-    another phisical device, it also could be treated as an update.
+    another physical device, it also could be treated as an update.
 \end{description}
 
 \section{Solution}
@@ -121,21 +121,29 @@ different regions, durability by replicating repositories on different server ra
 read scalability by routing fetch traffic on different nodes.
 
 DeGit is a peer-to-peer system, no persistent master nodes
-exists\footnote{The system may have temporary master node for repository elected to perform some command}.
+exists\footnote{The system may have temporary master node for repository elected to perform git command}.
+Each node knows about each other due to discovery protocol (\todo{choose discovery protocol}).
+
 Each DeGit node stores multiple repositories on local storage
-and exposes RPC API to manage repositories.
-If API call referes to repository which doesn't exist on storage, it performs lookup
-for repository on other nodes and synchronize it on local storage.
-When new repository is created in a system via push operation, the node
-replicates to at least 3 other nodes synchronously and propagetes metadata for future repository
-lookup.
-Update operation can be reouted to any node which contains the repository.
-The node synchronously updates all replicas on push, if update failed due to concurency issue,
-the whole update fails.
+and exposes RPC API for all git operations. Node can accept RPC operation for repository
+which is not located on local storage, in that case it performs lookup
+for repository on other nodes and synchronizes it on local storage, and performs RPC command
+after that.
+
+When a new repository is created in a system via push operation, the node replicates this repository
+to at least 3 other nodes synchronously and propagetes metadata for future repository lookup.
+
+Update operation can be routed to any node which contains the repository. The node synchronously
+updates all replicas on push. If update failed due to concurency issue, the whole update fails.
+
+Each node collects usage statistics about fetch and push operation, and system may decide to move repositories
+to most frequently used nodes based on this statistics.
+
 The system autmatically rebalances repository storage: when repository is not used actively for a
-long time, it can remove it from storage if 3 replicas exists on other nodes; if some node
-has a lot of free space on storage, and storage of another node is almost full,
+long time, the node can remove a repository from storage if 3 replicas of this repository exists on other nodes;
+if some node has a lot of free space on storage, and storage of another node is almost full,
 full node can transfer (move) some repositories to another node.
+
 The system can accept new nodes and automatically fill it with replica repository and
 move some repository to new node. Same for dosconnecting: if node was disconnected from the system or crashed,
 it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
@@ -146,24 +154,36 @@ Main system protocol components are (under discussion):
 \begin{description}
   \item[Locators] - unique node identity.
   \item[Network] - node peers connection.
-  \item[Repository lookup] - a mapping of repository to node relations (many to many).
-  \item[State] - node repository state,
-    DHT\footnote{distributed hash table: https://en.wikipedia.org/wiki/Distributed\_hash\_table}
-  \item[commands] - node repository state machine command protocol to change its state
+  \item[Discovery] - a mapping of repository to node: a node contains many repositories and
+    repository can be replicated across many nodes.
+  \item[Git data] - Git objects and references exchange protocol, commands to add new objects and update references.
 \end{description}
 
 \subsubsection{Locators}
-Locators are unique \code{256} bit identifiers of node \todo{more details}.
+Each node has peristant public and private keys to identify itself in a system.
+Unique identifier\footnote{In this document, node identifier, node-id and node locator refer to the same definition}
+is a cryptographic hash of public key of the node in \href{https://multiformats.io/multihash/}{Multihash} format.
+Private and public keys can be used to sign requests to other nodes or to build trusted \hyperref[sec:discovery]{discovery}
+point in a system: when a new system is created, administrator can create CA (certification authority) for issuing
+digital certificates for node public keys, so each node will be able to verify certificate of any other node when
+using seed list URLs. Node instances uses locators to talk with each other, it can find real network address of nodes using
+this identity. Also, system uses locators for node-repository mapping, the item of mapping table consists of
+locator and unique repository name.
+
+Related: "A Practicable Approach Towards Secure Key-Based Routing" by I. Baumgart and S. Mies;
+Identities and Network design of IPFS by J. Benet.
 
 \subsubsection{Network}
 DeGitX can use different network protocols for RPC calls, \code{TCP} is supported by default
 \todo{other protocols, e.g. NAT traversing?}.
 
-\subsubsection{Lookup}
+\subsubsection{Discovery}
+\label{sec:discovery}
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
 \todo{research and compare different solutions}.
 
-Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} algorithm.
+Consensus could be implemented using \href{https://raft.github.io/raft.pdf}{Raft} or
+\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos} algorithm.
 \todo{search for more algorithms}.
 
 \subsection{Git Internals}
@@ -279,18 +299,18 @@ are:
 \begin{description}
   \item[Read scalability]
     The solution should scale out the read capacity of a system, each region should be able
-    to access repository without connecting to master repo frequently.
+    to access repository using most available replica node.
   \item[Strong consistency]
     All? (\todo{discuss, maybe not all but the majority of replicas})
-    active replica repositories should be synchronized on updates in master node
+    active replica repositories should be synchronized on updates in any node
     with immediate consistency.
   \item[Durability]
-    The system must have enough replicas to recover itself in case of curruption.
-    Corrupted repository could be reposnsible to recover itself using replica nodes.
+    The system must have enough replicas to recover itself in case of corruption.
+    Corrupted repository could be responsible for recovering itself using replica nodes.
   \item[Self management (rename?)]
     Each node performs cleanup when needed (\code{git gc}) and may remove replica
     from storage on read inactivity.
-    A node shold be able to find and synchronize new repository on read,
+    A node should be able to find and synchronize new repository on read,
     after that it should be up to date on new updates.
   \item[Maintainability]
     Node administrator can change the storage, and perform data migration from one storage

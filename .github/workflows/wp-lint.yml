@@ -1,0 +1,16 @@
+---
+name: Build white paper LaTeX
+"on":
+  pull_request:
+    branches: [master]
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@2.2.0
+        with:
+          working_directory: ./white-paper
+          root_file: wp.tex

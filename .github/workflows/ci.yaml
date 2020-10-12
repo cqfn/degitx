@@ -20,9 +20,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Build
-        run: |
-          go build -v
-          go build -v ./cmd/node
-      - name: Test
-        run: go test -v
+      - uses: arduino/setup-protoc@master
+      - name: Build and test
+        run: make
