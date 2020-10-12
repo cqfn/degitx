@@ -6,6 +6,7 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
+    - make proto
 builds:
   - env:
       - CGO_ENABLED=0
