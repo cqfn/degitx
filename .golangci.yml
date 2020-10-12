@@ -181,7 +181,6 @@ linters:
     - goprintffuncname
     - gomnd
     - goerr113
-    - testpackage
     - nestif
     - exhaustive
     - nolintlint
