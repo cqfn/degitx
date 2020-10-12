@@ -1,13 +1,16 @@
 // MIT License. Copyright (c) 2020 CQFN
 // https://github.com/cqfn/degitx/blob/master/LICENSE
 
+// Package degitx provide a degitx server start point.
 package degitx
 
 import (
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
 	"org.cqfn/degitx/proto/go/degitxpb"
 )
 
@@ -34,7 +37,7 @@ func Start() {
 
 	reflection.Register(grpcServer)
 
-	l, err := net.Listen("tcp", ":8080")
+	l, err := net.Listen("tcp", ":8080") //nolint:gosec // It's only a stub
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,5 +45,4 @@ func Start() {
 	if err := grpcServer.Serve(l); err != nil {
 		log.Fatal(err)
 	}
-
 }
