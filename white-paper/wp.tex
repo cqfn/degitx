@@ -174,8 +174,8 @@ Related: "A Practicable Approach Towards Secure Key-Based Routing" by I. Baumgar
 Identities and Network design of IPFS by J. Benet.
 
 \subsubsection{Network}
-DeGitX uses STC, TCP or UDP protocols for transport layer. It uses IPv4 or IPv6 for addressing,
-it stores addresses in \href{https://github.com/multiformats/multiaddr}{multiaddr}, for instance:
+DeGitX uses TCP or UDP protocols for transport layer, TCP is used by default. It uses IPv4 or IPv6 for addressing,
+it stores addresses in \href{https://github.com/multiformats/multiaddr}{multiaddr} format, for instance:
 \code{/ipv4/1.2.3.4/udp/4444} evaluates to \code{4444} UDP port on \code{1.2.3.4} IPv4 address.
 DeGitX uses a routing system to find addresses of nodes by locators.
 
