@@ -14,6 +14,7 @@ Use `make` to build this project:
  - `make build` - build core package
  - `make test` - run tests
  - `make node` - build `node` binary
+ - `make lint` - run linters. [golangci-lint](https://golangci-lint.run/) required to be installed in advance.
 
 
 <!--

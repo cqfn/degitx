@@ -3,9 +3,7 @@
 
 package degitx
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestStub(tst *testing.T) {
 }

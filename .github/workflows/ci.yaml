@@ -23,3 +23,24 @@ jobs:
       - uses: arduino/setup-protoc@master
       - name: Build and test
         run: make
+      - uses: actions/upload-artifact@v2
+        with:
+          name: generated-pb-go-files
+          path: proto/go/degitxpb/
+#It has a bug if executed in a same job. See:
+#https://github.com/cqfn/degitx/pull/33#discussion_r503274557
+#https://github.com/golangci/golangci-lint-action/issues/23
+  golangci:
+    name: lint
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: generated-pb-go-files
+          path: proto/go/degitxpb/
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.31
