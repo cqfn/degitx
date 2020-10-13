@@ -3,7 +3,7 @@ RMRF := rm -rf
 GO := go
 FLAGS := -v
 
-.PHONY: all build clean install-deps $(PROTODIR)
+.PHONY: all build clean install-deps lint  $(PROTODIR)
 
 all: build test node
 
@@ -31,3 +31,8 @@ clean:
 # install required dependencies
 install-deps:
 	$(MAKE) -C $(PROTODIR) install-deps
+
+# run golangci-lint
+lint:
+	@golangci-lint --version
+	golangci-lint run
