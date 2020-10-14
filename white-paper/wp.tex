@@ -154,7 +154,8 @@ Main system protocol components are (under discussion):
 \begin{description}
   \item[Locators] - unique node identity.
   \item[Network] - node peers connection.
-  \item[Discovery] - a mapping of repository to node: a node contains many repositories and
+  \item[Discovery] - lookup of node real address by locator ID.
+  \item[Metadata] - a mapping of repository to node: a node contains many repositories and
     repository can be replicated across many nodes.
   \item[Git data] - Git objects and references exchange protocol, commands to add new objects and update references.
 \end{description}
@@ -181,11 +182,33 @@ DeGitX uses a routing system to find addresses of nodes by locators.
 
 \subsubsection{Discovery}
 \label{sec:discovery}
+Each node doesn't know network addresses of others by default. Different discovery techicues could be used
+for node lookup:
+\todo{choose the best option}.
+\begin{description}
+\item[DHT] - distributed hash tables uses different metrics to compare the distance of nodes in overlay network.
+  For example \href{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf}{Kademlia} uses
+  \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed -
+  DeGitX locators satisfies this requirements, being generated as cryptographic hash function from
+  public key. In Kademlia lookup system each node stores references in K-buckets, where each K-bucket
+  contains node addresses with same ID prefix. For more details, see section 2.4 of its white paper.
+\item[Distributed DB] - network addresses could be propagated to the system using supplimentary distributed
+  CP database, e.g. etcd or others. Node registers itself in database on startap, and uses this database for lookups.
+  It requires additional system configuration, but delegating some responsibilities to third-party services.
+\item[Track host] - nodes can use some central track host to register itself on start. Many track implementations
+  provides DNS services to help with discovery of registered nodes.
+\item[Hybrid] - system may use different approaches combinations, e.g. discovery service may use distributed database
+  and provide single entry point for discovery as track DNS.
+\end{description}
+
+\subsection{Metadata}
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
 \todo{research and compare different solutions}.
 
+\subsection{Git data exchange}
 Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
 \emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
+
 \todo{search for more algorithms}.
 
 \subsection{Git Internals}
