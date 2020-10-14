@@ -1,8 +1,7 @@
 // MIT License. Copyright (c) 2020 CQFN
 // https://github.com/cqfn/degitx/blob/master/LICENSE
 
-// Package config contains yaml node config parser
-package config
+package main
 
 import (
 	"fmt"
@@ -22,17 +21,15 @@ type NodeConfig struct {
 	Keys    *Keys  `yaml:"keys"`
 }
 
-// FromFile parses yaml node config from a file by a given name
-func (cfg *NodeConfig) FromFile(fileName string) error {
+func (cfg *NodeConfig) fromFile(fileName string) error {
 	source, err := ioutil.ReadFile(fileName) //nolint:gosec // no user input for filename
 	if err != nil {
 		return err
 	}
-	return cfg.Parse(source)
+	return cfg.parse(source)
 }
 
-// Parse parses yaml node config from given bytes
-func (cfg *NodeConfig) Parse(source []byte) error {
+func (cfg *NodeConfig) parse(source []byte) error {
 	if err := yaml.UnmarshalStrict(source, &cfg); err != nil {
 		return err
 	}
@@ -48,7 +45,7 @@ func (cfg *NodeConfig) allFieldsPresent() error {
 	}
 	for field, desc := range fields {
 		if len(field) == 0 {
-			return fmt.Errorf("%v is omitted", desc) //nolint:goerr113 // No error to wrap here.
+			return fmt.Errorf("%s is omitted", desc) //nolint:goerr113 // No error to wrap here.
 		}
 	}
 	return nil
