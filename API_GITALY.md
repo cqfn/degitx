@@ -48,7 +48,7 @@ GetBlobs | catfile  | cmd | Go
 GetLFSPointers | https://git-lfs.github.com | rugged? | Ruby
 GetNewLFSPointers | https://git-lfs.github.com | rugged? | Ruby
 GetAllLFSPointers | https://git-lfs.github.com | rugged? | Ruby
-ApplyBfgObjectMapStream | catfile & for-each-ref --format &  update-ref -z --stdin & (After https://rtyley.github.io OR filter-repo) | cmd | Go
+ApplyBfgObjectMapStream | catfile & for-each-ref --format &  update-ref -z --stdin & (After https://rtyley.github.io/bfg-repo-cleaner/ OR filter-repo) | cmd | Go
 CommitIsAncestor | merge-base --is-ancestor | cmd | Go
 TreeEntry | catfile | cmd | Go
 CommitsBetween | log --pretty=%H --reverse | cmd | Go
