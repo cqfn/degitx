@@ -18,7 +18,7 @@ Use `make` to build this project:
 
 ## Node Configuration
 
-`yaml` is the only node configuration standard and consist of: 
+`yaml` is the only node configuration format and consist of: 
 
  - `version` - config format version
  - `keys` - node crypto keys:
