@@ -16,6 +16,17 @@ Use `make` to build this project:
  - `make node` - build `node` binary
  - `make lint` - run linters. [golangci-lint](https://golangci-lint.run/) required to be installed in advance.
 
+## Node Configuration
+
+`yaml` is the only node configuration standard and consist of: 
+
+ - `version` - config format version
+ - `keys` - node crypto keys:
+   - `alg` - key algorithm
+   - `private` - private key location
+   - `public` - public key location
+   
+All fields are required. 
 
 <!--
 @todo #1:30min Process links in the readme.
