@@ -5,7 +5,6 @@ package main
 
 import (
 	"crypto/sha1" //nolint:gosec //used only to hash public key
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 
@@ -14,9 +13,9 @@ import (
 )
 
 type Keys struct {
-	Alg     string `yaml:"alg"`
-	Private string `yaml:"private"`
-	Public  string `yaml:"public"`
+	Alg           string `yaml:"alg"`
+	PathToPrivate string `yaml:"private"`
+	PathToPublic  string `yaml:"public"`
 }
 
 type NodeConfig struct {
@@ -41,10 +40,10 @@ func (config *NodeConfig) parse(source []byte) error {
 
 func (config *NodeConfig) allRequiredFieldsPresent() error {
 	fields := map[string]string{
-		config.Version:      "config format version",
-		config.Keys.Alg:     "key algorithm",
-		config.Keys.Private: "private key location",
-		config.Keys.Public:  "public key location",
+		config.Version:            "config format version",
+		config.Keys.Alg:           "key algorithm",
+		config.Keys.PathToPrivate: "private key location",
+		config.Keys.PathToPublic:  "public key location",
 	}
 	for field, desc := range fields {
 		if len(field) == 0 {
@@ -54,12 +53,15 @@ func (config *NodeConfig) allRequiredFieldsPresent() error {
 	return nil
 }
 
-func (config *NodeConfig) generateNodeID() (string, error) {
-	data := []byte(config.Keys.Public)
-	buf := sha1.Sum(data) //nolint:gosec //public key is not so secured
+func (config *NodeConfig) generateNodeID() (*[]byte, error) {
+	publicKey, err := ioutil.ReadFile(config.Keys.PathToPublic) //nolint:gosec // no user input for filename
+	if err != nil {
+		return &[]byte{}, err
+	}
+	buf := sha1.Sum(publicKey) //nolint:gosec //public key is not so secured
 	mHashBuf, err := multihash.EncodeName(buf[:], "sha1")
 	if err != nil {
-		return "", err
+		return &[]byte{}, err
 	}
-	return hex.EncodeToString(mHashBuf), nil
+	return &mHashBuf, nil
 }

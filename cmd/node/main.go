@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -54,6 +55,6 @@ func printID(ctx *cli.Context) error {
 		log.Fatal(err)
 		return err
 	}
-	fmt.Println(nodeID)
+	fmt.Println(hex.EncodeToString(*nodeID))
 	return nil
 }
