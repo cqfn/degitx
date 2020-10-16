@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -24,6 +25,11 @@ func main() {
 				Usage:   "run the node",
 				Action:  cmdRun,
 			},
+			{
+				Name:   "id",
+				Usage:  "print current node id",
+				Action: printID,
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -33,5 +39,21 @@ func main() {
 
 func cmdRun(ctx *cli.Context) error {
 	degitx.Start()
+	return nil
+}
+
+func printID(ctx *cli.Context) error {
+	config := new(NodeConfig)
+	err := config.fromFile("./cmd/node/testdata/test_pos.yaml")
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	nodeID, err := config.generateNodeID()
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	fmt.Println(nodeID)
 	return nil
 }
