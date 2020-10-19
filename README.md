@@ -29,27 +29,16 @@ Use `make` to build this project:
 All fields are required. 
 
 <!--
-@todo #1:30min Process links in the readme.
- Remove already analyzed links. If link is not analyzed, then
- Handle it, extract summary and add research result to white paper document.
+@todo #25:30min Analyze projects and consensus algorithms above,
+ extract summary and refernces, add to white paper
 
 Consensus algorithms:
  - http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html
  - https://en.wikipedia.org/wiki/Paxos_algorithm
  - https://raft.github.io/
 
-Researches:
- - https://dl.acm.org/doi/10.1145/98163.98167
- - https://web.archive.org/web/20060508040935/http://www.eecs.harvard.edu/cs262/DSbook.c7.pdf
-
-Implementations:
- - [Spokes](https://github.blog/2016-09-07-building-resilience-in-spokes/) by GitHub
- (previously known as [DGit](https://github.blog/2016-04-05-introducing-dgit/))
+Projects
  - [etcd](https://etcd.io/)
- - IPFS:
-   - [home-page](https://ipfs.io/)
-   - [white-paper](https://raw.githubusercontent.com/ipfs-inactive/papers/master/ipfs-cap2pfs/ipfs-p2p-file-system.pdf)
-   - [blog-post](https://medium.com/a-weekend-with/a-weekend-with-ipfs-9f2647fc231)
  - [brig](https://github.com/sahib/brig)
 
 -->
