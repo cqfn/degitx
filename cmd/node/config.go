@@ -53,15 +53,15 @@ func (config *NodeConfig) allRequiredFieldsPresent() error {
 	return nil
 }
 
-func (config *NodeConfig) generateNodeID() (*[]byte, error) {
+func (config *NodeConfig) generateNodeID() ([]byte, error) {
 	publicKey, err := ioutil.ReadFile(config.Keys.PathToPublic) //nolint:gosec // no user input for filename
 	if err != nil {
-		return &[]byte{}, err
+		return nil, err
 	}
 	buf := sha1.Sum(publicKey) //nolint:gosec //public key is not so secured
 	mHashBuf, err := multihash.EncodeName(buf[:], "sha1")
 	if err != nil {
-		return &[]byte{}, err
+		return nil, err
 	}
-	return &mHashBuf, nil
+	return mHashBuf, nil
 }
