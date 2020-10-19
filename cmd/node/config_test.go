@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"testing"
 
 	assert "github.com/allisson/go-assert"
@@ -14,7 +15,25 @@ func Test_fromYaml(tst *testing.T) {
 	err := config.fromFile("testdata/test_pos.yaml")
 	assert.Nil(tst, err)
 	assert.Equal(tst, "42", config.Version)
-	assert.Equal(tst, "expected_alg_name", config.Keys.Alg)
-	assert.Equal(tst, "expected_pk_location", config.Keys.Public)
-	assert.Equal(tst, "expected_sk_location", config.Keys.Private)
+	assert.Equal(tst, "rsa-1024", config.Keys.Alg)
+	assert.Equal(tst,
+		"./cmd/node/testdata/public",
+		config.Keys.PathToPublic)
+	assert.Equal(tst,
+		"./cmd/node/testdata/private",
+		config.Keys.PathToPrivate)
+}
+
+func Test_generateNodeID(tst *testing.T) {
+	config := NodeConfig{
+		"",
+		&Keys{
+			"",
+			"",
+			"testdata/stub",
+		},
+	}
+	nodeID, err := config.generateNodeID()
+	assert.Nil(tst, err)
+	assert.Equal(tst, "11148a173fd3e32c0fa78b90fe42d305f202244e2739", hex.EncodeToString(nodeID))
 }
