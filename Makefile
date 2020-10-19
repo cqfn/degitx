@@ -3,7 +3,7 @@ RMRF := rm -rf
 GO := go
 FLAGS := -v
 
-.PHONY: all build clean install-deps lint  $(PROTODIR)
+.PHONY: all build clean install-deps lint tidy $(PROTODIR)
 
 all: build test node
 
@@ -36,3 +36,6 @@ install-deps:
 lint:
 	@golangci-lint --version
 	golangci-lint run
+
+tidy:
+	go mod tidy
