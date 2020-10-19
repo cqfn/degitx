@@ -30,7 +30,8 @@ All fields are required.
 
 <!--
 @todo #25:30min Analyze projects and consensus algorithms above,
- extract summary and refernces, add to white paper
+ extract summary and refernces, add to white paper. For projects:
+ find white paper or other document, and extract summary from it.
 
 Consensus algorithms:
  - http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html
