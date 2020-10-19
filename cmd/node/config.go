@@ -4,12 +4,11 @@
 package main
 
 import (
-	"crypto/sha1" //nolint:gosec //used only to hash public key
 	"fmt"
 	"io/ioutil"
 
-	"github.com/multiformats/go-multihash"
 	"gopkg.in/yaml.v2"
+	"org.cqfn/degitx/locators"
 )
 
 type Keys struct {
@@ -18,9 +17,14 @@ type Keys struct {
 	PathToPublic  string `yaml:"public"`
 }
 
+type Locator struct {
+	HashFunc string `yaml:"hash"`
+}
+
 type NodeConfig struct {
-	Version string `yaml:"version"`
-	Keys    *Keys  `yaml:"keys"`
+	Version  string   `yaml:"version"`
+	Keys     *Keys    `yaml:"keys"`
+	Locators *Locator `yaml:"locator"`
 }
 
 func (config *NodeConfig) fromFile(fileName string) error {
@@ -35,10 +39,10 @@ func (config *NodeConfig) parse(source []byte) error {
 	if err := yaml.UnmarshalStrict(source, &config); err != nil {
 		return err
 	}
-	return config.allRequiredFieldsPresent()
+	return config.validate()
 }
 
-func (config *NodeConfig) allRequiredFieldsPresent() error {
+func (config *NodeConfig) validate() error {
 	fields := map[string]string{
 		config.Version:            "config format version",
 		config.Keys.Alg:           "key algorithm",
@@ -53,15 +57,18 @@ func (config *NodeConfig) allRequiredFieldsPresent() error {
 	return nil
 }
 
-func (config *NodeConfig) generateNodeID() ([]byte, error) {
-	publicKey, err := ioutil.ReadFile(config.Keys.PathToPublic) //nolint:gosec // no user input for filename
+// Locator of node (nodeID)
+func (config *NodeConfig) Locator() (locators.Locator, error) {
+	kpub, err := ioutil.ReadFile(config.Keys.PathToPublic) //nolint:gosec // no user input for filename
 	if err != nil {
 		return nil, err
 	}
-	buf := sha1.Sum(publicKey) //nolint:gosec //public key is not so secured
-	mHashBuf, err := multihash.EncodeName(buf[:], "sha1")
-	if err != nil {
-		return nil, err
+	var hfunc string
+	if config.Locators != nil {
+		hfunc = config.Locators.HashFunc
 	}
-	return mHashBuf, nil
+	if hfunc == "" {
+		hfunc = "SHA1"
+	}
+	return locators.NewHash(kpub, hfunc)
 }
