@@ -18,6 +18,7 @@ install: build
 test: build
 	go test $(FLAGS)
 	go test $(FLAGS) ./locators
+	go test $(FLAGS) ./discovery
 	go test $(FLAGS) ./cmd/node
 
 node: build proto
