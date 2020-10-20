@@ -47,14 +47,16 @@ func printID(ctx *cli.Context) error {
 	config := new(NodeConfig)
 	err := config.fromFile("./cmd/node/testdata/test_pos.yaml")
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
-	nodeID, err := config.generateNodeID()
+	l, err := config.Locator()
 	if err != nil {
-		log.Fatal(err)
 		return err
 	}
-	fmt.Println(hex.EncodeToString(nodeID))
+	mh, err := l.Multihash()
+	if err != nil {
+		return err
+	}
+	fmt.Println(hex.EncodeToString(mh))
 	return nil
 }

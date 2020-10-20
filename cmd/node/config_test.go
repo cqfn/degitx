@@ -32,8 +32,13 @@ func Test_generateNodeID(tst *testing.T) {
 			"",
 			"testdata/stub",
 		},
+		&Locator{
+			HashFunc: "sha1",
+		},
 	}
-	nodeID, err := config.generateNodeID()
+	loc, err := config.Locator()
 	assert.Nil(tst, err)
-	assert.Equal(tst, "11148a173fd3e32c0fa78b90fe42d305f202244e2739", hex.EncodeToString(nodeID))
+	mh, err := loc.Multihash()
+	assert.Nil(tst, err)
+	assert.Equal(tst, "11148a173fd3e32c0fa78b90fe42d305f202244e2739", hex.EncodeToString(mh))
 }
