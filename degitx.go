@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"org.cqfn/degitx/proto/go/degitxpb"
+	"cqfn.org/degitx/proto/go/degitxpb"
 )
 
 func Start() {
