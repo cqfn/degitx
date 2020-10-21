@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"time"
 
+	"cqfn.org/degitx/locators"
+	"cqfn.org/degitx/misc"
+	pb "cqfn.org/degitx/proto/go/degitxpb"
 	ma "github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
-	"org.cqfn/degitx/locators"
-	"org.cqfn/degitx/misc"
-	pb "org.cqfn/degitx/proto/go/degitxpb"
 )
 
 // Discovery interface

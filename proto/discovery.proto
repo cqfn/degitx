@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package degitx.discovery;
 
-option go_package = "org.cqfn/degitx/proto/go/degitxpb";
+option go_package = "cqfn.org/degitx/proto/go/degitxpb";
 
 
 // NodeCoord - coordinate of node

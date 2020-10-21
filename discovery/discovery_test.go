@@ -7,10 +7,10 @@ import (
 	"bytes"
 	"testing"
 
+	"cqfn.org/degitx/locators"
 	"github.com/allisson/go-assert"
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
-	"org.cqfn/degitx/locators"
 )
 
 type testLocator struct {
