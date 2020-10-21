@@ -48,6 +48,34 @@ type Peers struct {
 	peers []*Peer
 }
 
+func (prs *Peers) merge(upd []*Peer) error {
+	// @todo #44:90min Improve merge implementation.
+	//  Make it faster - don't use double for loop,
+	//  and rollback to initial state in case of error.
+	for _, p := range upd {
+		var found bool
+		for _, local := range prs.peers {
+			hash, err := local.Locator.Multihash()
+			if err != nil {
+				return err
+			}
+			loc, err := p.Locator.Multihash()
+			if err != nil {
+				return err
+			}
+			if bytes.Equal(loc, hash) {
+				local.Addr = p.Addr
+				found = true
+				break
+			}
+		}
+		if !found {
+			prs.peers = append(prs.peers, p)
+		}
+	}
+	return nil
+}
+
 type pbDiscovery struct {
 	ctx   context.Context
 	peers *Peers
@@ -84,30 +112,16 @@ func (d *pbDiscovery) Ping(addr ma.Multiaddr) error {
 	if err != nil {
 		return err
 	}
-	for _, p := range rsp.GetPeers() {
-		var found bool
-		for _, local := range d.peers.peers {
-			hash, err := local.Locator.Multihash()
-			if err != nil {
-				return err
-			}
-			if bytes.Equal(p.Locator, hash) {
-				local.Addr, err = ma.NewMultiaddr(p.Address)
-				if err != nil {
-					return err
-				}
-				found = true
-				break
-			}
+	coords := rsp.GetPeers()
+	upd := make([]*Peer, len(coords))
+	for i, crd := range rsp.GetPeers() {
+		p := new(Peer)
+		if err := p.fromGRPCCoord(crd); err != nil {
+			return err
 		}
-		if !found {
-			peer := new(Peer)
-			if err := peer.fromGRPCCoord(p); err != nil {
-				return err
-			}
-		}
+		upd[i] = p
 	}
-	return nil
+	return d.peers.merge(upd)
 }
 
 var errInvalidSeedAddr = errors.New("invalid seed address, should contain IP and TCP components")

@@ -3,7 +3,7 @@ RMRF := rm -rf
 GO := go
 FLAGS := -v
 
-.PHONY: all build clean install-deps lint tidy $(PROTODIR)
+.PHONY: all build clean install-deps lint tidy verify $(PROTODIR)
 
 all: build test node
 
@@ -42,5 +42,10 @@ lint:
 	@golangci-lint --version
 	golangci-lint run
 
+# remove unused dependencies
 tidy:
 	go mod tidy
+
+# verify build before commit
+verify: clean build test lint node
+	@echo "Built is OK"
