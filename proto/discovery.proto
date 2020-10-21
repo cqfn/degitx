@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package degitx.discovery;
+
+option go_package = "cqfn.org/degitx/proto/go/degitxpb";
+
+
+// NodeCoord - coordinate of node
+message NodeCoord {
+  // locator - node ID multihash
+  bytes locator = 1;
+  // address - multiaddr of node
+  string address = 2;
+}
+
+// PingRequest - sends by node periodically to seed node
+message PingRequest {
+  // locator - node coordinates of self
+  NodeCoord locator = 1;
+}
+
+// PingResponse - returned on ping request
+message PingResponse {
+  // peers - known peers
+  repeated NodeCoord peers = 1;
+}
+
+// DiscoveryService - discovery endpoint
+service DiscoveryService {
+  // Ping - send ping request to discovery service to propagate self coordinates
+  //  and receive known peers of service.
+  rpc Ping(NodeCoord) returns (PingResponse) {}
+}

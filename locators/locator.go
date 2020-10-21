@@ -65,3 +65,20 @@ func NewHash(data []byte, name string) (Locator, error) {
 	hash := hf.Sum(nil)
 	return &hashLoc{hash, name}, nil
 }
+
+type mhLocator struct {
+	hash mh.Multihash
+}
+
+func (l *mhLocator) Multihash() (mh.Multihash, error) {
+	return l.hash, nil
+}
+
+// FromBytes creates new multihash locator from bytes, returns error if invalid
+func FromBytes(data []byte) (Locator, error) {
+	hash, err := mh.Cast(data)
+	if err != nil {
+		return nil, err
+	}
+	return &mhLocator{hash}, nil
+}

@@ -15,6 +15,7 @@ Use `make` to build this project:
  - `make test` - run tests
  - `make node` - build `node` binary
  - `make lint` - run linters. [golangci-lint](https://golangci-lint.run/) required to be installed in advance.
+ - `make verify` - build, test and lint
 
 ## Node Configuration
 
@@ -43,6 +44,16 @@ Projects
  - [brig](https://github.com/sahib/brig)
 
 -->
+
+### Contributing
+
+To propose new changes:
+ 1 - create a new branch from `master`
+ 2 - write the code
+ 3 - verify with `make verify` to be sure all tests passes
+ 4 - create new commit using format: `#<ticket> - <message>`, push to fork
+ 5 - create pull request: specify the problem in PR description, describe the changes
+ in PR body
 
 ### GPG public key
 
