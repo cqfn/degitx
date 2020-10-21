@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
-	"org.cqfn/degitx/locators"
+	"cqfn.org/degitx/locators"
 )
 
 type Keys struct {

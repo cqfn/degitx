@@ -11,7 +11,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"org.cqfn/degitx"
+	"cqfn.org/degitx"
 )
 
 func main() {

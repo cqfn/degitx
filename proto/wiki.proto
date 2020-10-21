@@ -5,7 +5,7 @@ import "shared.proto";
 
 package degitx;
 
-option go_package = "org.cqfn/degitx/proto/go/degitxpb";
+option go_package = "cqfn.org/degitx/proto/go/degitxpb";
 
 service WikiService {
   rpc WikiGetPageVersions(WikiGetPageVersionsRequest) returns (stream WikiGetPageVersionsResponse) {

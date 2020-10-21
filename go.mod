@@ -1,7 +1,7 @@
 // MIT License. Copyright (c) 2020 CQFN
 // https://github.com/cqfn/degitx/blob/master/LICENSE
 
-module org.cqfn/degitx
+module cqfn.org/degitx
 
 go 1.14
 
