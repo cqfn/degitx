@@ -9,12 +9,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	ma "github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"org.cqfn/degitx/locators"
+	"org.cqfn/degitx/misc"
 	pb "org.cqfn/degitx/proto/go/degitxpb"
 )
 
@@ -54,27 +54,33 @@ type pbDiscovery struct {
 	self  locators.Locator
 }
 
+func coordFromLocator(l locators.Locator) (*pb.NodeCoord, error) {
+	c := new(pb.NodeCoord)
+	hash, err := l.Multihash()
+	if err != nil {
+		return nil, err
+	}
+	c.Locator = hash
+	return c, nil
+}
+
 func (d *pbDiscovery) Ping(addr ma.Multiaddr) error {
 	con, err := grpcConnection(d.ctx, addr)
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		if err := con.Close(); err != nil {
-			log.Printf("failed to close gRPC connection: `%s`", err)
-		}
-	}()
-	self := new(pb.NodeCoord)
-	hash, err := d.self.Multihash()
+	defer misc.CloseWithLog(con)
+	coord, err := coordFromLocator(d.self)
 	if err != nil {
 		return err
 	}
-	self.Locator = hash
+
 	svc := pb.NewDiscoveryServiceClient(con)
 	ctx, cancel := context.WithTimeout(d.ctx, reqTimeout)
 	defer cancel()
-	rsp, err := svc.Ping(ctx, self)
+
+	rsp, err := svc.Ping(ctx, coord)
 	if err != nil {
 		return err
 	}
