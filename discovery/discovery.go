@@ -23,6 +23,19 @@ type Discovery interface {
 	Ping(ma.Multiaddr) error
 }
 
+// Service is a discovery client or server daemon to synchornize
+// or provide peers information
+type Service interface {
+	Start(context.Context) error
+}
+
+// StubService of discovery. Does nothing.
+type StubService struct{}
+
+func (s *StubService) Start(_ context.Context) error {
+	return nil
+}
+
 // Peer node
 type Peer struct {
 	Locator locators.Locator
@@ -130,36 +143,14 @@ const reqTimeout = time.Second * 5
 
 const conTimeout = time.Second * 5
 
-func grpcConnection(ctx context.Context, addr ma.Multiaddr) (*grpc.ClientConn, error) {
-	prts := addr.Protocols()
-	if len(prts) < 2 { //nolint:gomnd // 2 parts is verbose enough here
-		return nil, errInvalidSeedAddr
-	}
-	pip := prts[0]
-	var prefix string
-	switch pip.Code {
-	case ma.P_IP4:
-		prefix = "ipv4"
-	case ma.P_IP6:
-		prefix = "ipv6"
-	default:
-		return nil, errInvalidSeedAddr
-	}
-	ptcp := prts[1]
-	if ptcp.Code != ma.P_TCP {
-		return nil, errInvalidSeedAddr
-	}
-	ip, err := addr.ValueForProtocol(pip.Code)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find IP component: %w", err)
-	}
-	tcp, err := addr.ValueForProtocol(ptcp.Code)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find TCP component: %w", err)
-	}
+func grpcConnection(ctx context.Context, maddr ma.Multiaddr) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(ctx, conTimeout)
 	defer cancel()
-	return grpc.DialContext(ctx, fmt.Sprintf("%s:%s:%s", prefix, ip, tcp))
+	addr := new(maNetworkAddr)
+	if err := addr.parse(maddr); err != nil { //nolint:dupl // just parsing an address
+		return nil, err
+	}
+	return grpc.DialContext(ctx, fmt.Sprintf("%s:%s", addr.Network(), addr.String()))
 }
 
 // NewGrpc creates new gRPC discovery implementation
