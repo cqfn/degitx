@@ -82,3 +82,8 @@ func FromBytes(data []byte) (Locator, error) {
 	}
 	return &mhLocator{hash}, nil
 }
+
+// FromMultihash creates new locator from multihash
+func FromMultihash(hash mh.Multihash) Locator {
+	return &mhLocator{hash}
+}

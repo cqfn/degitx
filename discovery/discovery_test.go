@@ -61,30 +61,3 @@ func testLocatorEqual(expected byte, loc locators.Locator) bool {
 	}
 	return (&testLocator{[]byte{expected}}).Equal(hash)
 }
-
-func Test_peersMerge(t *testing.T) {
-	var prs Peers
-	prs.peers = []*Peer{
-		testPeer(1, "1.1.1.1"),
-		testPeer(2, "1.1.1.2"),
-	}
-	update := []*Peer{
-		testPeer(2, "2.2.2.2"),
-		testPeer(3, "3.3.3.3"),
-	}
-	t.Run("Merge completed without error", func(t *testing.T) { assert.Nil(t, prs.merge(update)) })
-	t.Run("There are 3 peers after merge", func(t *testing.T) { assert.Equal(t, len(prs.peers), 3) })
-	var first, second, third *Peer
-	for _, p := range prs.peers {
-		if testLocatorEqual(1, p.Locator) { //nolint:gocritic
-			first = p
-		} else if testLocatorEqual(2, p.Locator) { //nolint:gocritic
-			second = p
-		} else if testLocatorEqual(3, p.Locator) { //nolint:gocritic
-			third = p
-		}
-	}
-	t.Run("First peer has `1.1.1.1` address", assertAddr(first.Addr, "1.1.1.1"))
-	t.Run("Second peer has `2.2.2.2` address", assertAddr(second.Addr, "2.2.2.2"))
-	t.Run("Third peer has `3.3.3.3` address", assertAddr(third.Addr, "3.3.3.3"))
-}

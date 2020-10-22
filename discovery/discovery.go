@@ -5,7 +5,6 @@
 package discovery
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -42,12 +41,6 @@ func (s *StubService) Start(_ context.Context) error {
 	return nil
 }
 
-// Peer node
-type Peer struct {
-	Locator locators.Locator
-	Addr    ma.Multiaddr
-}
-
 func (p *Peer) fromGRPCCoord(c *pb.NodeCoord) error {
 	addr, err := ma.NewMultiaddr(c.Address)
 	if err != nil {
@@ -59,39 +52,6 @@ func (p *Peer) fromGRPCCoord(c *pb.NodeCoord) error {
 	}
 	p.Addr = addr
 	p.Locator = loc
-	return nil
-}
-
-// Peers local storage
-type Peers struct {
-	peers []*Peer
-}
-
-func (prs *Peers) merge(upd []*Peer) error {
-	// @todo #44:90min Improve merge implementation.
-	//  Make it faster - don't use double for loop,
-	//  and rollback to initial state in case of error.
-	for _, p := range upd {
-		var found bool
-		for _, local := range prs.peers {
-			hash, err := local.Locator.Multihash()
-			if err != nil {
-				return err
-			}
-			loc, err := p.Locator.Multihash()
-			if err != nil {
-				return err
-			}
-			if bytes.Equal(loc, hash) {
-				local.Addr = p.Addr
-				found = true
-				break
-			}
-		}
-		if !found {
-			prs.peers = append(prs.peers, p)
-		}
-	}
 	return nil
 }
 
@@ -138,9 +98,12 @@ func (d *pbDiscovery) Ping(addr ma.Multiaddr) error {
 		if err := p.fromGRPCCoord(crd); err != nil {
 			return err
 		}
+		if err := d.peers.Update(p, nil); err != nil {
+			return err
+		}
 		upd[i] = p
 	}
-	return d.peers.merge(upd)
+	return nil
 }
 
 var errInvalidSeedAddr = errors.New("invalid seed address, should contain IP and TCP components")

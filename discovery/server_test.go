@@ -22,8 +22,10 @@ func testLocString(d byte) []byte {
 
 func Test_ReceivePing(t *testing.T) {
 	svc := new(hostService)
-	svc.ctx = context.Background()
-	svc.peers = &Peers{make([]*Peer, 0)}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	svc.ctx = ctx
+	svc.peers = NewPeers(ctx)
 	coord := &pb.NodeCoord{
 		Address: "/ip4/127.0.0.1",
 		Locator: testLocString(1),
