@@ -10,6 +10,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multihash v0.0.14
+	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.25.0

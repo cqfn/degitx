@@ -47,5 +47,5 @@ tidy:
 	go mod tidy
 
 # verify build before commit
-verify: clean build test lint node
+verify: build test lint node
 	@echo "Built is OK"

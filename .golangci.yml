@@ -56,7 +56,7 @@ run:
 linters-settings:
   dupl:
     # tokens count to trigger issue, 150 by default
-    threshold: 15
+    threshold: 25
   exhaustive:
     # indicates that switch statements are to be considered exhaustive if a
     # 'default' case is present, even if all enum members aren't listed in the

@@ -5,16 +5,21 @@
 package degitx
 
 import (
-	"log"
+	"context"
 	"net"
 
+	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/proto/go/degitxpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	"cqfn.org/degitx/proto/go/degitxpb"
 )
 
-func Start() {
+// Start DeGitX node or return error
+func Start(ctx context.Context, disc discovery.Service) error {
+	if err := disc.Start(ctx); err != nil {
+		return err
+	}
+
 	grpcServer := grpc.NewServer()
 
 	degitxpb.RegisterBlobServiceServer(grpcServer, &degitxpb.UnimplementedBlobServiceServer{})
@@ -39,10 +44,11 @@ func Start() {
 
 	l, err := net.Listen("tcp", ":8080") //nolint:gosec // It's only a stub
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := grpcServer.Serve(l); err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
