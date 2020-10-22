@@ -29,6 +29,12 @@ type Service interface {
 	Start(context.Context) error
 }
 
+// @todo #44:90min Implement client discovery service.
+//  It should start with initial seed host parameter,
+//  Ping this host with self locator, receive all known
+//  peers in a system and periodically ping all these peers
+//  including seed peer.
+
 // StubService of discovery. Does nothing.
 type StubService struct{}
 
