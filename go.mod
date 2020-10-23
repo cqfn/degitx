@@ -7,6 +7,7 @@ go 1.14
 
 require (
 	github.com/allisson/go-assert v0.2.0
+	github.com/g4s8/go-matchers v0.0.0-20201023123131-9418eb416926
 	github.com/golang/protobuf v1.4.2
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multihash v0.0.14

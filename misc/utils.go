@@ -14,6 +14,6 @@ import (
 // it can be used as `defer misc.CloseWithLog(res)`
 func CloseWithLog(res io.Closer) {
 	if err := res.Close(); err != nil {
-		log.Print(err)
+		log.Printf("CloseWithLog: %s", err)
 	}
 }

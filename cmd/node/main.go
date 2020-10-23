@@ -4,11 +4,10 @@
 package main
 
 import (
-	"encoding/hex"
-	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"cqfn.org/degitx"
 	"cqfn.org/degitx/discovery"
@@ -43,6 +42,11 @@ func main() {
 						Name:  "peer-seed",
 						Usage: "initial peer seed host address (multiaddr)",
 					},
+					&cli.StringFlag{
+						Name:     "gitaly-host",
+						Usage:    "Gitaly gRPC API host and port",
+						Required: true,
+					},
 				},
 			},
 			{
@@ -61,7 +65,12 @@ const pConfigUser = "${HOME}/.config/degitx/config.yml"
 
 const pConfigSys = "/etc/degitx/config.yml"
 
-var errConfigNotFound = errors.New("configuration file was not found")
+type errConfigNotFound struct{ paths []string }
+
+func (e *errConfigNotFound) Error() string {
+	return fmt.Sprintf("configuration file not found in {%s}",
+		strings.Join(e.paths, ":"))
+}
 
 func parseConfig(ctx *cli.Context) (*NodeConfig, error) {
 	config := new(NodeConfig)
@@ -78,9 +87,11 @@ func parseConfig(ctx *cli.Context) (*NodeConfig, error) {
 		if _, err := os.Stat(p); os.IsNotExist(err) {
 			continue
 		}
+		path = p
+		break
 	}
 	if path == "" {
-		return nil, errConfigNotFound
+		return nil, &errConfigNotFound{paths}
 	}
 	err := config.fromFile(path)
 	if err != nil {
@@ -94,25 +105,40 @@ func cmdRun(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	loc, err := cfg.Locator()
+	node, err := cfg.Node()
 	if err != nil {
 		return err
 	}
+	peers := discovery.NewPeers(ctx.Context)
 	var dsc discovery.Service
 	peer := ctx.String("peer-host")
-	if peer != "" { //nolint:nestif // consider refactoring later
+	seed := ctx.String("peer-seed")
+	if peer != "" { //nolint:nestif,gocritic // consider refactoring later
 		addr, err := ma.NewMultiaddr(peer)
 		if err != nil {
 			return err
 		}
-		dsc, err = discovery.NewServer(addr, loc)
+		dsc, err = discovery.NewGrpcServer(addr, node, peers)
+		if err != nil {
+			return err
+		}
+	} else if seed != "" {
+		addr, err := ma.NewMultiaddr(seed)
+		if err != nil {
+			return err
+		}
+		dsc = discovery.NewGrpcClient(addr, node, peers)
 		if err != nil {
 			return err
 		}
 	} else {
 		dsc = new(discovery.StubService)
 	}
-	return degitx.Start(ctx.Context, dsc)
+	node.Addr, err = ma.NewMultiaddr(ctx.String("gitaly-host"))
+	if err != nil {
+		return err
+	}
+	return degitx.Start(ctx.Context, node, dsc)
 }
 
 func printID(ctx *cli.Context) error {
@@ -120,14 +146,10 @@ func printID(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	l, err := cfg.Locator()
+	l, err := cfg.Node()
 	if err != nil {
 		return err
 	}
-	mh, err := l.Multihash()
-	if err != nil {
-		return err
-	}
-	fmt.Println(hex.EncodeToString(mh))
+	fmt.Println(l)
 	return nil
 }

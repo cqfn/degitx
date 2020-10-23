@@ -5,6 +5,8 @@ package discovery
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	"cqfn.org/degitx/locators"
 	ma "github.com/multiformats/go-multiaddr"
@@ -51,12 +53,22 @@ func (p *Peers) Peers() []*Peer {
 	return res
 }
 
+type errPeerNotFound struct{ peer mh.Multihash }
+
+func (e *errPeerNotFound) Error() string {
+	return fmt.Sprintf("Peer `%s` not found locally", e.peer.HexString())
+}
+
+func (p *Peers) Lookup(hash mh.Multihash, ctx context.Context) (ma.Multiaddr, error) {
+	if peer, found := p.peers[hash.HexString()]; found {
+		return peer.Addr, nil
+	}
+	return nil, &errPeerNotFound{hash}
+}
+
 // Update peers with new peer, notifies optional done channel on complete
 func (p *Peers) Update(peer *Peer, done chan struct{}) error {
-	hash, err := peer.Locator.Multihash()
-	if err != nil {
-		return err
-	}
+	hash := peer.Locator.ID
 	upd := &updateMsg{
 		id:   hash.HexString(),
 		hash: hash,
@@ -69,8 +81,12 @@ func (p *Peers) Update(peer *Peer, done chan struct{}) error {
 
 // Peer node
 type Peer struct {
-	Locator locators.Locator
+	Locator *locators.Node
 	Addr    ma.Multiaddr
+}
+
+func (p *Peer) String() string {
+	return fmt.Sprintf("Peer loc=%s addr=%s", p.Locator, p.Addr)
 }
 
 // Copy peer to new structure
@@ -91,10 +107,13 @@ type updateMsg struct {
 func (p *Peers) merge(upd *updateMsg) {
 	if peer, found := p.peers[upd.id]; found {
 		peer.Addr = upd.addr
+		log.Printf("updated peer %s", peer)
 	} else {
-		p.peers[upd.id] = &Peer{
-			Locator: locators.FromMultihash(upd.hash),
+		peer = &Peer{
+			Locator: &locators.Node{ID: upd.hash},
 			Addr:    upd.addr,
 		}
+		p.peers[upd.id] = peer
+		log.Printf("added new peer %s", peer)
 	}
 }

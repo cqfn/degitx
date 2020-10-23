@@ -6,20 +6,15 @@ package discovery
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"time"
+	"log"
 
-	"cqfn.org/degitx/locators"
-	"cqfn.org/degitx/misc"
-	pb "cqfn.org/degitx/proto/go/degitxpb"
 	ma "github.com/multiformats/go-multiaddr"
-	"google.golang.org/grpc"
+	mh "github.com/multiformats/go-multihash"
 )
 
 // Discovery interface
 type Discovery interface {
-	Ping(ma.Multiaddr) error
+	Lookup(mh.Multihash, context.Context) (ma.Multiaddr, error)
 }
 
 // Service is a discovery client or server daemon to synchornize
@@ -28,101 +23,10 @@ type Service interface {
 	Start(context.Context) error
 }
 
-// @todo #44:90min Implement client discovery service.
-//  It should start with initial seed host parameter,
-//  Ping this host with self locator, receive all known
-//  peers in a system and periodically ping all these peers
-//  including seed peer.
-
 // StubService of discovery. Does nothing.
 type StubService struct{}
 
 func (s *StubService) Start(_ context.Context) error {
+	log.Print("No discovery server/client started: running stub")
 	return nil
-}
-
-func (p *Peer) fromGRPCCoord(c *pb.NodeCoord) error {
-	addr, err := ma.NewMultiaddr(c.Address)
-	if err != nil {
-		return err
-	}
-	loc, err := locators.FromBytes(c.Locator)
-	if err != nil {
-		return err
-	}
-	p.Addr = addr
-	p.Locator = loc
-	return nil
-}
-
-type pbDiscovery struct {
-	ctx   context.Context
-	peers *Peers
-	self  locators.Locator
-}
-
-func coordFromLocator(l locators.Locator) (*pb.NodeCoord, error) {
-	c := new(pb.NodeCoord)
-	hash, err := l.Multihash()
-	if err != nil {
-		return nil, err
-	}
-	c.Locator = hash
-	return c, nil
-}
-
-func (d *pbDiscovery) Ping(addr ma.Multiaddr) error {
-	con, err := grpcConnection(d.ctx, addr)
-	if err != nil {
-		return err
-	}
-
-	defer misc.CloseWithLog(con)
-	coord, err := coordFromLocator(d.self)
-	if err != nil {
-		return err
-	}
-
-	svc := pb.NewDiscoveryServiceClient(con)
-	ctx, cancel := context.WithTimeout(d.ctx, reqTimeout)
-	defer cancel()
-
-	rsp, err := svc.Ping(ctx, coord)
-	if err != nil {
-		return err
-	}
-	coords := rsp.GetPeers()
-	upd := make([]*Peer, len(coords))
-	for i, crd := range rsp.GetPeers() {
-		p := new(Peer)
-		if err := p.fromGRPCCoord(crd); err != nil {
-			return err
-		}
-		if err := d.peers.Update(p, nil); err != nil {
-			return err
-		}
-		upd[i] = p
-	}
-	return nil
-}
-
-var errInvalidSeedAddr = errors.New("invalid seed address, should contain IP and TCP components")
-
-const reqTimeout = time.Second * 5
-
-const conTimeout = time.Second * 5
-
-func grpcConnection(ctx context.Context, maddr ma.Multiaddr) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(ctx, conTimeout)
-	defer cancel()
-	addr := new(maNetworkAddr)
-	if err := addr.parse(maddr); err != nil { //nolint:dupl // just parsing an address
-		return nil, err
-	}
-	return grpc.DialContext(ctx, fmt.Sprintf("%s:%s", addr.Network(), addr.String()))
-}
-
-// NewGrpc creates new gRPC discovery implementation
-func NewGrpc(ctx context.Context, self locators.Locator, peers *Peers) Discovery {
-	return &pbDiscovery{ctx, peers, self}
 }

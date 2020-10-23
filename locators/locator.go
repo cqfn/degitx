@@ -12,27 +12,45 @@ import (
 	"hash"
 	"strings"
 
+	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 )
 
-// Locator of node
-type Locator interface {
-	// Multihash of current locator
-	Multihash() (mh.Multihash, error)
+// Node core identities
+type Node struct {
+	ID      mh.Multihash
+	PubKey  []byte
+	PrivKey []byte
+	Addr    ma.Multiaddr
 }
 
-type hashLoc struct {
-	hash []byte
-	name string
+func (n *Node) String() string {
+	return fmt.Sprintf("Node `%s`", n.ID.HexString())
 }
 
-func (l *hashLoc) Multihash() (mh.Multihash, error) {
-	bts, err := mh.EncodeName(l.hash, l.name)
+const hname = "sha1"
+
+// FromKeys creates new Node struct from public and private keys
+// by generating node id as multihash of SHA1 of public key.
+func FromKeys(pub, priv []byte) (*Node, error) {
+	hfunc, err := hashFunc(hname)
 	if err != nil {
 		return nil, err
 	}
-	h := mh.Multihash(bts)
-	return h, nil
+	_, err = hfunc.Write(pub)
+	if err != nil {
+		return nil, err
+	}
+	hsum := hfunc.Sum(nil)
+	hash, err := mh.EncodeName(hsum, hname)
+	if err != nil {
+		return nil, err
+	}
+	return &Node{
+		ID:      mh.Multihash(hash),
+		PubKey:  pub,
+		PrivKey: priv,
+	}, nil
 }
 
 type unsupportedHashError struct {
@@ -51,39 +69,4 @@ func hashFunc(name string) (hash.Hash, error) {
 	default:
 		return nil, &unsupportedHashError{name}
 	}
-}
-
-// NewHash locator for binary data and hash-func name
-func NewHash(data []byte, name string) (Locator, error) {
-	hf, err := hashFunc(name)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := hf.Write(data); err != nil {
-		return nil, err
-	}
-	hash := hf.Sum(nil)
-	return &hashLoc{hash, name}, nil
-}
-
-type mhLocator struct {
-	hash mh.Multihash
-}
-
-func (l *mhLocator) Multihash() (mh.Multihash, error) {
-	return l.hash, nil
-}
-
-// FromBytes creates new multihash locator from bytes, returns error if invalid
-func FromBytes(data []byte) (Locator, error) {
-	hash, err := mh.Cast(data)
-	if err != nil {
-		return nil, err
-	}
-	return &mhLocator{hash}, nil
-}
-
-// FromMultihash creates new locator from multihash
-func FromMultihash(hash mh.Multihash) Locator {
-	return &mhLocator{hash}
 }

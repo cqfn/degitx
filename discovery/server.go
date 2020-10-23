@@ -5,11 +5,13 @@ package discovery
 
 import (
 	"context"
+	"log"
 	"net"
 
 	"cqfn.org/degitx/locators"
 	pb "cqfn.org/degitx/proto/go/degitxpb"
 	ma "github.com/multiformats/go-multiaddr"
+	mh "github.com/multiformats/go-multihash"
 	"google.golang.org/grpc"
 )
 
@@ -18,13 +20,14 @@ type grpcServer struct {
 	peers *Peers
 }
 
-// NewServer for gRPC discovery protocol
-func NewServer(maddr ma.Multiaddr, loc locators.Locator) (Service, error) {
-	addr := new(maNetworkAddr)
-	if err := addr.parse(maddr); err != nil { //nolint:dupl // just parsing an address
+// NewGrpcServer for gRPC discovery protocol
+func NewGrpcServer(maddr ma.Multiaddr, node *locators.Node, peers *Peers) (Service, error) {
+	addr := new(MaNetworkAddr)
+	if err := addr.Parse(maddr); err != nil { //nolint:dupl // just parsing an address
 		return nil, err
 	}
 	srv := new(grpcServer)
+	srv.peers = peers
 	srv.addr = addr
 	return srv, nil
 }
@@ -32,6 +35,20 @@ func NewServer(maddr ma.Multiaddr, loc locators.Locator) (Service, error) {
 type hostService struct {
 	ctx   context.Context
 	peers *Peers
+}
+
+func (p *Peer) fromGRPCCoord(c *pb.NodeCoord) error {
+	addr, err := ma.NewMultiaddr(c.Address)
+	if err != nil {
+		return err
+	}
+	hash, err := mh.Cast(c.Locator)
+	if err != nil {
+		return err
+	}
+	p.Addr = addr
+	p.Locator = &locators.Node{ID: hash}
+	return nil
 }
 
 func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingResponse, error) {
@@ -59,12 +76,7 @@ func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingRe
 				return
 			}
 			coord.Address = string(addr)
-			hash, err := peer.Locator.Multihash()
-			if err != nil {
-				failure <- err
-				return
-			}
-			coord.Locator = hash
+			coord.Locator = peer.Locator.ID
 			rsp.Peers[i] = coord
 		}
 		result <- rsp
@@ -86,18 +98,22 @@ func (s *grpcServer) Start(ctx context.Context) error {
 	svc := &hostService{ctx, s.peers}
 	pb.RegisterDiscoveryServiceServer(srv, svc)
 
-	l, err := net.Listen(s.addr.Network(), s.addr.String())
+	log.Printf("Starting discovery seed host on %s - %s", s.addr.Network(), s.addr)
+	l, err := net.Listen("tcp", s.addr.String())
 	if err != nil {
 		return err
 	}
 
-	if err := srv.Serve(l); err != nil {
-		return err
-	}
+	go func() {
+		if err := srv.Serve(l); err != nil {
+			log.Printf("Discovery server failed: %s", err)
+		}
+	}()
 
 	go func() {
 		<-ctx.Done()
 		srv.GracefulStop()
 	}()
+	log.Printf("Discovery server started at %s", s.addr)
 	return nil
 }

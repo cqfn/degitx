@@ -9,20 +9,21 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-type maNetworkAddr struct {
+type MaNetworkAddr struct {
 	net  string
 	addr string
 }
 
-func (n *maNetworkAddr) Network() string { //nolint:dupl // linter mistake
+func (n *MaNetworkAddr) Network() string { //nolint:dupl // linter mistake
 	return n.net
 }
 
-func (n *maNetworkAddr) String() string { //nolint:dupl // linter mistake
+func (n *MaNetworkAddr) String() string { //nolint:dupl // linter mistake
 	return n.addr
 }
 
-func (n *maNetworkAddr) parse(addr ma.Multiaddr) error {
+// Parse multiaddr into network addr
+func (n *MaNetworkAddr) Parse(addr ma.Multiaddr) error {
 	prts := addr.Protocols()
 	if len(prts) < 2 { //nolint:gomnd // 2 parts is verbose enough here
 		return errInvalidSeedAddr
