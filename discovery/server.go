@@ -26,9 +26,6 @@ func NewServer(maddr ma.Multiaddr, loc locators.Locator) (Service, error) {
 	}
 	srv := new(grpcServer)
 	srv.addr = addr
-	srv.peers = new(Peers)
-	srv.peers.peers = make([]*Peer, 0)
-	srv.peers.peers = append(srv.peers.peers, &Peer{loc, maddr})
 	return srv, nil
 }
 
@@ -46,13 +43,15 @@ func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingRe
 			failure <- err
 			return
 		}
-		if err := s.peers.merge([]*Peer{upd}); err != nil {
+		updated := make(chan struct{})
+		if err := s.peers.Update(upd, updated); err != nil {
 			failure <- err
 			return
 		}
+		<-updated
 		rsp := new(pb.PingResponse)
 		rsp.Peers = make([]*pb.NodeCoord, len(s.peers.peers))
-		for i, peer := range s.peers.peers {
+		for i, peer := range s.peers.Peers() {
 			coord := new(pb.NodeCoord)
 			addr, err := peer.Addr.MarshalText()
 			if err != nil {
