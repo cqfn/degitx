@@ -115,29 +115,30 @@ here is the list of some:
 
 \section{Solution}
 
-The solution could be the implementation of distributed Git repository manager with
-strong consistent replica nodes. It guarantees high availability across
+The solution is a distributed Git repository manager with
+strong consistent replica nodes. It guarantees data consistency across
 different regions, durability by replicating repositories on different server racks,
-read scalability by routing fetch traffic to different nodes.
+read scalability by routing fetch traffic to different nodes with independend disks hardware.
 
-DeGit is a peer-to-peer system, no persistent master nodes
-exists\footnote{The system may have temporary master node for repository elected to perform git command}.
-Each node knows about each other due to discovery protocol (\todo{choose discovery protocol}).
+DeGit is a peer-to-peer system, no persistent master nodes exists.
+It uses overlay network built on transport network layer and based on persistent node locators to communicate
+with each other, see \hyperref[sec:locators]{Locators}. Nodes use \hyperref[sec:discovery]{Discovery} protocol
+to find network address of another node.
 
-Each DeGit node stores multiple repositories on local storage
-and exposes RPC API for all git operations. Node can accept RPC operation for repository
-which is not located on local storage, in that case it performs lookup
-for repository on other nodes and synchronizes it on local storage, and performs RPC command
-after that.
+Each node may have zero or more git repository replicas. To find node locator of certain repository,
+node uses \hyperref[sec:metadata]{Metadata} exchange protocol. When the system decides to start managing a replica
+on soe node, it updates metadata by mapping repository id with node locator.
 
-When a new repository is created in a system, the node replicates this repository
-to at least 3 other nodes synchronously and propagetes metadata for future repository lookup.
+When client write git data to system (via \code{push}), the request is routing to one of the replicas
+which starts leader election and updates the replicated log of consensus of repository holders (replicas),
+see \hyperref[sec:data]{Data} exchange protocol.
 
-Update operation can be routed to any node which contains the repository. The node synchronously
-updates all replicas on push. If update failed due to concurency issue, the whole update fails.
+Each node exposes \hyperref[sec:api]{RPC API}, clients uses it to perform git operations on distributed repository
+data. Client doesn't know if the node contains certain repository it just sends the read or write request
+to the node, and node degates this operation to on of repository replicas to perform it.
 
-Each node collects usage statistics about fetch and push operation, and system may decide to move repositories
-to most frequently used nodes based on this statistics.
+The system collects usage statistics about fetch and push operation for each node and repository,
+and may decide to move repositories to most frequently used nodes based on this statistics.
 
 The system autmatically rebalances repository storage: when repository is not used actively for a
 long time, the node can remove a repository from storage if 3 replicas of this repository exists on other nodes;
@@ -157,10 +158,11 @@ Main system protocol components are (under discussion):
   \item[Discovery] - lookup of node real address by locator ID.
   \item[Metadata] - a mapping of repository to node: a node contains many repositories and
     repository can be replicated across many nodes.
-  \item[Git data] - Git objects and references exchange protocol, commands to add new objects and update references.
+  \item[Data] - Git objects and references exchange protocol, commands to add new objects and update references.
 \end{description}
 
 \subsubsection{Locators}
+\label{sec:locators}
 Each node has persistant public and private keys to identify itself in a system.
 Unique identifier\footnote{In this document, node identifier, node-id and node locator refer to the same definition}
 is a cryptographic hash of public key of the node in \emph{\href{https://multiformats.io/multihash/}{Multihash}} format.
@@ -175,6 +177,7 @@ Related: ``A Practicable Approach Towards Secure Key-Based Routing'' by I. Baumg
 Identities and Network design of IPFS by J. Benet.
 
 \subsubsection{Network}
+\label{sec:network}
 DeGitX uses TCP or UDP protocols for transport layer, TCP is used by default. It uses IPv4 or IPv6 for addressing,
 it stores addresses in \href{https://github.com/multiformats/multiaddr}{multiaddr} format, for instance:
 \code{/ipv4/1.2.3.4/udp/4444} evaluates to \code{4444} UDP port on \code{1.2.3.4} IPv4 address.
@@ -183,7 +186,7 @@ DeGitX uses a routing system to find addresses of nodes by locators.
 \subsubsection{Discovery}
 \label{sec:discovery}
 Each node doesn't know network addresses of others by default. Different discovery techicues could be used
-for node lookup:
+for node lookup and could be used together:
 \todo{choose the best option}.
 \begin{description}
 \item[DHT] - distributed hash tables uses different metrics to compare the distance of nodes in overlay network.
@@ -202,6 +205,7 @@ for node lookup:
 \end{description}
 
 \subsection{Metadata}
+\label{sec:metadata}
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
 \todo{research and compare different solutions}.
 
@@ -210,6 +214,78 @@ Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf
 \emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
 
 \todo{search for more algorithms}.
+
+\section{Explanation}
+\subsection{How does DeGitX update repository}
+This is how DeGitX system updates repository: a client \code{C} uses RPC API
+to push git data to repository \code{R}.
+The RPC request comes to one of DeGitX nodes \code{N1}.
+
+\begin{figure}[H]
+\centering
+  \begin{tikzpicture}
+    \node[block] (C) {Client C};
+    \node[block, right=of C] (N1) {Node N1};
+    \path[ln] (C) edge node {push R1} (N1);
+  \end{tikzpicture}
+  \caption{Client C1 push data to repository R1 via node N1}
+\end{figure}
+
+The node \code{N1} uses \hyperref[sec:metadata]{metadata} to find \hyperref[sec:locators]{locator} \code{L2}
+of any replica of repository requested.
+With this locator, node performs lookup for node
+with locator using \hyperref[sec:discovery]{discovery protocol} to find \hyperref[sec:network]{real address}
+\code{A2} of node with locator which replicates the repository requested.
+
+\begin{figure}[H]
+\centering
+  \begin{tikzpicture}
+    \node[block] (C) {Client C};
+    \node[block, right=of C] (N1) {Node N1};
+    \node[block, below=of C] (N2) {N2, L2, A2};
+    \node[block, below=of N1] (N3) {N3, L3, A3};
+    \node[block, below=of N3] (N4) {N4, L4, A4};
+    \node[fit=(N2)(N3)(N4), draw, dashed](R1){Replicas of R1};
+    \path[ln] (C) edge node {push R1} (N1);
+    \path[ln] (N1) edge node {knows A3} (N3);
+  \end{tikzpicture}
+  \caption{N1 find address of replica N3 of repository R1}
+\end{figure}
+
+After that node knows real address where repository is located.
+The node sends internal RPC call to \code{A3} and asks to update the repository with requested changes.
+Node \code{N3} elect the leader for these operation across \code{N3}, \code{N4} and \code{N5} nodes.
+The leader \code{L4} adds new operation request to the state machine log for repository
+and replicates it across consensus of repository holders (across all replicas in best case).
+
+\begin{figure}[H]
+\centering
+  \begin{tikzpicture}
+    \node[block] (C) {Client C};
+    \node[block, right=of C] (N1) {Node N1};
+    \node[block, below=of C] (N2) {N2, L2, A2};
+    \node[block, below=of N1] (N3) {N3, L3, A3};
+    \node[block, below=of N3] (N4) {N4, L4, A4 (leader)};
+    \node[fit=(N2)(N3)(N4), draw, dashed](R1){};
+    \path[ln] (C) edge node {push R1} (N1);
+    \path[ln] (N1) edge node {requests update of R1} (N3);
+    \path[ln] (N4) edge node {update log} (N3);
+    \path[ln] (N4) edge node {update log} (N2);
+  \end{tikzpicture}
+  \caption{Replica N3 initiates leader election, the node N4 becomes the leader, and replicate update across all replicas of R1}
+\end{figure}
+
+After successful update of \code{R1} node \code{N2} returns with success status to node \code{N1},
+and node \code{N1} sends success to git client \code{C}.
+
+\subsection{How does DeGitX fetches the repository}
+Fetching repository is easier comparing to pushing. First steps are similar to write: client
+sends fetch requrest to any node in a system for repository. Then node look up for locator of
+any replica with requesting repository. Then node finds real address of this locator.
+Knowing address of repository, it reads git data from this replica and returns it to the client.
+If replica fails to respond, it tries another replica.
+
+\todo{add more topics here}
 
 \subsection{Git Internals}
 \subsubsection{Dictionary}
