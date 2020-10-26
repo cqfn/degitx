@@ -17,14 +17,9 @@ type Keys struct {
 	PathToPublic  string `yaml:"public"`
 }
 
-type Locator struct {
-	HashFunc string `yaml:"hash"`
-}
-
 type NodeConfig struct {
-	Version  string   `yaml:"version"`
-	Keys     *Keys    `yaml:"keys"`
-	Locators *Locator `yaml:"locator"`
+	Version string `yaml:"version"`
+	Keys    *Keys  `yaml:"keys"`
 }
 
 func (config *NodeConfig) fromFile(fileName string) error {
@@ -57,18 +52,15 @@ func (config *NodeConfig) validate() error {
 	return nil
 }
 
-// Locator of node (nodeID)
-func (config *NodeConfig) Locator() (locators.Locator, error) {
+// Node identity properties
+func (config *NodeConfig) Node() (*locators.Node, error) {
 	kpub, err := ioutil.ReadFile(config.Keys.PathToPublic) //nolint:gosec // no user input for filename
 	if err != nil {
 		return nil, err
 	}
-	var hfunc string
-	if config.Locators != nil {
-		hfunc = config.Locators.HashFunc
+	kpriv, err := ioutil.ReadFile(config.Keys.PathToPrivate) //nolint:gosec // no user input for filename
+	if err != nil {
+		return nil, err
 	}
-	if hfunc == "" {
-		hfunc = "SHA1"
-	}
-	return locators.NewHash(kpub, hfunc)
+	return locators.FromKeys(kpub, kpriv)
 }

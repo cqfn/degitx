@@ -15,8 +15,8 @@ func Test_convertAddr(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	addr := new(maNetworkAddr)
-	err = addr.parse(maddr)
+	addr := new(MaNetworkAddr)
+	err = addr.Parse(maddr)
 	assert.Nil(t, err, "parses valid multiaddr without issues")
 	assert.Equal(t, "ipv4", addr.Network())
 	assert.Equal(t, "192.168.1.4:80", addr.String())

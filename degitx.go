@@ -6,16 +6,21 @@ package degitx
 
 import (
 	"context"
+	"log"
 	"net"
 
 	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/locators"
 	"cqfn.org/degitx/proto/go/degitxpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 // Start DeGitX node or return error
-func Start(ctx context.Context, disc discovery.Service) error {
+func Start(ctx context.Context, node *locators.Node,
+	disc discovery.Service) error {
+	log.Printf("Starting %s", node)
+
 	if err := disc.Start(ctx); err != nil {
 		return err
 	}
@@ -42,7 +47,11 @@ func Start(ctx context.Context, disc discovery.Service) error {
 
 	reflection.Register(grpcServer)
 
-	l, err := net.Listen("tcp", ":8080") //nolint:gosec // It's only a stub
+	addr := new(discovery.MaNetworkAddr)
+	if err := addr.Parse(node.Addr); err != nil {
+		panic(err)
+	}
+	l, err := net.Listen("tcp", addr.String())
 	if err != nil {
 		return err
 	}
