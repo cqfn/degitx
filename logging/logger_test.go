@@ -17,7 +17,6 @@ func Test_log(t *testing.T) {
 	cfg := LogConfig{
 		Outputs: []Output{
 			{
-				UniqName: "console",
 				Path: []string{
 					"stdout",
 				},
@@ -25,7 +24,6 @@ func Test_log(t *testing.T) {
 				Format: "plain",
 			},
 			{
-				UniqName: "yetAnotherConsole",
 				Path: []string{
 					"stdout",
 				},

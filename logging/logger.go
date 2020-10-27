@@ -40,12 +40,6 @@ func NewLogger(tag string) (*Logger, error) {
 		nil
 }
 
-func SetLevel(logLevel LogLevel, uniqName string) {
-	if level, ok := logCtx.registeredLevel[uniqName]; ok {
-		level.SetLevel(logCtx.internalLogLevel[logLevel.String()])
-	}
-}
-
 func (log *Logger) Debug(template string) {
 	log.internalLogger.Debug(template)
 }
@@ -86,7 +80,7 @@ func initInternalLogger(tag string) (*zap.Logger, *zap.SugaredLogger, error) {
 
 	cores := []zapcore.Core{}
 	closeOuts := []func(){}
-	for _, out := range logCtx.cfg.Outputs {
+	for idx, out := range logCtx.cfg.Outputs {
 		sink, closeOut, err := openSinks(out.Path)
 		if err != nil {
 			return nil, nil, err
@@ -96,7 +90,7 @@ func initInternalLogger(tag string) (*zap.Logger, *zap.SugaredLogger, error) {
 		if strings.EqualFold(out.Format, "json") {
 			encoder = *logCtx.json
 		}
-		cores = append(cores, zapcore.NewCore(encoder, sink, logCtx.registeredLevel[out.UniqName]).With(spec))
+		cores = append(cores, zapcore.NewCore(encoder, sink, logCtx.registeredLevel[idx]).With(spec))
 	}
 	errSinks, err := openErrorSinks(logCtx.cfg.ErrorsOut, closeOuts)
 	if err != nil {

@@ -5,6 +5,7 @@ package logging
 
 import (
 	"errors"
+	"sync"
 
 	"cqfn.org/degitx/locators"
 
@@ -18,10 +19,9 @@ type LogConfig struct {
 }
 
 type Output struct {
-	UniqName string   `yaml:"u_name"`
-	Path     []string `yaml:"path"`
-	Level    string   `yaml:"level"`
-	Format   string   `yaml:"format"`
+	Path   []string `yaml:"path"`
+	Level  string   `yaml:"level"`
+	Format string   `yaml:"format"`
 }
 
 var errLogAlreadyInitialized = errors.New("log already initialized") //nolint:misspell // initialized
@@ -32,14 +32,16 @@ type logContext struct {
 	cfg              *LogConfig
 	plain            *zapcore.Encoder
 	json             *zapcore.Encoder
-	registeredLevel  map[string]zap.AtomicLevel
+	registeredLevel  []zap.AtomicLevel
 }
 
 var logCtx *logContext //nolint:gochecknoglobals
 
+var mux sync.Mutex //nolint:gochecknoglobals
+
 func Init(node *locators.Node, cfg *LogConfig) {
-	node.Mux.Lock()
-	defer node.Mux.Unlock()
+	mux.Lock()
+	defer mux.Unlock()
 	if logCtx != nil {
 		panic(errLogAlreadyInitialized)
 	}
@@ -51,13 +53,10 @@ func Init(node *locators.Node, cfg *LogConfig) {
 		"Warn":  zapcore.WarnLevel,
 		"Error": zapcore.ErrorLevel,
 	}
-	registeredLevel := map[string]zap.AtomicLevel{}
+	registeredLevel := []zap.AtomicLevel{}
 	for _, out := range cfg.Outputs {
-		_, ok := registeredLevel[out.UniqName]
-		if !ok {
-			atomicLevel := zap.NewAtomicLevelAt(internalLogLevel[out.Level])
-			registeredLevel[out.UniqName] = atomicLevel
-		}
+		atomicLevel := zap.NewAtomicLevelAt(internalLogLevel[out.Level])
+		registeredLevel = append(registeredLevel, atomicLevel)
 	}
 
 	logCtx = &logContext{
