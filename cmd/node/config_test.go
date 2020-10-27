@@ -21,7 +21,6 @@ func Test_fromYaml(t *testing.T) {
 	assert.That("public key path parsed", config.Keys.PathToPublic, m.Eq("./cmd/node/testdata/public"))
 	assert.That("private key path parsed", config.Keys.PathToPrivate, m.Eq("./cmd/node/testdata/private"))
 	assert.That("logger outputs parsed", config.LogConfig.Outputs, m.LenIs(1))
-	assert.That("logger output uniq name parsed", config.LogConfig.Outputs[0].UniqName, m.Eq("console"))
 	assert.That("logger output paths parsed", config.LogConfig.Outputs[0].Path, m.LenIs(1))
 	assert.That("logger output paths parsed", config.LogConfig.Outputs[0].Path[0], m.Eq("stdout"))
 	assert.That("logger log level parsed", config.LogConfig.Outputs[0].Level, m.Eq("DEBUG"))

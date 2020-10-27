@@ -5,8 +5,7 @@ keys:
   public: "./cmd/node/testdata/public"
 logging:
   outputs:
-  - u_name: console
-    path:
+  - path:
     - stdout
     level: DEBUG
     format: plain
