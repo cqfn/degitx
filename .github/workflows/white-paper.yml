@@ -19,8 +19,7 @@ jobs:
           working_directory: ./white-paper
           root_file: wp.tex
       - name: Set env
-        run: |
-          echo "name=SHA6=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+        run: echo "SHA6=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
       - name: Upload to Artipie as latest
         if: github.ref == 'refs/head/master'
         uses: "artipie/upload-action@v0.2.1"
