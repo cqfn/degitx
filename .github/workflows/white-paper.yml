@@ -43,3 +43,4 @@ jobs:
         uses: allthatjazzleo/actions-pull-request-add-comment@master
         with:
           message: "Latest PDF for this PR: ${{ steps.upload_with_version.outputs.url }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
