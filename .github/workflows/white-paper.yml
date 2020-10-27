@@ -19,10 +19,10 @@ jobs:
           working_directory: ./white-paper
           root_file: wp.tex
       - name: Set env
-        run: echo ::set-env name=GITHUB_SHA_SHORT::$(echo $GITHUB_SHA | cut -c 1-6)
+        run: echo "SHA6=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
       - name: Upload to Artipie as latest
         if: github.ref == 'refs/head/master'
-        uses: "artipie/upload-action@v0.2"
+        uses: "artipie/upload-action@v0.2.1"
         with:
           repo: "degit/wp"
           file: "./white-paper/wp.pdf"
@@ -31,11 +31,11 @@ jobs:
           password: "${{ secrets.ARTIPIE_PASSWORD }}"
       - name: Upload to Artipie with version
         id: upload_with_version
-        uses: "artipie/upload-action@v0.2"
+        uses: "artipie/upload-action@v0.2.1"
         with:
           repo: "degit/wp"
           file: "./white-paper/wp.pdf"
-          path: "white-paper-${{ env.GITHUB_SHA_SHORT }}.pdf"
+          path: "white-paper-${{ env.SHA6 }}.pdf"
           username: "${{ secrets.ARTIPIE_USERNAME }}"
           password: "${{ secrets.ARTIPIE_PASSWORD }}"
       - name: Comment on pull request
