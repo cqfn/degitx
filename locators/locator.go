@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash"
 	"strings"
+	"sync"
 
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
@@ -22,6 +23,7 @@ type Node struct {
 	PubKey  []byte
 	PrivKey []byte
 	Addr    ma.Multiaddr
+	Mux     sync.Mutex
 }
 
 func (n *Node) String() string {

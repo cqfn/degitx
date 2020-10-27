@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 
 	"cqfn.org/degitx/locators"
+	"cqfn.org/degitx/logging"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -18,8 +20,9 @@ type Keys struct {
 }
 
 type NodeConfig struct {
-	Version string `yaml:"version"`
-	Keys    *Keys  `yaml:"keys"`
+	Version   string             `yaml:"version"`
+	Keys      *Keys              `yaml:"keys"`
+	LogConfig *logging.LogConfig `yaml:"logging"`
 }
 
 func (config *NodeConfig) fromFile(fileName string) error {
