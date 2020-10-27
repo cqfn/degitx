@@ -21,7 +21,7 @@ jobs:
       - name: Set env
         run: echo ::set-env name=GITHUB_SHA_SHORT::$(echo $GITHUB_SHA | cut -c 1-6)
       - name: Upload to Artipie as latest
-        if: github.ref == "refs/head/master"
+        if: github.ref == 'refs/head/master'
         uses: "artipie/upload-action@v0.2"
         with:
           repo: "degit/wp"
@@ -39,7 +39,7 @@ jobs:
           username: "${{ secrets.ARTIPIE_USERNAME }}"
           password: "${{ secrets.ARTIPIE_PASSWORD }}"
       - name: Comment on pull request
-        if: github.event_name == "pull_request"
+        if: github.event_name == 'pull_request'
         uses: allthatjazzleo/actions-pull-request-add-comment@master
         with:
           message: "Latest PDF for this PR: ${{ steps.upload_with_version.outputs.url }}"
