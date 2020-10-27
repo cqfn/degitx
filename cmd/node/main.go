@@ -11,6 +11,8 @@ import (
 
 	"cqfn.org/degitx"
 	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/logging"
+
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/urfave/cli/v2"
 )
@@ -109,6 +111,7 @@ func cmdRun(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	logging.Init(node, cfg.LogConfig)
 	peers := discovery.NewPeers(ctx.Context)
 	var dsc discovery.Service
 	peer := ctx.String("peer-host")

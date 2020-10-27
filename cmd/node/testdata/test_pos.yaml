@@ -3,3 +3,11 @@ keys:
   alg: rsa-1024
   private: "./cmd/node/testdata/private"
   public: "./cmd/node/testdata/public"
+logging:
+  outputs:
+  - path:
+    - stdout
+    level: DEBUG
+    format: plain
+  errors:
+    - stderr
