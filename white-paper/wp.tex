@@ -56,6 +56,7 @@
 \tikzset{node distance=1.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
 \tikzstyle{block} = [draw=myblack, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
 \tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
+\tikzstyle{O} = [circle, draw, every text node part/.style={align=center, font={\sffamily\small}}]
 
 % custom commands
 \newcommand{\code}[1]{\texttt{#1}}
@@ -82,13 +83,46 @@ which replicates repositories across region nodes.
 
 % \onehalfspace
 
-\section{The problem}
+\section{The problems}
+
+DeGitX project aims to fix few different projects bot technical and conceptual
+of source code repository management.
+
+\subsection{Scalability}
+
+One of the problem is scalability. Big company or developer's community may have
+millions of repository distributed around the world, and teams located in different countries
+(regions). These repositories are accessed by different ways:
+\begin{description}
+  \item[Developer personal activity] - programmers access git repositories via
+    \code{git} client and performs \code{fetch}/\code{push} actions. Also, they
+    may use web UI interface to upload files, edit files in browser, merge pull requests, etc.
+    The number of requests for this activity is not very big according to collected statistics.
+  \item[API access] - a lot of services depends on repository management services. It's API robots
+    collecting developers activity, background code analyzers of repository, IDEs communicating
+    with repositories and reading some history data. The number of such requests is about
+    few thousands requests per minute for each million of repositories.
+  \item[CI systems] - many events may trigger CI worfkflow, most coommon events are:
+    new commit pushed, new pull (merge) request created, new tag pushed, etc.
+    On each action CI system downloads the whole repository to run some workflows,
+    the download (\code{clone}) operation accompanied by huge bandwidth consumption.
+    In additional, some repositories may include submodules, it leads to submodules cloning by CI
+    system. According to the statistic, the number is measured as ten thousands requests per minute
+    for each million of repositories.
+\end{description}
+
+This repository management system can be distributed and clients will be routed to storage with
+correct repository location, but on huge amount of \code{fetch} traffic for one repository,
+the disk read requests may go above IOPS limit and repository storage will stop serving following requests.
 
 There was an attempt to implement POC distributed repository manager with
-eventually consistency guarantee, but it fails because of two reasons:
+eventually consistency guarantee: one repository was replicated asynchronously after update to multiple storages,
+and clients were load balanced to different repository storages.
+But it fails because of two reasons:
 1) fetch traffic correlates with push frequency because of huge amount of
 CI systems involved in development process: each push event usually triggers
-CI build which clones the repository.
+CI build immediately which clones the repository. CI was able to clone only
+"master" repository because the replication was not completed before CI cloning started.
 2) push and fetch frequency is not distributed uniformly over the time: in each
 repository, team members may have different responsibilities for review and merge process,
 project technical lead can merge all approved pull-requests in short period of time
@@ -96,8 +130,9 @@ which causes frequent push operations in git repo.
 
 These two conditions lead to high fetch traffic peaks for git repositories:
 frequent push operations turn replication nodes into inconsistent state,
-and lead to high fetch traffic from different regions to primary repository node
-which can shutdown the node and become the whole repository unavailable for some time.
+and lead to high fetch traffic to primary repository storage, where all push operations were handled.
+It causes same problems as not replicated system - the primary node goes beyond IOPS limits and
+rejects new fetch requests.
 
 Merge is not the only way to ``update'' the repository. Lots of activities can do that,
 here is the list of some:
@@ -113,32 +148,114 @@ here is the list of some:
     Also, delete a repository could be treated as migrate it to a trash area.
 \end{description}
 
+\subsection{Government restrictions}
+The most popular repository management systems are \href{https://github.com/}{GitHub} and
+\href{https://about.gitlab.com}{GitLab} are under control of government, these servcice may
+restric access for some groups of people based on their location and may reject to provide paid
+versions for hosting internal servers. \todo{add more details}.
+
 \section{Solution}
 
-The solution is a distributed Git repository manager with
-strong consistent replica nodes. It guarantees data consistency across
-different regions, durability by replicating repositories on different server racks,
-read scalability by routing fetch traffic to different nodes with independend disks hardware.
+The solution is a distributed Git repository manager with strong consistent replica nodes.
+It consists of two parts, see Figure ~\ref{fig:comp-arc-overview}:
 
-DeGit is a peer-to-peer system, no persistent master nodes exists.
-It uses overlay network built on transport network layer and based on persistent node locators to communicate
-with each other, see \hyperref[sec:locators]{Locators}. Nodes use \hyperref[sec:discovery]{Discovery} protocol
-to find network address of another node.
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \matrix[row sep=10mm, column sep=10mm](clients){
+        \node[block] (C1) {C$_{1}$}; \\
+        \node[block] (C2) {C$_{2}$}; \\
+        \node[block] (CN) {C$_{n}$}; \\
+      };
+      \matrix[row sep=10mm, column sep=10mm, right=of clients](load-balancers){
+        \node[block] (LB1) {Lb$_{1}$}; \\
+        \node[block] (LB2) {Lb$_{2}$}; \\
+        \node[block] (LBN) {Lb$_{n}$}; \\
+      };
+      \matrix[row sep=10mm, column sep=10mm, right=of load-balancers](nodes){
+        \node[O] (N1) {N$_{1}$}; \\
+        \node[O] (N2) {N$_{2}$}; \\
+        \node[O] (N3) {N$_{3}$}; \\
+        \node[O] (N4) {N$_{4}$}; \\
+        \node[O] (NN) {N$_{n}$}; \\
+      };
+      \draw[-] (C1) -- (LB1);
+      \draw[-] (C2) -- (LB2);
+      \draw[-] (CN) -- (LBN);
 
-Each node may have zero or more git repository replicas. To find node locator of certain repository,
-node uses \hyperref[sec:metadata]{Metadata} exchange protocol. When the system decides to start managing a replica
-on soe node, it updates metadata by mapping repository id with node locator.
+      \foreach \x/\lbx in {LB1, LB2, LBN}
+        \foreach \xn/\nx in {N1, N2, N3, N4, NN}
+          \draw[-] -- (\lbx.east) -- (\nx.west);
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+    Components architecture overview:
+    Each client C$_{x}$ connected one-to-one to DeGit load balancer Lb$_{x}$,
+    load balancer proxies all requests to storage nodes N$_{1..n}$.
+  }
+  \label{fig:comp-arc-overview}
+\end{figure}
 
-When client write git data to system (via \code{push}), the request is routing to one of the replicas
-which starts leader election and updates the replicated log of consensus of repository holders (replicas),
-see \hyperref[sec:data]{Data} exchange protocol.
+\begin{description}
+  \item[The back end] - (core network, storage), P2P\footnote{peer to peer} system which stores git data
+    and metadata\footnote{Here git data referenced to git objects, and git metadata to git references.
+    In this document git data usually refer to both objects and references unless otherwise stated},
+    it's responsible for replication of repositories, and guarantee
+    strong consistency of git storage across replicas. It exposes internal RPC API to accept git intermediate
+    requests, which can modify repository state. And provide endpoints to read (\code{fetch}) repository data.
+  \item[The front end] - (multiplexer, load balancer), back-end client. It exposes public API for all git operations,
+    translates all operations request into intermediate RPC language, routes requests to proper storage
+    nodes and load-balancing read (\code{fetch}) requests to different replicas of same repository.
+\end{description}
 
-Each node exposes \hyperref[sec:api]{RPC API}, clients uses it to perform git operations on distributed repository
-data. Client doesn't know if the node contains certain repository it just sends the read or write request
-to the node, and node degates this operation to on of repository replicas to perform it.
 
-The system collects usage statistics about fetch and push operation for each node and repository,
-and may decide to move repositories to most frequently used nodes based on this statistics.
+The front end exposes public API for well-known protocol, e.g. one front-end implementation provides
+\href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly} gRPC interfaces for GitLab
+instance set\footnote{In this document GitLab instance set is a set of shell, workhorce and web components of GitLab},
+see Figure ~\ref{fig:gitlab-set} diagram. There GitLab is a client of DeGitX front-end, it sends gRPC requests to
+front-end to modify and fetch git data.
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[block] (browser) {Browser};
+      \node[block, below=of browser] (git) {git};
+
+      \node[block, right=of browser] (web) {Web};
+      \node[block, below=of web] (shell) {Shell};
+      \node[block, below=of shell] (workhorse) {Workhorse};
+      \node[fit=(shell)(workhorse)(web), draw, dashed, label={[right=0cm, above=3cm]1cm:GitLab set}](gl-set){};
+
+      \node[block, right=of shell, xshift=1cm] (fe) {DeGit front-end};
+
+      \draw[-] (git.east) -- node {ssh} (shell.west);
+      \draw[-] (git.east) -- node {http(s)} (workhorse.west);
+      \draw[-] (browser.east) -- node {API} (web.west);
+      \draw[-] (shell.east) -- node {gRPC} (fe.west);
+      \draw[-] (workhorse.east) -- node {gRPC} (fe.west);
+      \draw[-] (web.east) -- node {gRPC} (fe.west);
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+    GitLab set and Gitaly front-end:
+    git client communicates with GitLab-shell via SSH or with GitLab-workhorse via HTTP(S).
+    Browser uses GitLab-web. All three GitLab components communicates with git storage via DeGitX load balancer
+    (front-end) via gRPC protocol defined by Gitaly component of GitLab.
+  }
+  \label{fig:gitlab-set}
+\end{figure}
+
+The communication layer of DeGitX front-end and back-end is DeGit metadata: it consists of mapping
+of repository hash to storage node locator, the front-end can be configured differently depends on
+setup kind, it can query metadata from database, it can query lookup it via DHT\footnote{Distributed hash table}
+or it can receive metadata updates broadcast from storage node peers in local network via UDP protocol,
+see \ref{sec:metadata}.
+
+When a client (e.g. GitLab-shell) write git data to the system (via \code{push}), the request is routing
+by front-end load balancer to one of the storage replicas.
+Storage back-end node starts leader election with other repository replicas and updates the log\footnote{Here: node log
+or back-end log is distributed replicated log of state machine associated with certain git repository storage}
+of consensus of repository holders (replicas), see \ref{sec:data}.
 
 The system autmatically rebalances repository storage: when repository is not used actively for a
 long time, the node can remove a repository from storage if 3 replicas of this repository exists on other nodes;
@@ -187,8 +304,11 @@ DeGitX uses a routing system to find addresses of nodes by locators.
 \label{sec:discovery}
 Each node doesn't know network addresses of others by default. Different discovery techicues could be used
 for node lookup and could be used together:
-\todo{choose the best option}.
 \begin{description}
+  \item[LPD] - local peer discovery: each peer sends UDP messages with locator ID and stored repository hashes
+    via UDP broadcasts to the local network periodically, it updates locator ID to address maps and optimizes
+    metadata exchange (\ref{sec:metadata}) protocol. It's cheap and fast for network layer (due to UDP messages),
+    the main goal is to update peers and load balancers tables in same region as peer node.
 \item[DHT] - distributed hash tables uses different metrics to compare the distance of nodes in overlay network.
   For example \href{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf}{Kademlia} uses
   \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed -
@@ -200,92 +320,109 @@ for node lookup and could be used together:
   It requires additional system configuration, but delegating some responsibilities to third-party services.
 \item[Track host] - nodes can use some central track host to register itself on start. Many track implementations
   provides DNS services to help with discovery of registered nodes.
-\item[Hybrid] - system may use different approaches combinations, e.g. discovery service may use distributed database
-  and provide single entry point for discovery as track DNS.
 \end{description}
 
 \subsection{Metadata}
 \label{sec:metadata}
+DeGitX metadata is a relation of repository hash to node locator ID. It's how metadata is updated:
+\begin{enumerate}
+  \item A new node wants to replicate some repository (e.g. node has predefined setting to store some repository name)
+  \item The node finds current repository holders (replicas) in existing metadata and choose random node from this list
+  \item A node sends the request to the node to add itself to the replica list
+  \item Receiver node starts leader election and updates node log to add new node to the replica list
+  \item The consensus accepts new node and stores it in local persistant storage
+  \item The leader notifies a new node that it becomes a part of the replicas and consider it when consensus is required
+  \item New node replicates the state of consensus and holds the repository and sends UDP broadcast to
+    local peers on success
+  \item Leader node propagates replicas change in metadata storages asynchronously: updates DHT or database storage
+    (as configured)
+\end{enumerate}
+
 Repository mapping could be stored in distributed hash table (e.g. Kademlia),
-\todo{research and compare different solutions}.
+database cache or broadcasted via local network broadcasts.
+E.g. for multi-region cluster setup, the front-end load balancer may look for node in local cache
+populated by local network broadcasts, then check region database where all repositories in same region are
+registered, and if not found perform DHT query lookup in different regions,
+see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[block] (db) {DB};
+      \node[block, below=of db, xshift=-3cm] (fe) {Front-end};
+      \node[O, below=of db, xshift=3cm] (Nx) {N$_{x}$};
+
+      \draw[<->] (fe) -- node {1} (db);
+      \draw[<->] (fe) -- node {2} (Nx);
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+    Repository lookup in database:
+    DB - Database with metadata for current region.
+    1 step - front-end load balancer query database for repository metadata.
+    2 step - front-end access node N$_{x}$ with required repository.
+  }
+  \label{fig:repo-lookup-db}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \matrix[row sep=10mm](feg){
+        \node[block] (fe) {Front-end}; \\
+      };
+      \matrix[row sep=3mm, column sep=5mm, right=of feg](r1){
+        \node[O] (r1n1) {N$_{r1,1}$}; \\
+        \node[O] (r1n2) {N$_{r1,2}$}; \\
+        \node[O] (r1n3) {N$_{r2,3}$}; \\
+        \node[O] (r1nN) {N$_{r1,n}$}; \\
+      };
+      \node[fit=(r1)(feg), draw, dashed, label={[right=0cm, above=3cm]1cm:R$_{1}$}](r1g){};
+      \matrix[row sep=3mm, column sep=5mm, right=of r1](r2){
+        \node[O] (r2n1) {N$_{r2,1}$}; \\
+        \node[O] (r2n2) {N$_{r2,2}$}; \\
+        \node[O] (r2nN) {N$_{r2,n}$}; \\
+      };
+      \node[fit=(r2), draw, dashed, label={[right=0cm, above=3cm]1cm:R$_{2}$}](r2g){};
+      \matrix[row sep=3mm, column sep=5mm, right=of r2](r3){
+        \node[O] (r3n1) {N$_{r3,1}$}; \\
+        \node[O] (r3n2) {N$_{r3,2}$}; \\
+        \node[O] (r3n3) {N$_{r3,3}$}; \\
+        \node[O] (r3nN) {N$_{r3,n}$}; \\
+      };
+      \node[fit=(r3), draw, dashed, label={[right=0cm, above=3cm]1cm:R$_{3}$}](r3g){};
+      \draw[-latex] (fe) -- (r1n2);
+      \draw[-latex] (r1n2) -- (r2n1);
+      \draw[-latex] (r2n1) -- (r3n3);
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+    Repository lookup via DHT:
+    Front-end in Region R$_{1}$ unable to find repository located on node N$_{r3,3}$ in same region,
+    but it query the nearest known node N$_{r2,1}$, the node N$_{r2,1}$ knows where repository is located
+    and redirects the query to node N$_{r3,3}$ with repository.
+  }
+  \label{fig:repo-lookup-dht}
+\end{figure}
 
 \subsection{Git data exchange}
+\label{sec:data}
 Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
 \emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
 
 \todo{search for more algorithms}.
 
 \section{Explanation}
-\subsection{How does DeGitX update repository}
-This is how DeGitX system updates repository: a client \code{C} uses RPC API
-to push git data to repository \code{R}.
-The RPC request comes to one of DeGitX nodes \code{N1}.
 
-\begin{figure}[H]
-\centering
-  \begin{tikzpicture}
-    \node[block] (C) {Client C};
-    \node[block, right=of C] (N1) {Node N1};
-    \path[ln] (C) edge node {push R1} (N1);
-  \end{tikzpicture}
-  \caption{Client C1 push data to repository R1 via node N1}
-\end{figure}
+\subsection{How the client find replica with git repository}
 
-The node \code{N1} uses \hyperref[sec:metadata]{metadata} to find \hyperref[sec:locators]{locator} \code{L2}
-of any replica of repository requested.
-With this locator, node performs lookup for node
-with locator using \hyperref[sec:discovery]{discovery protocol} to find \hyperref[sec:network]{real address}
-\code{A2} of node with locator which replicates the repository requested.
+\subsection{How the client pushs new commit to git repository}
 
-\begin{figure}[H]
-\centering
-  \begin{tikzpicture}
-    \node[block] (C) {Client C};
-    \node[block, right=of C] (N1) {Node N1};
-    \node[block, below=of C] (N2) {N2, L2, A2};
-    \node[block, below=of N1] (N3) {N3, L3, A3};
-    \node[block, below=of N3] (N4) {N4, L4, A4};
-    \node[fit=(N2)(N3)(N4), draw, dashed](R1){Replicas of R1};
-    \path[ln] (C) edge node {push R1} (N1);
-    \path[ln] (N1) edge node {knows A3} (N3);
-  \end{tikzpicture}
-  \caption{N1 find address of replica N3 of repository R1}
-\end{figure}
+\subsection{How the client fetches git data from repository}
 
-After that node knows real address where repository is located.
-The node sends internal RPC call to \code{A3} and asks to update the repository with requested changes.
-Node \code{N3} elect the leader for these operation across \code{N3}, \code{N4} and \code{N5} nodes.
-The leader \code{L4} adds new operation request to the state machine log for repository
-and replicates it across consensus of repository holders (across all replicas in best case).
+\subsection{How new replica node connected to the cluster}
 
-\begin{figure}[H]
-\centering
-  \begin{tikzpicture}
-    \node[block] (C) {Client C};
-    \node[block, right=of C] (N1) {Node N1};
-    \node[block, below=of C] (N2) {N2, L2, A2};
-    \node[block, below=of N1] (N3) {N3, L3, A3};
-    \node[block, below=of N3] (N4) {N4, L4, A4 (leader)};
-    \node[fit=(N2)(N3)(N4), draw, dashed](R1){};
-    \path[ln] (C) edge node {push R1} (N1);
-    \path[ln] (N1) edge node {requests update of R1} (N3);
-    \path[ln] (N4) edge node {update log} (N3);
-    \path[ln] (N4) edge node {update log} (N2);
-  \end{tikzpicture}
-  \caption{Replica N3 initiates leader election, the node N4 becomes the leader, and replicate update across all replicas of R1}
-\end{figure}
-
-After successful update of \code{R1} node \code{N2} returns with success status to node \code{N1},
-and node \code{N1} sends success to git client \code{C}.
-
-\subsection{How does DeGitX fetches the repository}
-Fetching repository is easier comparing to pushing. First steps are similar to write: client
-sends fetch requrest to any node in a system for repository. Then node look up for locator of
-any replica with requesting repository. Then node finds real address of this locator.
-Knowing address of repository, it reads git data from this replica and returns it to the client.
-If replica fails to respond, it tries another replica.
-
-\todo{add more topics here}
+\todo{explain all questions}
 
 \subsection{Git Internals}
 \subsubsection{Dictionary}
