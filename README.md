@@ -5,18 +5,6 @@
 
 DeGitX - distributed git repository manager, see explanation in the [white paper](https://central.artipie.com/degit/wp/white-paper-latest.pdf).
 
-## Build
-
-Use `make` to build this project:
- - `make` - install all dependencies, generate proto files, run tests and build node
- - `make install-deps` - install required dependencies
- - `make proto` - generate protobuf source code
- - `make build` - build core package
- - `make test` - run tests
- - `make node` - build `node` binary
- - `make lint` - run linters. [golangci-lint](https://golangci-lint.run/) required to be installed in advance.
- - `make verify` - build, test and lint
-
 ## Node Configuration
 
 `yaml` is the only node configuration format and consist of: 
@@ -54,6 +42,16 @@ To propose new changes:
  4 - create new commit using format: `#<ticket> - <message>`, push to fork
  5 - create pull request: specify the problem in PR description, describe the changes
  in PR body
+ 
+Use `make` to build this project:
+ - `make` - install all dependencies, generate proto files, run tests and build node
+ - `make install-deps` - install required dependencies
+ - `make proto` - generate protobuf source code
+ - `make build` - build core package
+ - `make test` - run tests
+ - `make node` - build `node` binary
+ - `make lint` - run linters. [golangci-lint](https://golangci-lint.run/) required to be installed in advance.
+ - `make verify` - build, test and lint
 
 ### GPG public key
 
