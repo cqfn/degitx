@@ -3,7 +3,9 @@
 ![Lines of code](https://img.shields.io/tokei/lines/github/cqfn/degitx)
 
 
-DeGitX - distributed git repository manager, see explanation in the [white paper](https://central.artipie.com/degit/wp/white-paper-latest.pdf).
+DeGitX - distributed git repository manager,
+see explanation in the [white paper](https://central.artipie.com/degit/wp/white-paper-latest.pdf)
+or job Telegram chat to discuss: [@cqfn_degit](https://t.me/cqfn_degit).
 
 ## Node Configuration
 
