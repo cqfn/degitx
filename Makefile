@@ -1,9 +1,10 @@
 PROTODIR := proto
+WPDIR := white-paper
 RMRF := rm -rf
 GO := go
 FLAGS := -v
 
-.PHONY: all build clean install-deps lint tidy verify $(PROTODIR)
+.PHONY: all build clean install-deps lint tidy verify $(PROTODIR) $(WPDIR)
 
 all: build test node
 
@@ -49,3 +50,6 @@ tidy:
 # verify build before commit
 verify: build test lint node
 	@echo "Built is OK"
+
+$(WPDIR):
+	$(MAKE) -C $(WPDIR)
