@@ -69,30 +69,48 @@
 
 \maketitle
 \begin{abstract}
-Big software companies may have millions of code repositories,
-and use them extensively by programmers and CI pipelines.
-One git server is not able to satisfy performance expectations,
-many servers with load-balancing can't solve this issue too because
-of inability storage IO scaling for read operations.
-Also, a big company may have distributed teams around the world,
-where each team collaborates with others in one git repo,
-cross-region repo access could be slow in such cases.
-The solution for this problem is distributed git repository storage,
-which replicates repositories across region nodes.
+  Big software companies or open source communities 
+  may have millions of code repositories,
+  and use them extensively by programmers and continuous integration (CI) pipelines.
+  One git server is not able to satisfy performance expectations,
+  many servers with load-balancing can't solve this issue too because
+  of inability storage IO scaling for read operations.
+  Also, a big company may have distributed teams around the world,
+  where each team collaborates with others in one git repo,
+  cross-region repo access could be slow in such cases.
+  The solution for this problem is distributed git repository storage,
+  which replicates repositories across region nodes.
 \end{abstract}
 
-% \onehalfspace
+\section{Introduction}
 
-\section{The problems}
+\todo{Add introduction}
 
-DeGitX project aims to fix few different projects bot technical and conceptual
-of source code repository management.
+\section{Technical problems}
+
+There are 3 main probles to solve for distributed git repository manager (DGRM):
+\begin{description}
+\item[scalability] - one repository may be used actively by many users simultaneously. Storage disk
+  has input output (IO) operarion limits, and can't perform a lot of \code{fetch} operations in
+  short period of time. The git repository storage should be replicated on different system nodes to
+  solve this problem.
+\item[dispatching] - this user doesn't know network address of git repository storages. Also, according to the
+  previous problem, one repository can be located on multiple replicas.
+  So the system should be able to locate and redirect user's requests
+  from git client\footnote{Git client is a software that performs git fetch and push operations, it can be
+  command line tool, IDE or any graphical user interface communicating with DGRM} to correct git repository
+  storage. It should lookup for repository nodes in system and load-balance requests to different storage replicas.
+\item[consistency] - the user may \code{push} to repository and \code{fetch} then, in that case it must receive
+  same or newer data that user \code{push}ed previously, even if user \code{fetch}ed data from another
+  replica of this repository. The linearizability of each single repository in a system is a must have option.
+\end{description}
 
 \subsection{Scalability}
 
-One of the problem is scalability. Big company or developer's community may have
-millions of repository distributed around the world, and teams located in different countries
-(regions). These repositories are accessed by different ways:
+Big software companies or big developer's communities have
+millions of repositories distributed around the world, and big teams located in different countries
+(regions). On high load of \code{fetch} requests git repository storage disks may go above IO operation limits.
+Usually, repositories are accessed by different ways:
 \begin{description}
   \item[Developer personal activity] - programmers access git repositories via
     \code{git} client and performs \code{fetch}/\code{push} actions. Also, they
@@ -111,30 +129,35 @@ millions of repository distributed around the world, and teams located in differ
     for each million of repositories.
 \end{description}
 
-This repository management system can be distributed and clients will be routed to storage with
-correct repository location, but on huge amount of \code{fetch} traffic for one repository,
-the disk read requests may go above IOPS limit and repository storage will stop serving following requests.
+Event if git repository storage is distributed and clients are routed to storage with
+correct git repository, the huge amount of \code{fetch} traffic for one repository still able to
+make disk go above input output operations (IOP) limits and repository storage will stop
+serving requests.
 
-There was an attempt to implement POC distributed repository manager with
-eventually consistency guarantee: one repository was replicated asynchronously after update to multiple storages,
-and clients were load balanced to different repository storages.
-But it fails because of two reasons:
-1) fetch traffic correlates with push frequency because of huge amount of
-CI systems involved in development process: each push event usually triggers
-CI build immediately which clones the repository. CI was able to clone only
-"master" repository because the replication was not completed before CI cloning started.
-2) push and fetch frequency is not distributed uniformly over the time: in each
-repository, team members may have different responsibilities for review and merge process,
-project technical lead can merge all approved pull-requests in short period of time
-which causes frequent push operations in git repo.
+The scalability problem was tried to fix by asynchronous replication of git repository data:
+there was proof of concept DGRM with eventually consistency guarantee;
+one repository was replicated asynchronously after any update operation to multiple git repository storages,
+and clients were load balanced to different git repository storages.
+But it was not succeed because of two reasons:
+\begin{enumerate}
+  \item fetch traffic correlated with push frequency because of huge amount of
+  CI systems and API robots involved in development process: each update event usually triggers
+  CI build immediately, and CI clones the repository. CI was able to clone only
+  primary repository (repository with actual data) because the replication has not been completed
+  before CI cloning started.
+  \item \code{push} and \code{fetch} frequency was not distributed uniformly over the time - in each
+  repository team members may have different responsibilities for review and merge process,
+  project technical lead can merge all approved pull-requests in short period of time
+  which causes frequent push operations in git repo.
+\end{enumerate}
 
 These two conditions lead to high fetch traffic peaks for git repositories:
-frequent push operations turn replication nodes into inconsistent state,
-and lead to high fetch traffic to primary repository storage, where all push operations were handled.
-It causes same problems as not replicated system - the primary node goes beyond IOPS limits and
-rejects new fetch requests.
+frequent push operations turn replication storages into inconsistent state,
+and lead to high fetch traffic to primary repository storages from CI systems which clones these repositories.
+It causes the same problems as were common for non-replicated system - the primary node goes beyond IOPS limits and
+rejects new \code{fetcj} requests.
 
-Merge is not the only way to ``update'' the repository. Lots of activities can do that,
+Futhermore, \code{merge} is not the only way to ``update'' the repository. Lots of other activities can do that,
 here is the list of some:
 
 \begin{description}
@@ -148,53 +171,30 @@ here is the list of some:
     Also, delete a repository could be treated as migrate it to a trash area.
 \end{description}
 
-\subsection{Government restrictions}
-The most popular repository management systems are \href{https://github.com/}{GitHub} and
-\href{https://about.gitlab.com}{GitLab} are under control of government, these servcice may
-restric access for some groups of people based on their location and may reject to provide paid
-versions for hosting internal servers. \todo{add more details}.
+\subsection{Dispatching}
+
+Git client doesn't know where repository replica is located in the system. Dispatching algorithm
+should be able to locate correct storage nodes (distributed system nodes) of repository and redirect
+each client's request to one of these nodes. Moreover, it's not enough just to redirect client's request,
+the dispatching endpoint should load-balance all requests for each particular repository to distribute
+storage load over the time. Round-robin load-balancing solves this problem, since the scalability problems
+occurs only on peeks of high read traffic, so statistically redirecting each next read request to
+different storage node reduces disk load by \code{n}-times, where \code{n} is amount of storage replicas.
+
+\subsection{Consistency}
+
+\todo{Describe the problem}
+
+% \subsection{Government restrictions}
+% The most popular repository management systems are \href{https://github.com/}{GitHub} and
+% \href{https://about.gitlab.com}{GitLab} are under control of government, these servcice may
+% restric access for some groups of people based on their location and may reject to provide paid
+% versions for hosting internal servers. \todo{add more details}.
 
 \section{Solution}
 
 The solution is a distributed Git repository manager with strong consistent replica nodes.
-It consists of two parts, see Figure ~\ref{fig:comp-arc-overview}:
-
-\begin{figure}
-  \begin{center}
-    \begin{tikzpicture}
-      \matrix[row sep=10mm, column sep=10mm](clients){
-        \node[block] (C1) {C$_{1}$}; \\
-        \node[block] (C2) {C$_{2}$}; \\
-        \node[block] (CN) {C$_{n}$}; \\
-      };
-      \matrix[row sep=10mm, column sep=10mm, right=of clients](load-balancers){
-        \node[block] (LB1) {Lb$_{1}$}; \\
-        \node[block] (LB2) {Lb$_{2}$}; \\
-        \node[block] (LBN) {Lb$_{n}$}; \\
-      };
-      \matrix[row sep=10mm, column sep=10mm, right=of load-balancers](nodes){
-        \node[O] (N1) {N$_{1}$}; \\
-        \node[O] (N2) {N$_{2}$}; \\
-        \node[O] (N3) {N$_{3}$}; \\
-        \node[O] (N4) {N$_{4}$}; \\
-        \node[O] (NN) {N$_{n}$}; \\
-      };
-      \draw[-] (C1) -- (LB1);
-      \draw[-] (C2) -- (LB2);
-      \draw[-] (CN) -- (LBN);
-
-      \foreach \x/\lbx in {LB1, LB2, LBN}
-        \foreach \xn/\nx in {N1, N2, N3, N4, NN}
-          \draw[-] -- (\lbx.east) -- (\nx.west);
-    \end{tikzpicture}
-  \end{center}
-  \caption{
-    Components architecture overview:
-    Each client C$_{x}$ connected one-to-one to DeGit load balancer Lb$_{x}$,
-    load balancer proxies all requests to storage nodes N$_{1..n}$.
-  }
-  \label{fig:comp-arc-overview}
-\end{figure}
+It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-arc-overview} diagram):
 
 \begin{description}
   \item[The back end] - (core network, storage), P2P\footnote{peer to peer} system which stores git data
@@ -208,6 +208,46 @@ It consists of two parts, see Figure ~\ref{fig:comp-arc-overview}:
     nodes and load-balancing read (\code{fetch}) requests to different replicas of same repository.
 \end{description}
 
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \matrix[row sep=10mm, column sep=10mm](clients){
+        \node[block] (C1) {C$_{1}$}; \\
+        \node[block] (C2) {C$_{2}$}; \\
+        \node[block] (CN) {C$_{n}$}; \\
+      };
+      \matrix[row sep=10mm, column sep=10mm, right=of clients](load-balancers){
+        \node[block] (FE1) {Fe$_{1}$}; \\
+        \node[block] (FE2) {Fe$_{2}$}; \\
+        \node[block] (FEN) {Fe$_{n}$}; \\
+      };
+      \node[fit=(C1)(FE1), draw, dashed](vm1){};
+      \node[fit=(C2)(FE2), draw, dashed](vm2){};
+      \node[fit=(CN)(FEN), draw, dashed](vmn){};
+      \matrix[row sep=10mm, column sep=10mm, right=of load-balancers](nodes){
+        \node[block] (N1) {N$_{1}$}; \\
+        \node[block] (N2) {N$_{2}$}; \\
+        \node[block] (N3) {N$_{3}$}; \\
+        \node[block] (N4) {N$_{4}$}; \\
+        \node[block] (NN) {N$_{n}$}; \\
+      };
+      \draw[-] (C1) -- (FE1);
+      \draw[-] (C2) -- (FE2);
+      \draw[-] (CN) -- (FEN);
+
+      \foreach \x/\lbx in {FE1, FE2, FEN}
+        \foreach \xn/\nx in {N1, N2, N3, N4, NN}
+          \draw[-] -- (\lbx.east) -- (\nx.west);
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+    Components architecture overview:
+    Each client C$_{x}$ connected one-to-one to DeGit front-end Fe$_{x}$,
+    the front-end (load-balancer, dispatcher) proxies all requests to
+    back-end (storage) nodes N$_{1..n}$.
+  }
+  \label{fig:comp-arc-overview}
+\end{figure}
 
 The front end exposes public API for well-known protocol, e.g. one front-end implementation provides
 \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly} gRPC interfaces for GitLab
@@ -326,7 +366,7 @@ for node lookup and could be used together:
 \label{sec:metadata}
 DeGitX metadata is a relation of repository hash to node locator ID. It's how metadata is updated:
 \begin{enumerate}
-  \item A new node wants to replicate some repository (e.g. node has predefined setting to store some repository name)
+  \item A new node wants to replicate some repository (e.g. node has predefined setting to store some repository)
   \item The node finds current repository holders (replicas) in existing metadata and choose random node from this list
   \item A node sends the request to the node to add itself to the replica list
   \item Receiver node starts leader election and updates node log to add new node to the replica list
