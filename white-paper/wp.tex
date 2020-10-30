@@ -285,7 +285,7 @@ front-end to modify and fetch git data.
   \label{fig:gitlab-set}
 \end{figure}
 
-The communication layer of DeGitX front-end and back-end is DeGit metadata: it consists of mapping
+The communication layer of DeGit front-end and back-end is DeGit metadata: it consists of mapping
 of repository hash to storage node locator, the front-end can be configured differently depends on
 setup kind, it can query metadata from database, it can query lookup it via DHT\footnote{Distributed hash table}
 or it can receive metadata updates broadcast from storage node peers in local network via UDP protocol,
@@ -308,65 +308,128 @@ move some repository to new node. Same for disconnecting: if node was disconnect
 it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
 
 \subsection{Protocol}
-Main system protocol components are (under discussion):
+Main system protocols are:
 \begin{description}
-  \item[Locators] - unique node identity.
-  \item[Network] - node peers connection.
-  \item[Discovery] - lookup of node real address by locator ID.
-  \item[Metadata] - a mapping of repository to node: a node contains many repositories and
-    repository can be replicated across many nodes.
-  \item[Data] - Git objects and references exchange protocol, commands to add new objects and update references.
+  \item[Location protocol] - unique node identity.
+  \item[Network protocols] - nodes communication protocols.
+  \item[Discovery protocol] - lookup of node real address by locator ID.
+  \item[Metadata exchange protocol] - a mapping of git repository to storage back-end node.
+  \item[Data exchange protocol] - Git objects and references exchange protocol,
+    commands to add new objects and update references, linearizability guarantee.
 \end{description}
 
 \subsubsection{Locators}
 \label{sec:locators}
-Each node has persistant public and private keys to identify itself in a system.
-Unique identifier\footnote{In this document, node identifier, node-id and node locator refer to the same definition}
-is a cryptographic hash of public key of the node in \emph{\href{https://multiformats.io/multihash/}{Multihash}} format.
-Private and public keys can be used to sign requests to other nodes or to build trusted \emph{\hyperref[sec:discovery]{discovery}}
-point in a system: when a new system is created, administrator can create CA (certification authority) for issuing
-digital certificates for node public keys, so each node will be able to verify certificate of any other node when
-using seed list URLs. Node instances uses locators to talk with each other, it can find real network address of nodes using
-this identity. Also, system uses locators for node-repository mapping, the item of mapping table consists of
-locator and unique repository name.
+Network addresses are not stable, back-end node may get network address via
+Dynamic Host Configuration Protocol (DHTP), or node owner may move it from one server to another.
+So we can't rely on network addresses when working with back-end nodes, we need some
+overlay networks and unique identifiers for each node. To identify a node DeGit uses
+public-key cryptography: node owner generates private and public key pair using one of the supported
+crypto algorithms \todo{which exactly?}, these keys will identify back-end node uniquelly.
+Node uses cryptographic hash \todo{choose algorithm} of public key as node locator ID,
+as reseearched in the ~\cite{securebaserouting}. Nodes uses locator IDs to introduce
+itself to the system and build overlay network on top of real network. DeGit uses
+Multihash\footnote{https://multiformats.io/multihash/} format to encode locator IDs.
 
-Related: ``A Practicable Approach Towards Secure Key-Based Routing'' by I. Baumgart and S. Mies;
-Identities and Network design of IPFS by J. Benet.
+Private and public keys can be used to sign requests to other nodes or to build
+trusted discovery (see ~\ref{sec:discovery}) point in a system: when a new system is created,
+administrator can create certification authority (CA) for issuing digital certificates for node
+public keys, so each node will be able to verify certificate of any other node when
+using seed list URLs or other peers exchange algorithms. Node instances uses locators to talk
+with each other, it can find real network address of nodes using this locator ID.
+Also, system uses locators for node-repository mapping (see ~\ref{sec:data}),
+the item of mapping table consists of locator ID and unique repository name hash.
 
 \subsubsection{Network}
 \label{sec:network}
+
 DeGitX uses TCP or UDP protocols for transport layer, TCP is used by default. It uses IPv4 or IPv6 for addressing,
 it stores addresses in \href{https://github.com/multiformats/multiaddr}{multiaddr} format, for instance:
 \code{/ipv4/1.2.3.4/udp/4444} evaluates to \code{4444} UDP port on \code{1.2.3.4} IPv4 address.
-DeGitX uses a routing system to find addresses of nodes by locators.
+DeGitX uses a routing system (see \ref{sec:discovery}) to find addresses of nodes by locators.
 
 \subsubsection{Discovery}
 \label{sec:discovery}
-Each node doesn't know network addresses of others by default. Different discovery techicues could be used
-for node lookup and could be used together:
+
+Each node doesn't know network addresses of others by default, it knows only locator ID.
+Different discovery techicues are used for node lookup, it can be configured independenly by node
+administrator and they could be used together:
+
 \begin{description}
-  \item[LPD] - local peer discovery: each peer sends UDP messages with locator ID and stored repository hashes
-    via UDP broadcasts to the local network periodically, it updates locator ID to address maps and optimizes
-    metadata exchange (\ref{sec:metadata}) protocol. It's cheap and fast for network layer (due to UDP messages),
-    the main goal is to update peers and load balancers tables in same region as peer node.
-\item[DHT] - distributed hash tables uses different metrics to compare the distance of nodes in overlay network.
-  For example \href{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf}{Kademlia} uses
-  \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed -
-  DeGitX locators satisfies this requirements, being generated as cryptographic hash function from
-  public key. In Kademlia lookup system each node stores references in K-buckets, where each K-bucket
-  contains node addresses with same ID prefix. For more details, see section 2.4 of its white paper.
-\item[Distributed DB] - network addresses could be propagated to the system using supplimentary distributed
-  CP database, e.g. etcd or others. Node registers itself in database on startap, and uses this database for lookups.
-  It requires additional system configuration, but delegating some responsibilities to third-party services.
-\item[Track host] - nodes can use some central track host to register itself on start. Many track implementations
-  provides DNS services to help with discovery of registered nodes.
+  \item[LPD] - local peer discovery: each peer sends UDP messages with locator ID.
+    It's cheap and fast for network layer (due to UDP messages); other system components,
+    such as front-ends and back-ends receive these messages and update local cache of node locators.
+    These approach dramatically improve lookup performance in local networks, e.g. when most of communications
+    are performed in one local region, and all region nodes are connected via local networ.
+    This protocol supposed to be used with other discovery dechicues.
+    For security reasons, in untrusted networks, the broadcast messages may be optionally signed with
+    node private keys to be verified by the receiver using CA public certificate.
+    For optimization reasons, this protocol is resused by metadata exchange protocol for
+    repository hash table propagation (see \ref{sec:metadata}). \todo{lookup for researches}.
+  \item[Distributed DB] - network addresses could be propagated to the system using supplimentary distributed
+    database, e.g. etcd or others. On startup, the back-end node registers itself in database,
+    and other system nodes (both front-ends and back-ends) uses this database for lookups. 
+    It requires additional system configuration, but delegating some responsibilities to third-party services.
+  \item[Seed hosts] - nodes can use other nodes as seed hosts as caching optimization, some nodes
+    will be responsible for caching lookup results. In other words, these seed nodes represents similar abstraction
+    as Content Delivery Network (CDN) in web caching.
+  \item[DHT] - distributed hash tables uses different metrics to compare the distance of nodes in overlay network.
+    For example Kademlia\footnote{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf} uses
+    \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed -
+    DeGit locators satisfies this requirements, being generated as cryptographic hash function from
+    public key. In Kademlia lookup system each node stores references in K-buckets, where each K-bucket
+    contains node addresses with same ID prefix.
 \end{description}
+
+Depends on configuration node may use or may not some discovery protocols. They are performed
+in well specified order: firstly, the node is lookup for locator ID in local cache, the cache is updated
+by LPD broadcasts; in case if not found, the node is quering discovery database, then seed hosts, and DHT
+as last resort.
+
+The structure of discovery entries is a mapping of locator ID (which is cryptographic hash by design)
+to network address in Multiaddr format (as described in network section: ~\ref{sec:network}).
+
+Example of routing table:
+
+\begin{tabular}{l | l}
+  Locator ID & Node address \\ \hline
+  \code{122041dd7b6443...0022ab11d2589a8} & \code{/ipv4/192.168.1.42/tcp/9031} \\
+  \code{122041dd7b6443...0022ab11d2589a8} & \code{/ipv4/192.168.1.33/tcp/8011} \\
+  \code{132052eb4dd19f...6f8c7d235eef5f4} & \code{/ipv4/172.18.11.22/tcp/9031} \\
+\end{tabular}
 
 \subsection{Metadata}
 \label{sec:metadata}
-DeGitX metadata is a relation of repository hash to node locator ID. It's how metadata is updated:
+
+DeGit peers doesn't know where to find repository storage by default,
+to solve it, the system introduces metadata layer to exchange repository coordinates
+to locator IDs. The structure of metadata is a many-to-many relation of
+repository cryptographic hash to storage locator ID.
+
+For instance, here is the example of metadata of two repositories located at two nodes,
+repository \code{repo1} is located on both nodes \code{node1} and \code{node2},
+the repository \code{repo2} is located only on node \code{node2}:
+
+\begin{tabular}{l | l}
+  Repository hash & Locator ID \\ \hline
+  \code{hash(repo1)} & \code{locator(node1)} \\
+  \code{hash(repo1)} & \code{locator(node2)} \\
+  \code{hash{repo2}} & \code{locator(node2)} \\
+\end{tabular}
+
+The repository hash is encoded in Multihash format. Metadata exchange protocol partially reuses
+discovery protocol for network optimizations, e.g. peers sends local broadcasts
+with locator IDs and known repository hashes, discovery database may keep (if configured)
+repository hash map to node locator IDs relations (see \ref{fig:repo-lookup-db}),
+DHT keeps locator IDs as a value for repository hash keys \ref{fig:repo-lookup-dht},
+it keeps all metadata of the whole system. The metadata lookup process is similar to discovery protocol:
+firstly, peer is looking for metadata in local cache (populated with network broadcasts); then, it checks
+region database; and as last resort, it performs query lookup for global DHT.
+
+When a new node starts replicating some repository, it's synchronizing with other replicas first, and then
+updates metadata asynchronously. It's how metadata is updated:
 \begin{enumerate}
-  \item A new node wants to replicate some repository (e.g. node has predefined setting to store some repository)
+  \item A new node wants to replicate some repository
   \item The node finds current repository holders (replicas) in existing metadata and choose random node from this list
   \item A node sends the request to the node to add itself to the replica list
   \item Receiver node starts leader election and updates node log to add new node to the replica list
@@ -892,5 +955,5 @@ S/Kademlia: A Practicable Approach Towards Secure Key-Based RoutingIngmar Baumga
 
 IPFS - Content Addressed, Versioned, P2P File System (DRAFT 3) Juan Benet
 
-\printbibliography%
+\printbibliography
 \end{document}
