@@ -203,7 +203,7 @@ It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-
     it's responsible for replication of repositories, and guarantee
     strong consistency of git storage across replicas. It exposes internal RPC API to accept git intermediate
     requests, which can modify repository state. And provide endpoints to read (\code{fetch}) repository data.
-  \item[The front end] - (multiplexer, load balancer), back-end client. It exposes public API for all git operations,
+  \item[The front end] - (multiplexer, load balancer). It exposes public API for all git operations,
     translates all operations request into intermediate RPC language, routes requests to proper storage
     nodes and load-balancing read (\code{fetch}) requests to different replicas of same repository.
 \end{description}
@@ -211,40 +211,32 @@ It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-
 \begin{figure}
   \begin{center}
     \begin{tikzpicture}
-      \matrix[row sep=10mm, column sep=10mm](clients){
-        \node[block] (C1) {C$_{1}$}; \\
-        \node[block] (C2) {C$_{2}$}; \\
-        \node[block] (CN) {C$_{n}$}; \\
-      };
-      \matrix[row sep=10mm, column sep=10mm, right=of clients](load-balancers){
-        \node[block] (FE1) {Fe$_{1}$}; \\
-        \node[block] (FE2) {Fe$_{2}$}; \\
-        \node[block] (FEN) {Fe$_{n}$}; \\
-      };
-      \node[fit=(C1)(FE1), draw, dashed](vm1){};
-      \node[fit=(C2)(FE2), draw, dashed](vm2){};
-      \node[fit=(CN)(FEN), draw, dashed](vmn){};
-      \matrix[row sep=10mm, column sep=10mm, right=of load-balancers](nodes){
-        \node[block] (N1) {N$_{1}$}; \\
-        \node[block] (N2) {N$_{2}$}; \\
-        \node[block] (N3) {N$_{3}$}; \\
-        \node[block] (N4) {N$_{4}$}; \\
-        \node[block] (NN) {N$_{n}$}; \\
-      };
-      \draw[-] (C1) -- (FE1);
-      \draw[-] (C2) -- (FE2);
-      \draw[-] (CN) -- (FEN);
+      \umlbasiccomponent[x=-3.5]{Client}
 
-      \foreach \x/\lbx in {FE1, FE2, FEN}
-        \foreach \xn/\nx in {N1, N2, N3, N4, NN}
-          \draw[-] -- (\lbx.east) -- (\nx.west);
+      \begin{umlcomponent}[x=1, y=-4]{Front-end}
+        \umlbasiccomponent{Load-balancer}
+        \umlprovidedinterface[interface=Entry point, name=lb-e6ce, padding=2cm]{Load-balancer}
+        \umlbasiccomponent[y=-3]{Routing table}
+      \end{umlcomponent}
+      \umlport{Front-end}{west}
+      \umldelegateconnector{Front-end-west-port}{lb-e6ce}
+      \umlHVHassemblyconnector[interface=RPC, with port, name=fe-rpc,
+        middle arm, arm1=-1cm, anchor1=-180]{Client}{Front-end}
+
+      \begin{umlcomponent}[x=6, y=-1]{Back-end}
+        \umlbasiccomponent{git storage}
+      \end{umlcomponent}
+      \umlHVassemblyconnector[interface=RPC, name=be-rpc, with port]{Front-end}{Back-end}
+
+      \umlnote[x=1.2]{fe-rpc-interface}{Front-end exposes public API for git operations}
+      \umlnote[x=7, y=-7]{be-rpc-interface}{Back-end exposes internal API for storage operations}
     \end{tikzpicture}
   \end{center}
   \caption{
     Components architecture overview:
-    Each client C$_{x}$ connected one-to-one to DeGit front-end Fe$_{x}$,
-    the front-end (load-balancer, dispatcher) proxies all requests to
-    back-end (storage) nodes N$_{1..n}$.
+    Each client C connected to DeGit front-end component,
+    the front-end has load-balancer to proxy incoming requests to back-end,
+    it finds back-end nodes using routing table.
   }
   \label{fig:comp-arc-overview}
 \end{figure}
