@@ -250,22 +250,32 @@ front-end to modify and fetch git data.
 \begin{figure}
   \begin{center}
     \begin{tikzpicture}
-      \node[block] (browser) {Browser};
-      \node[block, below=of browser] (git) {git};
+      \umlbasiccomponent[name=git, y=-0.5]{git CLI}
+      \umlbasiccomponent[name=browser, y=-5]{Browser}
 
-      \node[block, right=of browser] (web) {Web};
-      \node[block, below=of web] (shell) {Shell};
-      \node[block, below=of shell] (workhorse) {Workhorse};
-      \node[fit=(shell)(workhorse)(web), draw, dashed, label={[right=0cm, above=3cm]1cm:GitLab set}](gl-set){};
+      \begin{umlcomponent}[name=gitlab, x=8]{GitLab}
+        \umlbasiccomponent[name=gl-shell]{shell}
+        \umlprovidedinterface[interface=SSH, name=gl-shell-ssh, padding=2cm, distance=2.5cm]{gl-shell}
 
-      \node[block, right=of shell, xshift=1cm] (fe) {DeGit front-end};
+        \umlbasiccomponent[name=gl-workhorse, y=-3]{Workhorse}
+        \umlprovidedinterface[interface=HTTP, name=gl-wh-http, padding=2cm, distance=2.5cm]{gl-workhorse}
 
-      \draw[-] (git.east) -- node {ssh} (shell.west);
-      \draw[-] (git.east) -- node {http(s)} (workhorse.west);
-      \draw[-] (browser.east) -- node {API} (web.west);
-      \draw[-] (shell.east) -- node {gRPC} (fe.west);
-      \draw[-] (workhorse.east) -- node {gRPC} (fe.west);
-      \draw[-] (web.east) -- node {gRPC} (fe.west);
+        \umlbasiccomponent[name=gl-web, y=-6]{Web}
+        \umlprovidedinterface[interface=HTTP, name=gl-web-http, padding=2cm, distance=2.5cm]{gl-web}
+      \end{umlcomponent}
+      \umlport{gitlab}{150}
+      \umldelegateconnector{gitlab-150-port}{gl-shell-ssh}
+      \umlport{gitlab}{210}
+      \umldelegateconnector{gitlab-210-port}{gl-wh-http}
+      \umldelegateconnector{gitlab-210-port}{gl-web-http}
+      \umlassemblyconnector{git}{gitlab-150-port}
+      \umlassemblyconnector{git}{gitlab-210-port}
+      \umlassemblyconnector{browser}{gitlab-210-port}
+      \umlport{gitlab}{east}
+
+      \umlbasiccomponent[name=gitaly-fe, x=8, y=-10]{DeGitX front-end}
+      \umlport{gitaly-fe}{east}
+      \umlHVHassemblyconnector[interface=Gitaly gRPC, arm1=1cm]{gitlab-east-port}{gitaly-fe-east-port}
     \end{tikzpicture}
   \end{center}
   \caption{
