@@ -37,15 +37,10 @@ Projects
 
 ### Contributing
 
-To propose new changes:
- 1 - create a new branch from `master`
- 2 - write the code
- 3 - verify with `make verify` to be sure all tests passes
- 4 - create new commit using format: `#<ticket> - <message>`, push to fork
- 5 - create pull request: specify the problem in PR description, describe the changes
- in PR body
- 
-Use `make` to build this project:
+This page will help you with contributing workflow:
+https://github.com/cqfb/degitx/blob/master/CONTRIBUTING.md
+
+To build the project use `make` command:
  - `make` - install all dependencies, generate proto files, run tests and build node
  - `make install-deps` - install required dependencies
  - `make proto` - generate protobuf source code

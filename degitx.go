@@ -10,8 +10,12 @@ import (
 	"net"
 
 	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/gitlab/service/server"
 	"cqfn.org/degitx/locators"
+	"cqfn.org/degitx/logging"
 	"cqfn.org/degitx/proto/go/degitxpb"
+	"cqfn.org/degitx/version"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -26,6 +30,10 @@ func Start(ctx context.Context, node *locators.Node,
 	}
 
 	grpcServer := grpc.NewServer()
+	logger, err := logging.NewLogger("gRPC")
+	if err != nil {
+		return err
+	}
 
 	degitxpb.RegisterBlobServiceServer(grpcServer, &degitxpb.UnimplementedBlobServiceServer{})
 	degitxpb.RegisterCleanupServiceServer(grpcServer, &degitxpb.UnimplementedCleanupServiceServer{})
@@ -40,7 +48,7 @@ func Start(ctx context.Context, node *locators.Node,
 	degitxpb.RegisterWikiServiceServer(grpcServer, &degitxpb.UnimplementedWikiServiceServer{})
 	degitxpb.RegisterConflictsServiceServer(grpcServer, &degitxpb.UnimplementedConflictsServiceServer{})
 	degitxpb.RegisterRemoteServiceServer(grpcServer, &degitxpb.UnimplementedRemoteServiceServer{})
-	degitxpb.RegisterServerServiceServer(grpcServer, &degitxpb.UnimplementedServerServiceServer{})
+	degitxpb.RegisterServerServiceServer(grpcServer, server.NewServer(logger, version.GetVersion()))
 	degitxpb.RegisterObjectPoolServiceServer(grpcServer, &degitxpb.UnimplementedObjectPoolServiceServer{})
 	degitxpb.RegisterHookServiceServer(grpcServer, &degitxpb.UnimplementedHookServiceServer{})
 	degitxpb.RegisterInternalGitalyServer(grpcServer, &degitxpb.UnimplementedInternalGitalyServer{})
