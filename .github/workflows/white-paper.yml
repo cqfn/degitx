@@ -21,7 +21,7 @@ jobs:
       - name: Set env
         run: echo "SHA6=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
       - name: Upload to Artipie as latest
-        if: github.ref == 'refs/head/master'
+        if: github.ref == 'refs/heads/master'
         uses: "artipie/upload-action@v0.2.1"
         with:
           repo: "degit/wp"
