@@ -11,6 +11,7 @@ import (
 
 	"cqfn.org/degitx"
 	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/gitaly/server"
 	"cqfn.org/degitx/logging"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -141,7 +142,8 @@ func cmdRun(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return degitx.Start(ctx.Context, node, dsc)
+	gitaly := new(server.GrpcServer)
+	return degitx.Start(ctx.Context, node, dsc, gitaly)
 }
 
 func printID(ctx *cli.Context) error {
