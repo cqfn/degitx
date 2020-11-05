@@ -7,11 +7,13 @@ package server
 
 import (
 	"context"
+	"log"
 	"net"
+
+	ma "github.com/multiformats/go-multiaddr"
 
 	"cqfn.org/degitx/discovery"
 	"cqfn.org/degitx/gitaly/service/server"
-	"cqfn.org/degitx/locators"
 	"cqfn.org/degitx/logging"
 	"cqfn.org/degitx/proto/go/degitxpb"
 	"cqfn.org/degitx/version"
@@ -21,21 +23,54 @@ import (
 )
 
 type Server interface {
-	Start(context.Context, *locators.Node) error
-	Stop()
+	Start(context.Context) error
 }
 
-type GrpcServer struct {
-	server *grpc.Server
+type grpcServer struct {
+	addr net.Addr
 }
 
-func (s *GrpcServer) Start(_ context.Context, node *locators.Node) error {
+// NewGrpcServer for Gitaly gRPC
+func NewGrpcServer(maddr ma.Multiaddr) (Server, error) {
+	addr := new(discovery.MaNetworkAddr)
+	if err := addr.Parse(maddr); err != nil { //nolint:dupl // just parsing an address
+		return nil, err
+	}
+	srv := new(grpcServer)
+	srv.addr = addr
+	return srv, nil
+}
+
+func (s *grpcServer) Start(ctx context.Context) error {
 	grpcServer := grpc.NewServer()
-	logger, err := logging.NewLogger("gRPC")
+	logger, err := logging.NewLogger("Gitaly")
 	if err != nil {
 		return err
 	}
 
+	RegisterAll(grpcServer, logger)
+	reflection.Register(grpcServer)
+	l, err := net.Listen("tcp", s.addr.String())
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		if err := grpcServer.Serve(l); err != nil {
+			log.Printf("Front-end failed: %s", err)
+		}
+	}()
+
+	go func() {
+		<-ctx.Done()
+		grpcServer.GracefulStop()
+	}()
+	log.Printf("Front-end started at %s", s.addr)
+	return nil
+}
+
+// RegisterAll registers all Gitaly service servers
+func RegisterAll(grpcServer *grpc.Server, logger *logging.Logger) {
 	degitxpb.RegisterBlobServiceServer(grpcServer, &degitxpb.UnimplementedBlobServiceServer{})
 	degitxpb.RegisterCleanupServiceServer(grpcServer, &degitxpb.UnimplementedCleanupServiceServer{})
 	degitxpb.RegisterCommitServiceServer(grpcServer, &degitxpb.UnimplementedCommitServiceServer{})
@@ -53,27 +88,4 @@ func (s *GrpcServer) Start(_ context.Context, node *locators.Node) error {
 	degitxpb.RegisterObjectPoolServiceServer(grpcServer, &degitxpb.UnimplementedObjectPoolServiceServer{})
 	degitxpb.RegisterHookServiceServer(grpcServer, &degitxpb.UnimplementedHookServiceServer{})
 	degitxpb.RegisterInternalGitalyServer(grpcServer, &degitxpb.UnimplementedInternalGitalyServer{})
-
-	reflection.Register(grpcServer)
-
-	addr := new(discovery.MaNetworkAddr)
-	if err := addr.Parse(node.Addr); err != nil {
-		panic(err)
-	}
-	l, err := net.Listen("tcp", addr.String())
-	if err != nil {
-		return err
-	}
-
-	if err := grpcServer.Serve(l); err != nil {
-		return err
-	}
-	s.server = grpcServer
-	return nil
-}
-
-func (s *GrpcServer) Stop() {
-	if s.server != nil {
-		s.server.Stop()
-	}
 }

@@ -132,9 +132,6 @@ func cmdRun(ctx *cli.Context) error {
 			return err
 		}
 		dsc = discovery.NewGrpcClient(addr, node, peers)
-		if err != nil {
-			return err
-		}
 	} else {
 		dsc = new(discovery.StubService)
 	}
@@ -142,7 +139,11 @@ func cmdRun(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	gitaly := new(server.GrpcServer)
+	gitaly, err := server.NewGrpcServer(node.Addr)
+	if err != nil {
+		return err
+	}
+
 	return degitx.Start(ctx.Context, node, dsc, gitaly)
 }
 

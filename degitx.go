@@ -26,7 +26,7 @@ func Start(
 		return err
 	}
 
-	if err := gitaly.Start(ctx, node); err != nil {
+	if err := gitaly.Start(ctx); err != nil {
 		return err
 	}
 	return nil
