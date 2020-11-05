@@ -383,6 +383,38 @@ administrator and they could be used together:
     contains node addresses with same ID prefix.
 \end{description}
 
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{umlcomponent}{Node}
+        \umlbasiccomponent[name=locators]{Locators}
+        \umlprovidedinterface[name=ilocators]{locators}
+
+        \umlbasiccomponent[name=discovery, y=-4, x=-3]{Discovery}
+        \umlVHVassemblyconnector{discovery}{ilocators}
+      \end{umlcomponent}
+      \umlport{Node}{355}
+      \umlport{Node}{330}
+      \umlport{Node}{315}
+      \umldelegateconnector{discovery}{Node-355-port}
+      \umldelegateconnector{discovery}{Node-330-port}
+      \umldelegateconnector{discovery}{Node-315-port}
+      \umlrequiredinterface[interface=DHT]{Node-355-port}
+      \umlrequiredinterface[interface=LPD]{Node-330-port}
+
+      \umlbasiccomponent[name=db, x=6, y=-5]{Database}
+      \umlassemblyconnector[interface=DB]{Node-315-port}{db}
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+    Doscovery protocols depends on Locators protocol,
+    and uses multiple discovery interfaces: LPD on local network,
+    regional database to speedup the lookup, DHT for global lookup
+    in all system.
+  }
+  \label{fig:discovery-protocol}
+\end{figure}
+
 Depends on configuration node may use or may not some discovery protocols. They are performed
 in well specified order: firstly, the node is lookup for locator ID in local cache, the cache is updated
 by LPD broadcasts; in case if not found, the node is quering discovery database, then seed hosts, and DHT
@@ -518,6 +550,83 @@ Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf
 \todo{search for more algorithms}.
 
 \section{Explanation}
+
+\subsection{How to create new repository}
+
+The diagram ~\ref{fig:ex-create-repo} explains how administrator creates new repository with replication
+on predefined storage nodes by specifying its locator IDs:
+\begin{description}
+  \item[1] Administrator sends request to the dashboard to create new repository \code{R} at nodes with locators
+    \code{L}
+  \item[2] Dashboard service performs a lookup of \code{R} in metadata storage
+  \item[3] Metadata storage returns locator IDs \code{L'} of \code{R} repository if any
+  \item[4, 5] If \code{L'} locators are not emmpty, dashboard returns error to administrator
+  \item[6] If no node locator is associated with repository \code{R}, then dashboard asynchronously sends
+    requests to each node with locator ID \code{l} from list \code{L}
+  \item[7] Dashboard asks node \code{l} to start manage repository \code{R}, and specify other node locator IDs;
+    The node \code{l} try to organize consensus between nodes \code{L}, and leader asks all other members
+    to manage repository \code{R}
+  \item[8] On success, node \code{l} updates metadata with mapping of repository \code{R} hash to
+    node locator \code{l}
+  \item[9] Meanwhile, the dashboard is performing query requests to the metadata storage to get locator IDs of
+    repository \code{R}; Metadata storage returns IDs \code{L'}.
+  \item[10] In case if \code{L'} is a subset of \code{L} and the size of \code{L'} is greater or equal to
+    half size of \code{L} plus 1 (\code{size(L') >= size(L)/2 + 1})
+  \item[11] Dashboard finishes with success status
+  \item[12] If waiting timeout is reached
+  \item[13] Dashboard finishes with error status
+  \item[14] Dashboard returns with success or error status to administrator
+
+\end{description}
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{umlseqdiag}
+        \umlactor[no ddots]{Administrator}
+        \umlcontrol[no ddots]{Dashboard}
+        \umlmulti[no ddots]{Nodes}
+        \umldatabase[no ddots]{Metadata}
+
+        \begin{umlcall}[op={1: create(R, L)}]{Administrator}{Dashboard}
+          \begin{umlcall}[op={2: lookup(R)}]{Dashboard}{Metadata}
+            \begin{umlcall}[op={3: L'}, type=return]{Metadata}{Dashboard}
+            \end{umlcall}
+          \end{umlcall}
+
+          \begin{umlfragment}[type=ALT, name=err-already-exist, inner xsep=3,
+            label={4: !empty(L')}]
+            \begin{umlcall}[op={5: error}, type=return]{Dashboard}{Administrator}
+            \end{umlcall}
+            \umlfpart[else]
+            \begin{umlfragment}[type=LOOP, inner xsep=7, label={6: for l in L}]
+              \begin{umlcall}[op={7: l.manage(R, L)}, type=asynchron]{Dashboard}{Nodes}
+                \begin{umlcall}[op={8: update(R, l)}, type=asynchron]{Nodes}{Metadata}
+                \end{umlcall}
+              \end{umlcall}
+            \end{umlfragment}
+            \begin{umlfragment}[type=LOOP]
+              \begin{umlcall}[op={9: lookup(R)}, return={L'}]{Dashboard}{Metadata}
+              \end{umlcall}
+              \begin{umlfragment}[type=OPT, label={10: contains(consensus(L), L')}]
+                \begin{umlcallself}[op={11: break(success=true)}]{Dashboard}
+                \end{umlcallself}
+              \end{umlfragment}
+              \begin{umlfragment}[type=OPT, label={12: timeout}]
+                \begin{umlcallself}[op={13: break(success=false, err=timeout)}]{Dashboard}
+                \end{umlcallself}
+              \end{umlfragment}
+            \end{umlfragment}
+            \begin{umlcall}[type=return, op={14: (success, err)}]{Dashboard}{Administrator}
+            \end{umlcall}
+          \end{umlfragment}
+        \end{umlcall}
+      \end{umlseqdiag}
+    \end{tikzpicture}
+  \end{center}
+  \caption{Create repository workflow diagram}
+  \label{fig:ex-create-repo}
+\end{figure}
+
 
 \subsection{How the client find replica with git repository}
 
