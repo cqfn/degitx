@@ -1,6 +1,8 @@
 ![CI](https://github.com/cqfn/degitx/workflows/CI/badge.svg?branch=master&event=push)
 ![Build white paper document](https://github.com/cqfn/degitx/workflows/Build%20white%20paper%20document/badge.svg)
 ![Lines of code](https://img.shields.io/tokei/lines/github/cqfn/degitx)
+[![Telegram chat](https://img.shields.io/badge/Telegram-chat-brightgreen.svg)](https://t.me/cqfn_degit)
+
 
 
 DeGitX - distributed git repository manager,
