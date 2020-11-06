@@ -90,17 +90,17 @@
 
 There are 3 main probles to solve for distributed git repository manager (DGRM):
 \begin{description}
-\item[scalability] - one repository may be used actively by many users simultaneously. Storage disk
+\item[scalability] --- one repository may be used actively by many users simultaneously. Storage disk
   has input output (IO) operarion limits, and can't perform a lot of \code{fetch} operations in
   short period of time. The git repository storage should be replicated on different system nodes to
   solve this problem.
-\item[dispatching] - this user doesn't know network address of git repository storages. Also, according to the
+\item[dispatching] --- this user doesn't know network address of git repository storages. Also, according to the
   previous problem, one repository can be located on multiple replicas.
   So the system should be able to locate and redirect user's requests
   from git client\footnote{Git client is a software that performs git fetch and push operations, it can be
   command line tool, IDE or any graphical user interface communicating with DGRM} to correct git repository
   storage. It should lookup for repository nodes in system and load-balance requests to different storage replicas.
-\item[consistency] - the user may \code{push} to repository and \code{fetch} then, in that case it must receive
+\item[consistency] --- the user may \code{push} to repository and \code{fetch} then, in that case it must receive
   same or newer data that user \code{push}ed previously, even if user \code{fetch}ed data from another
   replica of this repository. The linearizability of each single repository in a system is a must have option.
 \end{description}
@@ -112,15 +112,15 @@ millions of repositories distributed around the world, and big teams located in 
 (regions). On high load of \code{fetch} requests git repository storage disks may go above IO operation limits.
 Usually, repositories are accessed by different ways:
 \begin{description}
-  \item[Developer personal activity] - programmers access git repositories via
+  \item[Developer personal activity] --- programmers access git repositories via
     \code{git} client and performs \code{fetch}/\code{push} actions. Also, they
     may use web UI interface to upload files, edit files in browser, merge pull requests, etc.
     The number of requests for this activity is not very big according to collected statistics.
-  \item[API access] - a lot of services depends on repository management services. It's API robots
+  \item[API access] --- a lot of services depends on repository management services. It's API robots
     collecting developers activity, background code analyzers of repository, IDEs communicating
     with repositories and reading some history data. The number of such requests is about
     few thousands requests per minute for each million of repositories.
-  \item[CI systems] - many events may trigger CI worfkflow, most coommon events are:
+  \item[CI systems] --- many events may trigger CI worfkflow, most coommon events are:
     new commit pushed, new pull (merge) request created, new tag pushed, etc.
     On each action CI system downloads the whole repository to run some workflows,
     the download (\code{clone}) operation accompanied by huge bandwidth consumption.
@@ -145,7 +145,7 @@ But it was not succeed because of two reasons:
   CI build immediately, and CI clones the repository. CI was able to clone only
   primary repository (repository with actual data) because the replication has not been completed
   before CI cloning started.
-  \item \code{push} and \code{fetch} frequency was not distributed uniformly over the time - in each
+  \item \code{push} and \code{fetch} frequency was not distributed uniformly over the time --- in each
   repository team members may have different responsibilities for review and merge process,
   project technical lead can merge all approved pull-requests in short period of time
   which causes frequent push operations in git repo.
@@ -154,7 +154,7 @@ But it was not succeed because of two reasons:
 These two conditions lead to high fetch traffic peaks for git repositories:
 frequent push operations turn replication storages into inconsistent state,
 and lead to high fetch traffic to primary repository storages from CI systems which clones these repositories.
-It causes the same problems as were common for non-replicated system - the primary node goes beyond IOPS limits and
+It causes the same problems as were common for non-replicated system --- the primary node goes beyond IOPS limits and
 rejects new \code{fetcj} requests.
 
 Futhermore, \code{merge} is not the only way to ``update'' the repository. Lots of other activities can do that,
@@ -197,13 +197,13 @@ The solution is a distributed Git repository manager with strong consistent repl
 It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-arc-overview} diagram):
 
 \begin{description}
-  \item[The back end] - (core network, storage), P2P\footnote{peer to peer} system which stores git data
+  \item[The back end] --- (core network, storage), P2P\footnote{peer to peer} system which stores git data
     and metadata\footnote{Here git data referenced to git objects, and git metadata to git references.
     In this document git data usually refer to both objects and references unless otherwise stated},
     it's responsible for replication of repositories, and guarantee
     strong consistency of git storage across replicas. It exposes internal RPC API to accept git intermediate
     requests, which can modify repository state. And provide endpoints to read (\code{fetch}) repository data.
-  \item[The front end] - (multiplexer, load balancer). It exposes public API for all git operations,
+  \item[The front end] --- (multiplexer, load balancer). It exposes public API for all git operations,
     translates all operations request into intermediate RPC language, routes requests to proper storage
     nodes and load-balancing read (\code{fetch}) requests to different replicas of same repository.
 \end{description}
@@ -631,6 +631,52 @@ on predefined storage nodes by specifying its locator IDs:
 \subsection{How the client find replica with git repository}
 
 \subsection{How the client pushs new commit to git repository}
+
+The diagram \ref{fig:ex-push-to-repo} explains how the client can push to git repository.
+
+Stakeholders are:
+\begin{description}
+  \item[Client] --- front-end client, e.g. GitLab or other supported client
+  \item[FE] --- front-end of DeGitX (load-balancer, multiplexer)
+  \item[BE] --- back-end of DeGitX (git storage)
+  \item[Meta] --- Metadata storage (LPD, DB, DHT)
+\end{description}
+
+The workflow:
+\begin{description}
+  \item[1] Client calls RPC of FE to push commits \code{c} to repository \code{r}
+  \item[2] FE performs lookup in metadata to find lcoators \code{L[]} of repository \code{r}
+  \item[3] FE calls RPC of any storage node from \code{L[]} list to push commits \code{c} to
+    repository \code{r}
+  \item[4] BE RPC receiver organizes leader-election across replicas of repository \code{r}
+    and asks a leader to add new commit \code{c} to repository git storage
+  \item[5] At least the half plus one replica performs update and commit new changes
+\end{description}
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{umlseqdiag}
+        \umlcontrol[no ddots]{Client}
+        \umlobject[no ddots]{FE}
+        \umlmulti[no ddots]{BE}
+        \umldatabase[no ddots]{Meta}
+        \begin{umlcall}[op={1: push(r,c)}, return=OK]{Client}{FE}
+          \begin{umlcall}[op={2: lookup(r)}, return={L[]}]{FE}{Meta}
+          \end{umlcall}
+          \begin{umlcall}[op={3: l.push(r,c)}, return=OK]{FE}{BE}
+            \begin{umlcallself}[op={4: leader-election}]{BE}
+            \end{umlcallself}
+            \begin{umlcallself}[op={5: git data update}]{BE}
+            \end{umlcallself}
+          \end{umlcall}
+        \end{umlcall}
+      \end{umlseqdiag}
+    \end{tikzpicture}
+  \end{center}
+  \caption{Push commmit \code{c} to repository \code{r}}
+\label{fig:ex-push-to-repo}
+\end{figure}
 
 \subsection{How the client fetches git data from repository}
 
