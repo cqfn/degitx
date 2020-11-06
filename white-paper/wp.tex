@@ -542,6 +542,40 @@ see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
   \label{fig:repo-lookup-dht}
 \end{figure}
 
+\subsection{Security}
+\label{subsec:security}
+A small fraction of malicious nodes can prevent correct message delivery throughout the overlay.
+
+Such nodes may mis-route, corrupt, or drop messages and routing information.
+Additionally, they may attempt to assume the identity of other nodes and corrupt or delete objects
+they are supposed to store on behalf of the system.
+
+All attacks based on presence of malicious nodes.
+There are 2 ways:
+\begin{itemize}
+  \item[$-$] Implement techniques that allow nodes to join the overlay, to maintain routing state, and to forward messages securely in the presence of malicious nodes.
+  \item[$-$] Make the appearance of malicious nodes impossible.
+\end{itemize}
+
+Degitx is not an open peer-to-peer system
+where resource pooling without preexisting trusted relationships is possible.
+It means that untrusted nodes aren't allowed to join
+and all members of the network are trusted not to cheat.
+
+To be sure that node is trusted, it's nodeId certificates should be signed by trusted CAs.
+Then each node rejects all unsigned requests.
+
+Certified nodeIds work well when nodes have fixed nodeIds.
+This condition is met while Node uses cryptographic hash of public key as nodeId.
+
+These certificates give the overlay a public key infrastructure,
+suitable for establishing encrypted and authenticated channels between nodes.
+Nodes with valid nodeId certificates can join the overlay, route messages,
+and leave repeatedly without involvement of the CAs.
+
+When the membership of a peer-to-peer system is constraint and all nodes are trusted as in DeGitX,
+CAs could solve security issues, because, according to the ~\cite{securerouting} research, all attacks are based on malicious nodes presence.
+
 \subsection{Git data exchange}
 \label{sec:data}
 Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
