@@ -11,6 +11,7 @@ import (
 
 	"cqfn.org/degitx"
 	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/gitaly/server"
 	"cqfn.org/degitx/logging"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -131,9 +132,6 @@ func cmdRun(ctx *cli.Context) error {
 			return err
 		}
 		dsc = discovery.NewGrpcClient(addr, node, peers)
-		if err != nil {
-			return err
-		}
 	} else {
 		dsc = new(discovery.StubService)
 	}
@@ -141,7 +139,12 @@ func cmdRun(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return degitx.Start(ctx.Context, node, dsc)
+	gitaly, err := server.NewGrpcServer(node.Addr)
+	if err != nil {
+		return err
+	}
+
+	return degitx.Start(ctx.Context, node, dsc, gitaly)
 }
 
 func printID(ctx *cli.Context) error {
