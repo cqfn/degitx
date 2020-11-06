@@ -628,7 +628,60 @@ on predefined storage nodes by specifying its locator IDs:
 \end{figure}
 
 
-\subsection{How the client find replica with git repository}
+\subsection{How the node finds the replica with git repository}
+
+Each node (both front-end and back-end nodes) has metadata exchange and discovery protocol components,
+both components rely on network module and locators systems.
+
+Stakeholders:
+\begin{description}
+  \item[Node] A node which performs repository lookup operation
+  \item[RDB] Regional database (caches repository hash table in local region specific cache table)
+  \item[DHT] Distributed hash table nodes, can perform global query lookup for node address by repository hash
+\end{description}
+
+The legend: \code{r} --- repository hash to lookup; \code{(l, a)} --- repository coordinates,
+pair of replica locator IDs and network address, see figure~\ref{fig:ex-node-lookup} for details.
+
+Workflow:
+\begin{enumerate}
+    \item Node checks local cache populated by local peer discovery broadcasts
+      and updated anually after success query operation
+    \item If coordinates were not found in cache, node goes to the next lookup layer
+    \item Node queries regional database to find repository coordinates
+    \item If coordinates were not found in database, goes to the next lookup layer
+    \item Node queries DHT nodes using lookup algorithms, e.g. Kademlia.
+    \item On success, node updates regional database with actual information
+    \item Node stores actual information in local cache
+\end{enumerate}
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{umlseqdiag}
+        \umlobject[no ddots]{Node}
+        \umldatabase[no ddots]{RDB}
+        \umlmulti[no ddots]{DHT}
+        \begin{umlcallself}[op={1: getCache(r)}]{Node}
+        \end{umlcallself}
+        \begin{umlfragment}[type=OPT, label={2}]
+          \begin{umlcall}[op={3: query(r)}, return={(l, a)}]{Node}{RDB}
+          \end{umlcall}
+          \begin{umlfragment}[type=OPT, label={4}]
+            \begin{umlcall}[op={5: query(r)}, return={(l, a)}, dt=7]{Node}{DHT}
+            \end{umlcall}
+            \begin{umlcall}[op={6: update(r, (l, a))}]{Node}{RDB}
+            \end{umlcall}
+          \end{umlfragment}
+          \begin{umlcallself}[op={7: putCache(r, (l, a))}]{Node}
+          \end{umlcallself}
+        \end{umlfragment}
+      \end{umlseqdiag}
+    \end{tikzpicture}
+  \end{center}
+  \caption{Node discovery and metadata exchange components}
+  \label{fig:ex-node-lookup}
+\end{figure}
 
 \subsection{How the client pushs new commit to git repository}
 
