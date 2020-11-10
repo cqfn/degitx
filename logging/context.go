@@ -13,17 +13,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type LogConfig struct {
-	Outputs   []Output `yaml:"outputs"`
-	ErrorsOut []string `yaml:"errors"`
-}
-
-type Output struct {
-	Path   []string `yaml:"path"`
-	Level  string   `yaml:"level"`
-	Format string   `yaml:"format"`
-}
-
 var errLogAlreadyInitialized = errors.New("log already initialized") //nolint:misspell // initialized
 
 type logContext struct {
@@ -40,6 +29,11 @@ var logCtx *logContext //nolint:gochecknoglobals
 var mux sync.Mutex //nolint:gochecknoglobals
 
 func Init(node *locators.Node, cfg *LogConfig) {
+	InitNodeless(cfg)
+	logCtx.nodeID = node.ID.HexString()
+}
+
+func InitNodeless(cfg *LogConfig) {
 	mux.Lock()
 	defer mux.Unlock()
 	if logCtx != nil {
@@ -61,7 +55,6 @@ func Init(node *locators.Node, cfg *LogConfig) {
 
 	logCtx = &logContext{
 		internalLogLevel: internalLogLevel,
-		nodeID:           node.ID.HexString(),
 		cfg:              cfg,
 		plain:            plainEncoder,
 		json:             jsonEncoder,

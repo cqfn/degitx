@@ -1,7 +1,7 @@
 // MIT License. Copyright (c) 2020 CQFN
 // https://github.com/cqfn/degitx/blob/master/LICENSE
 
-package main
+package config
 
 import (
 	"testing"
@@ -13,8 +13,8 @@ import (
 
 func Test_fromYaml(t *testing.T) {
 	assert := m.Assert(t)
-	config := new(NodeConfig)
-	err := config.fromFile("testdata/test_pos.yaml")
+	config := new(DegitxConfig)
+	err := config.FromFile("testdata/test_pos.yaml")
 	assert.That("config parsed without error", err, m.Nil())
 	assert.That("config version parsed", config.Version, m.Eq("42"))
 	assert.That("config alg parsed", config.Keys.Alg, m.Eq("rsa-1024"))
@@ -31,7 +31,7 @@ func Test_fromYaml(t *testing.T) {
 
 func Test_generateNodeID(t *testing.T) {
 	assert := m.Assert(t)
-	config := NodeConfig{
+	config := DegitxConfig{
 		"",
 		&Keys{
 			Alg:           "",
