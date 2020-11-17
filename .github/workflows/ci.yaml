@@ -20,7 +20,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - uses: arduino/setup-protoc@master
+      - uses: arduino/setup-protoc@v1.1.2
       - name: Build and test
         run: make
       - uses: actions/upload-artifact@v2
