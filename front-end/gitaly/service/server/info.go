@@ -4,19 +4,19 @@
 package server
 
 import (
-	"cqfn.org/degitx/proto/go/degitxpb"
+	"gitlab.com/gitlab-org/gitaly-proto/go/gitalypb"
 
 	"golang.org/x/net/context"
 )
 
 func (server *server) ServerInfo(
 	context.Context,
-	*degitxpb.ServerInfoRequest,
-) (*degitxpb.ServerInfoResponse, error) {
+	*gitalypb.ServerInfoRequest,
+) (*gitalypb.ServerInfoResponse, error) {
 	server.log.Info("ServerInfo RPC was called")
-	return &degitxpb.ServerInfoResponse{
+	return &gitalypb.ServerInfoResponse{
 		ServerVersion:   server.version,
 		GitVersion:      "not-implemented",
-		StorageStatuses: []*degitxpb.ServerInfoResponse_StorageStatus{},
+		StorageStatuses: []*gitalypb.ServerInfoResponse_StorageStatus{},
 	}, nil
 }
