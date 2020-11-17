@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
-	"cqfn.org/degitx"
 	"cqfn.org/degitx/discovery"
-	"cqfn.org/degitx/gitaly/server"
+	"cqfn.org/degitx/internal/config"
 	"cqfn.org/degitx/logging"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -21,7 +19,7 @@ import (
 func main() {
 	app := cli.App{
 		Name:        "degitx",
-		Usage:       "Manage degit node",
+		Usage:       "Manage degitx node",
 		Description: "DeGitX node CLI",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -68,44 +66,9 @@ const pConfigUser = "${HOME}/.config/degitx/config.yml"
 
 const pConfigSys = "/etc/degitx/config.yml"
 
-type errConfigNotFound struct{ paths []string }
-
-func (e *errConfigNotFound) Error() string {
-	return fmt.Sprintf("configuration file not found in {%s}",
-		strings.Join(e.paths, ":"))
-}
-
-func parseConfig(ctx *cli.Context) (*NodeConfig, error) {
-	config := new(NodeConfig)
-	paths := []string{
-		ctx.String("config"),
-		pConfigUser, pConfigSys,
-	}
-	var path string
-	for _, p := range paths {
-		if p == "" {
-			continue
-		}
-		p = os.ExpandEnv(p)
-		if _, err := os.Stat(p); os.IsNotExist(err) {
-			continue
-		}
-		path = p
-		break
-	}
-	if path == "" {
-		return nil, &errConfigNotFound{paths}
-	}
-	err := config.fromFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
 func cmdRun(ctx *cli.Context) error {
-	cfg, err := parseConfig(ctx)
-	if err != nil {
+	cfg := new(config.DegitxConfig)
+	if err := cfg.FromFiles(pConfigUser, pConfigSys, ctx.String("config")); err != nil {
 		return err
 	}
 	node, err := cfg.Node()
@@ -139,17 +102,13 @@ func cmdRun(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	gitaly, err := server.NewGrpcServer(node.Addr)
-	if err != nil {
-		return err
-	}
 
-	return degitx.Start(ctx.Context, node, dsc, gitaly)
+	return Start(ctx.Context, node, dsc)
 }
 
 func printID(ctx *cli.Context) error {
-	cfg, err := parseConfig(ctx)
-	if err != nil {
+	cfg := new(config.DegitxConfig)
+	if err := cfg.FromFiles(pConfigUser, pConfigSys, ctx.String("config")); err != nil {
 		return err
 	}
 	l, err := cfg.Node()

@@ -13,7 +13,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 
 	"cqfn.org/degitx/discovery"
-	"cqfn.org/degitx/gitaly/service/server"
+	"cqfn.org/degitx/front-end/gitaly/service/server"
 	"cqfn.org/degitx/logging"
 	"cqfn.org/degitx/proto/go/degitxpb"
 	"cqfn.org/degitx/version"
