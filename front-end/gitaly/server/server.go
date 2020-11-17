@@ -10,13 +10,29 @@ import (
 	"log"
 	"net"
 
-	ma "github.com/multiformats/go-multiaddr"
-
 	"cqfn.org/degitx/discovery"
+	"cqfn.org/degitx/front-end/gitaly/service/blob"
+	"cqfn.org/degitx/front-end/gitaly/service/cleanup"
+	"cqfn.org/degitx/front-end/gitaly/service/commit"
+	"cqfn.org/degitx/front-end/gitaly/service/conflicts"
+	"cqfn.org/degitx/front-end/gitaly/service/diff"
+	"cqfn.org/degitx/front-end/gitaly/service/namespace"
+	"cqfn.org/degitx/front-end/gitaly/service/objectpool"
+	"cqfn.org/degitx/front-end/gitaly/service/operations"
+	"cqfn.org/degitx/front-end/gitaly/service/ref"
+	"cqfn.org/degitx/front-end/gitaly/service/remote"
+	"cqfn.org/degitx/front-end/gitaly/service/repository"
 	"cqfn.org/degitx/front-end/gitaly/service/server"
+	"cqfn.org/degitx/front-end/gitaly/service/smarthttp"
+	"cqfn.org/degitx/front-end/gitaly/service/ssh"
+	"cqfn.org/degitx/front-end/gitaly/service/storage"
+	"cqfn.org/degitx/front-end/gitaly/service/wiki"
 	"cqfn.org/degitx/logging"
-	"cqfn.org/degitx/proto/go/degitxpb"
 	"cqfn.org/degitx/version"
+
+	"gitlab.com/gitlab-org/gitaly-proto/go/gitalypb"
+
+	ma "github.com/multiformats/go-multiaddr"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -71,21 +87,20 @@ func (s *grpcServer) Start(ctx context.Context) error {
 
 // RegisterAll registers all Gitaly service servers
 func RegisterAll(grpcServer *grpc.Server, logger *logging.Logger) {
-	degitxpb.RegisterBlobServiceServer(grpcServer, &degitxpb.UnimplementedBlobServiceServer{})
-	degitxpb.RegisterCleanupServiceServer(grpcServer, &degitxpb.UnimplementedCleanupServiceServer{})
-	degitxpb.RegisterCommitServiceServer(grpcServer, &degitxpb.UnimplementedCommitServiceServer{})
-	degitxpb.RegisterDiffServiceServer(grpcServer, &degitxpb.UnimplementedDiffServiceServer{})
-	degitxpb.RegisterNamespaceServiceServer(grpcServer, &degitxpb.UnimplementedNamespaceServiceServer{})
-	degitxpb.RegisterOperationServiceServer(grpcServer, &degitxpb.UnimplementedOperationServiceServer{})
-	degitxpb.RegisterRefServiceServer(grpcServer, &degitxpb.UnimplementedRefServiceServer{})
-	degitxpb.RegisterRepositoryServiceServer(grpcServer, &degitxpb.UnimplementedRepositoryServiceServer{})
-	degitxpb.RegisterSSHServiceServer(grpcServer, &degitxpb.UnimplementedSSHServiceServer{})
-	degitxpb.RegisterSmartHTTPServiceServer(grpcServer, &degitxpb.UnimplementedSmartHTTPServiceServer{})
-	degitxpb.RegisterWikiServiceServer(grpcServer, &degitxpb.UnimplementedWikiServiceServer{})
-	degitxpb.RegisterConflictsServiceServer(grpcServer, &degitxpb.UnimplementedConflictsServiceServer{})
-	degitxpb.RegisterRemoteServiceServer(grpcServer, &degitxpb.UnimplementedRemoteServiceServer{})
-	degitxpb.RegisterServerServiceServer(grpcServer, server.NewServer(logger, version.GetVersion()))
-	degitxpb.RegisterObjectPoolServiceServer(grpcServer, &degitxpb.UnimplementedObjectPoolServiceServer{})
-	degitxpb.RegisterHookServiceServer(grpcServer, &degitxpb.UnimplementedHookServiceServer{})
-	degitxpb.RegisterInternalGitalyServer(grpcServer, &degitxpb.UnimplementedInternalGitalyServer{})
+	gitalypb.RegisterBlobServiceServer(grpcServer, blob.NewServer(logger))
+	gitalypb.RegisterCleanupServiceServer(grpcServer, cleanup.NewServer(logger))
+	gitalypb.RegisterCommitServiceServer(grpcServer, commit.NewServer(logger))
+	gitalypb.RegisterDiffServiceServer(grpcServer, diff.NewServer(logger))
+	gitalypb.RegisterNamespaceServiceServer(grpcServer, namespace.NewServer(logger))
+	gitalypb.RegisterOperationServiceServer(grpcServer, operations.NewServer(logger))
+	gitalypb.RegisterRefServiceServer(grpcServer, ref.NewServer(logger))
+	gitalypb.RegisterRepositoryServiceServer(grpcServer, repository.NewServer(logger))
+	gitalypb.RegisterSSHServiceServer(grpcServer, ssh.NewServer(logger))
+	gitalypb.RegisterSmartHTTPServiceServer(grpcServer, smarthttp.NewServer(logger))
+	gitalypb.RegisterWikiServiceServer(grpcServer, wiki.NewServer(logger))
+	gitalypb.RegisterConflictsServiceServer(grpcServer, conflicts.NewServer(logger))
+	gitalypb.RegisterRemoteServiceServer(grpcServer, remote.NewServer(logger))
+	gitalypb.RegisterServerServiceServer(grpcServer, server.NewServer(logger, version.GetVersion()))
+	gitalypb.RegisterStorageServiceServer(grpcServer, storage.NewServer(logger))
+	gitalypb.RegisterObjectPoolServiceServer(grpcServer, objectpool.NewServer(logger))
 }
