@@ -27,6 +27,7 @@ import (
 	"cqfn.org/degitx/front-end/gitaly/service/ssh"
 	"cqfn.org/degitx/front-end/gitaly/service/storage"
 	"cqfn.org/degitx/front-end/gitaly/service/wiki"
+	"cqfn.org/degitx/front-end/healthcheckstub"
 	"cqfn.org/degitx/logging"
 	"cqfn.org/degitx/version"
 
@@ -35,6 +36,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 
 	"google.golang.org/grpc"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -70,17 +72,9 @@ func (s *grpcServer) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	go func() {
-		if err := grpcServer.Serve(l); err != nil {
-			log.Printf("Front-end failed: %s", err)
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		grpcServer.GracefulStop()
-	}()
+	if err := grpcServer.Serve(l); err != nil {
+		log.Printf("Front-end failed: %s", err)
+	}
 	log.Printf("Front-end started at %s", s.addr)
 	return nil
 }
@@ -103,4 +97,5 @@ func RegisterAll(grpcServer *grpc.Server, logger *logging.Logger) {
 	gitalypb.RegisterServerServiceServer(grpcServer, server.NewServer(logger, version.GetVersion()))
 	gitalypb.RegisterStorageServiceServer(grpcServer, storage.NewServer(logger))
 	gitalypb.RegisterObjectPoolServiceServer(grpcServer, objectpool.NewServer(logger))
+	healthpb.RegisterHealthServer(grpcServer, healthcheckstub.NewServer(logger))
 }
