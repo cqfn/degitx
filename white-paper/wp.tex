@@ -1,12 +1,6 @@
-\documentclass[12pt,oneside]{article}
+\documentclass[nonacm=true]{acmart}
 \usepackage[utf8]{inputenc}
 \usepackage{float}
-\usepackage[bottom]{footmisc}
-\usepackage{bookmark}
-\usepackage{microtype}
-\usepackage{amsmath}
-\usepackage{multicol}
-\usepackage{mdframed}
 \usepackage{setspace}
 \usepackage{pgfplots}
 \usepackage{graphicx}
@@ -24,37 +18,17 @@
   \usetikzlibrary{positioning}
   \usetikzlibrary{decorations.pathmorphing}
 \usepackage{./tikz-uml}
-\usepackage{everypage}
-  \AddEverypageHook{
-    \begin{textblock}{0.5}[0,0](0,0)
-      \tikz \node[fill=myred,minimum width=0.5\TPHorizModule,minimum height=16\TPVertModule] {};
-    \end{textblock}
-    \begin{textblock}{0.125}[0,0](0.5,0)
-      \tikz \node[fill=myblack,inner sep=0, minimum width=0.125\TPHorizModule,minimum height=16\TPVertModule] {};
-    \end{textblock}
-  }
 \usepackage{xcolor}
-  \definecolor{firebrick}{HTML}{B22222}
-  \definecolor{myred}{HTML}{CF0A2C}
-  \definecolor{myblack}{HTML}{232527}
-\newcommand\dd[1]{\colorbox{gray!30}{\texttt{#1}}}
 \usepackage{hyperref}
   \hypersetup{colorlinks=true,allcolors=blue!40!black}
 \setlength{\topskip}{6pt}
 \setlength{\parindent}{0pt} % indent first line
 \setlength{\parskip}{6pt} % before par
-% \let\oldsection\section\renewcommand\section{\newpage\oldsection}
 \date{\small\today}
-\title{%
-  DRAFT: DeGit - distributed git repository manager\\
-  \colorbox{firebrick}{\small\sffamily\color{white}{White Paper}}}
-\usepackage[style=authoryear,sorting=nyt,backend=biber,
-  hyperref=true,abbreviate=true,
-  maxcitenames=1,maxbibnames=1]{biblatex}
-  \renewbibmacro{in:}{}
-  \addbibresource{books.bib}
+\title[DeGit white paper]{[DRAFT] White-paper: DeGit - distributed git repository manager}
+\definecolor{tikz-block}{HTML}{232527}
 \tikzset{node distance=1.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
-\tikzstyle{block} = [draw=myblack, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
+\tikzstyle{block} = [draw=tikz-block, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
 \tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
 \tikzstyle{O} = [circle, draw, every text node part/.style={align=center, font={\sffamily\small}}]
 
@@ -63,11 +37,11 @@
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 
 \author{Kirill Chernyavskiy}
+\email{g4s8.public@gmail.com}
 
 \begin{document}
 \raggedbottom
 
-\maketitle
 \begin{abstract}
   Big software companies or open source communities 
   may have millions of code repositories,
@@ -81,6 +55,8 @@
   The solution for this problem is distributed git repository storage,
   which replicates repositories across region nodes.
 \end{abstract}
+
+\maketitle
 
 \section{Introduction}
 
@@ -1199,5 +1175,5 @@ S/Kademlia: A Practicable Approach Towards Secure Key-Based RoutingIngmar Baumga
 
 IPFS - Content Addressed, Versioned, P2P File System (DRAFT 3) Juan Benet
 
-\printbibliography
+% \printbibliography
 \end{document}
