@@ -66,10 +66,6 @@ const pConfigUser = "${HOME}/.config/degitx/config.yml"
 
 const pConfigSys = "/etc/degitx/config.yml"
 
-/**
- * @todo #74 Add channels for errors ans system signals and wait via select (back end)
- * Let's implement channels and handle them here to be able to start servers in goroutines
- */
 func cmdRun(ctx *cli.Context) error {
 	cfg := new(config.DegitxConfig)
 	if err := cfg.FromFiles(pConfigUser, pConfigSys, ctx.String("config")); err != nil {

@@ -104,10 +104,6 @@ func (s *grpcServer) Start(ctx context.Context) error {
 		return err
 	}
 
-	/**
-	 * @todo #74:15min Move Serve and add GracefulStop to goroutines
-	 * Let's start discovery server in goroutine when degitx main will be adopted to work with goroutines
-	 */
 	if err := srv.Serve(l); err != nil {
 		log.Printf("Discovery server failed: %s", err)
 	}
