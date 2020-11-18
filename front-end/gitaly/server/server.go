@@ -72,6 +72,10 @@ func (s *grpcServer) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	/**
+	 * @todo #74:15min Move Serve and add GracefulStop to goroutines
+	 * Let's start gitaly server in goroutine when degitx-gitaly main will be adopted to work with goroutines
+	 */
 	if err := grpcServer.Serve(l); err != nil {
 		log.Printf("Front-end failed: %s", err)
 	}
