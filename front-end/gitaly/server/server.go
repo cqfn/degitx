@@ -75,7 +75,8 @@ func (s *grpcServer) Start(ctx context.Context) error {
 	/**
 	 * @todo #74 Implement channels and goroutines
 	 * Let's Move Serve and add GracefulStop in goroutines in all places around the project.
-	 * To be able to start servers in goroutines, it's needed to add Channels and handle them via select in main.
+	 * To be able to start servers in goroutines,
+	 * it's needed to add Channels and handle them via select in main.
 	 */
 	if err := grpcServer.Serve(l); err != nil {
 		log.Printf("Front-end failed: %s", err)
