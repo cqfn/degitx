@@ -7,7 +7,7 @@
 
 DeGitX - distributed git repository manager,
 see explanation in the [white paper](https://central.artipie.com/degit/wp/white-paper-latest.pdf)
-or job Telegram chat to discuss: [@cqfn_degit](https://t.me/cqfn_degit).
+or join Telegram chat to discuss: [@cqfn_degit](https://t.me/cqfn_degit).
 
 ## Install
 
