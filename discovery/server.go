@@ -104,16 +104,10 @@ func (s *grpcServer) Start(ctx context.Context) error {
 		return err
 	}
 
-	go func() {
-		if err := srv.Serve(l); err != nil {
-			log.Printf("Discovery server failed: %s", err)
-		}
-	}()
+	if err := srv.Serve(l); err != nil {
+		log.Printf("Discovery server failed: %s", err)
+	}
 
-	go func() {
-		<-ctx.Done()
-		srv.GracefulStop()
-	}()
 	log.Printf("Discovery server started at %s", s.addr)
 	return nil
 }
