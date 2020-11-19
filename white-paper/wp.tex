@@ -1,4 +1,4 @@
-\documentclass[nonacm=true]{acmart}
+\documentclass[acmlarge, screen, nonacm]{acmart}
 \usepackage[utf8]{inputenc}
 \usepackage{float}
 \usepackage{setspace}
@@ -39,6 +39,10 @@
 \author{Kirill Chernyavskiy}
 \email{g4s8.public@gmail.com}
 
+\acmBooktitle{none}
+\acmConference{none}
+\editor{none}
+
 \begin{document}
 \raggedbottom
 
@@ -55,12 +59,6 @@
   The solution for this problem is distributed git repository storage,
   which replicates repositories across region nodes.
 \end{abstract}
-
-\def\acmBooktitle#1{\gdef\@acmBooktitle{#1}}
-\acmBooktitle{Proceedings of \acmConference@name
-       \ifx\acmConference@name\acmConference@shortname\else
-         \ (\acmConference@shortname)\fi}
-
 
 \maketitle
 
