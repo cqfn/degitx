@@ -63,7 +63,7 @@ Projects
 ### Contributing
 
 This page will help you with contributing workflow:
-https://github.com/cqfb/degitx/blob/master/CONTRIBUTING.md
+https://github.com/cqfn/degitx/blob/master/CONTRIBUTING.md
 
 To build the project use `make` command:
  - `make` - install all dependencies, generate proto files, run tests and build node
