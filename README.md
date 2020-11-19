@@ -7,7 +7,7 @@
 
 DeGitX - distributed git repository manager,
 see explanation in the [white paper](https://central.artipie.com/degit/wp/white-paper-latest.pdf)
-or job Telegram chat to discuss: [@cqfn_degit](https://t.me/cqfn_degit).
+or join Telegram chat to discuss: [@cqfn_degit](https://t.me/cqfn_degit).
 
 ## Install
 
@@ -63,7 +63,7 @@ Projects
 ### Contributing
 
 This page will help you with contributing workflow:
-https://github.com/cqfb/degitx/blob/master/CONTRIBUTING.md
+https://github.com/cqfn/degitx/blob/master/CONTRIBUTING.md
 
 To build the project use `make` command:
  - `make` - install all dependencies, generate proto files, run tests and build node
@@ -71,6 +71,7 @@ To build the project use `make` command:
  - `make proto` - generate protobuf source code
  - `make build` - build core package
  - `make test` - run tests
- - `make node` - build `node` binary
+ - `make degitx` - build `node` binary
+ - `make degitx-gitaly` - build front-end binary
  - `make lint` - run linters. [golangci-lint](https://golangci-lint.run/) required to be installed in advance.
- - `make verify` - build, test and lint
+ - `make verify` - build, test, lint, degitx and degitx-gitaly

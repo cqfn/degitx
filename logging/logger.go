@@ -75,7 +75,9 @@ func (log *Logger) Errorf(template string, args ...interface{}) {
 func initInternalLogger(tag string) (*zap.Logger, *zap.SugaredLogger, error) {
 	spec := []zapcore.Field{
 		zap.String("tag", tag),
-		zap.String("locator", logCtx.nodeID),
+	}
+	if len(logCtx.nodeID) != 0 {
+		spec = append(spec, zap.String("locator", logCtx.nodeID))
 	}
 
 	cores := []zapcore.Core{}

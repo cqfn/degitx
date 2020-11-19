@@ -6,7 +6,7 @@ FLAGS := -v
 
 .PHONY: all build clean install-deps lint tidy verify $(PROTODIR) $(WPDIR)
 
-all: build test node
+all: build test degitx degitx-gitaly
 
 # build core package
 build: $(PROTODIR)
@@ -17,13 +17,17 @@ install: build
 
 # run tests
 test: build
-	go test $(FLAGS)
 	go test $(FLAGS) ./locators
 	go test $(FLAGS) ./discovery
-	go test $(FLAGS) ./cmd/node
+	go test $(FLAGS) ./cmd/degitx
+	go test $(FLAGS) ./cmd/degitx-gitaly
 
-node: build proto
-	go build $(FLAGS) ./cmd/node
+
+degitx: build proto
+	go build $(FLAGS) ./cmd/degitx
+
+degitx-gitaly: build proto
+	go build $(FLAGS) ./cmd/degitx-gitaly
 
 # generate protobuf sources
 $(PROTODIR):
@@ -32,7 +36,8 @@ $(PROTODIR):
 # clean all
 clean:
 	$(MAKE) -C $(PROTODIR) clean
-	$(RMRF) node
+	$(RMRF) degitx
+	$(RMRF) degitx-gitaly
 
 # install required dependencies
 install-deps:
@@ -48,7 +53,7 @@ tidy:
 	go mod tidy
 
 # verify build before commit
-verify: build test lint node
+verify: build test lint degitx degitx-gitaly
 	@echo "Built is OK"
 
 $(WPDIR):
