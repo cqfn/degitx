@@ -1,15 +1,13 @@
 RM = rm -f
-BROWSER = firefox-bin
+BUILD = pdflatex
+BUIL_OPTS := -file-line-error -halt-on-error -interaction=nonstopmode -recorder
 
 .PHONY: all build clean show
 
 all: build
 
 build: wp.tex
-	latexmk -pdf wp.tex
-
-show: build
-	$(BROWSER) ${PWD}/wp.pdf
+	$(BUILD) $(BUILD_OPTS) wp.tex
 
 clean:
 	$(RM) *.iml .DS_Store *.aux *.log *.bcf *.bbl *.fdb_latexmk *.fls *.run.xml *.blg wp.pdf
