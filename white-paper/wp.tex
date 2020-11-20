@@ -352,11 +352,16 @@ administrator and they could be used together:
     There are 2 common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{bep 26}.
     Bep 14 is SSDP-like style and Bep 26 is zeroconf style LDP. To implement Bep 26 each host is required to run a zeroconf service discovery daemon.
     There is a popular \href{https://github.com/grandcat/zeroconf}{go zeroconf implementation} that could be used.
-    BitTorrent uses following multicast groups: A) 239.192.152.143:6771 (org-local) and B) [ff15::efc0:988f]:6771 (site-local) for Bep 14 implementation.
-    They've chosen such IPs because 239.192.0.0/14 is defined to be the IPv4 Organization Local Scope,
+    BitTorrent uses following multicast groups: A) \code{239.192.152.143:6771} (\href{https://tools.ietf.org/html/rfc2365#section-6.2}{org-local}) and B) \code{[ff15::efc0:988f]:6771} (\href{https://tools.ietf.org/html/rfc4291#section-2.5.7}{site-local}) for Bep 14 implementation.
+    \begin{itemize}
+      \item Site-Local scope is intended to span a single site.
+      \item Organization-Local scope is intended to span multiple sites
+      belonging to a single organization.
+    \end{itemize}
+    They've chosen such IPs because \code{239.192.0.0/14} is defined to be the IPv4 Organization Local Scope,
     and is the space from which an organization should allocate sub-
     ranges when defining scopes for private use.
-    ff15::efc0:988f also comes from \href{http://tools.ietf.org/html/rfc4291#section-2.7}{IPv6 spec} and means:
+    \code{ff15::efc0:988f} also comes from \href{http://tools.ietf.org/html/rfc4291#section-2.7}{IPv6 spec} and means:
     \begin{itemize}
       \item[--] FF == Multicast
       \item[--] 1 == ‘Flags' - where 1 indicates a non-permanently-assigned ("transient” or "dynamically" assigned) multicast address.
