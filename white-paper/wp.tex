@@ -218,8 +218,7 @@ It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-
     Each client C connected to DeGit front-end component,
     the front-end has load-balancer to proxy incoming requests to back-end,
     it finds back-end nodes using routing table.
-  }
-  \label{fig:comp-arc-overview}
+  }\label{fig:comp-arc-overview}
 \end{figure}
 
 The front end exposes public API for well-known protocol, e.g. one front-end implementation provides
@@ -310,7 +309,8 @@ overlay networks and unique identifiers for each node. To identify a node DeGit 
 public-key cryptography: node owner generates private and public key pair using one of the supported
 crypto algorithms \todo{which exactly?}, these keys will identify back-end node uniquelly.
 Node uses cryptographic hash \todo{choose algorithm} of public key as node locator ID,
-as reseearched in the ~\cite{securebaserouting}. Nodes uses locator IDs to introduce
+%FIXME
+% as reseearched in the ~\cite{securebaserouting}. Nodes uses locator IDs to introduce
 itself to the system and build overlay network on top of real network. DeGit uses
 Multihash\footnote{https://multiformats.io/multihash/} format to encode locator IDs.
 
@@ -570,7 +570,8 @@ Nodes with valid nodeId certificates can join the overlay, route messages,
 and leave repeatedly without involvement of the CAs.
 
 When the membership of a peer-to-peer system is constraint and all nodes are trusted as in DeGitX,
-CAs could solve security issues, because, according to the ~\cite{securerouting} research, all attacks are based on malicious nodes presence.
+%FIXME
+% CAs could solve security issues, because, according to the ~\cite{securerouting} research, all attacks are based on malicious nodes presence.
 
 \subsection{Git data exchange}
 \label{sec:data}
@@ -579,198 +580,7 @@ Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf
 
 \todo{search for more algorithms}.
 
-\section{Explanation}
-
-\subsection{How to create new repository}
-
-The diagram ~\ref{fig:ex-create-repo} explains how administrator creates new repository with replication
-on predefined storage nodes by specifying its locator IDs:
-\begin{description}
-  \item[1] Administrator sends request to the dashboard to create new repository \code{R} at nodes with locators
-    \code{L}
-  \item[2] Dashboard service performs a lookup of \code{R} in metadata storage
-  \item[3] Metadata storage returns locator IDs \code{L'} of \code{R} repository if any
-  \item[4, 5] If \code{L'} locators are not emmpty, dashboard returns error to administrator
-  \item[6] If no node locator is associated with repository \code{R}, then dashboard asynchronously sends
-    requests to each node with locator ID \code{l} from list \code{L}
-  \item[7] Dashboard asks node \code{l} to start manage repository \code{R}, and specify other node locator IDs;
-    The node \code{l} try to organize consensus between nodes \code{L}, and leader asks all other members
-    to manage repository \code{R}
-  \item[8] On success, node \code{l} updates metadata with mapping of repository \code{R} hash to
-    node locator \code{l}
-  \item[9] Meanwhile, the dashboard is performing query requests to the metadata storage to get locator IDs of
-    repository \code{R}; Metadata storage returns IDs \code{L'}.
-  \item[10] In case if \code{L'} is a subset of \code{L} and the size of \code{L'} is greater or equal to
-    half size of \code{L} plus 1 (\code{size(L') >= size(L)/2 + 1})
-  \item[11] Dashboard finishes with success status
-  \item[12] If waiting timeout is reached
-  \item[13] Dashboard finishes with error status
-  \item[14] Dashboard returns with success or error status to administrator
-
-\end{description}
-\begin{figure}
-  \begin{center}
-    \begin{tikzpicture}
-      \begin{umlseqdiag}
-        \umlactor[no ddots]{Administrator}
-        \umlcontrol[no ddots]{Dashboard}
-        \umlmulti[no ddots]{Nodes}
-        \umldatabase[no ddots]{Metadata}
-
-        \begin{umlcall}[op={1: create(R, L)}]{Administrator}{Dashboard}
-          \begin{umlcall}[op={2: lookup(R)}]{Dashboard}{Metadata}
-            \begin{umlcall}[op={3: L'}, type=return]{Metadata}{Dashboard}
-            \end{umlcall}
-          \end{umlcall}
-
-          \begin{umlfragment}[type=ALT, name=err-already-exist, inner xsep=3,
-            label={4: !empty(L')}]
-            \begin{umlcall}[op={5: error}, type=return]{Dashboard}{Administrator}
-            \end{umlcall}
-            \umlfpart[else]
-            \begin{umlfragment}[type=LOOP, inner xsep=7, label={6: for l in L}]
-              \begin{umlcall}[op={7: l.manage(R, L)}, type=asynchron]{Dashboard}{Nodes}
-                \begin{umlcall}[op={8: update(R, l)}, type=asynchron]{Nodes}{Metadata}
-                \end{umlcall}
-              \end{umlcall}
-            \end{umlfragment}
-            \begin{umlfragment}[type=LOOP]
-              \begin{umlcall}[op={9: lookup(R)}, return={L'}]{Dashboard}{Metadata}
-              \end{umlcall}
-              \begin{umlfragment}[type=OPT, label={10: contains(consensus(L), L')}]
-                \begin{umlcallself}[op={11: break(success=true)}]{Dashboard}
-                \end{umlcallself}
-              \end{umlfragment}
-              \begin{umlfragment}[type=OPT, label={12: timeout}]
-                \begin{umlcallself}[op={13: break(success=false, err=timeout)}]{Dashboard}
-                \end{umlcallself}
-              \end{umlfragment}
-            \end{umlfragment}
-            \begin{umlcall}[type=return, op={14: (success, err)}]{Dashboard}{Administrator}
-            \end{umlcall}
-          \end{umlfragment}
-        \end{umlcall}
-      \end{umlseqdiag}
-    \end{tikzpicture}
-  \end{center}
-  \caption{Create repository workflow diagram}
-  \label{fig:ex-create-repo}
-\end{figure}
-
-
-\subsection{How the node finds the replica with git repository}
-
-Each node (both front-end and back-end nodes) has metadata exchange and discovery protocol components,
-both components rely on network module and locators systems.
-
-Stakeholders:
-\begin{description}
-  \item[Node] A node which performs repository lookup operation
-  \item[RDB] Regional database (caches repository hash table in local region specific cache table)
-  \item[DHT] Distributed hash table nodes, can perform global query lookup for node address by repository hash
-\end{description}
-
-The legend: \code{r} --- repository hash to lookup; \code{(l, a)} --- repository coordinates,
-pair of replica locator IDs and network address, see figure~\ref{fig:ex-node-lookup} for details.
-
-Workflow:
-\begin{enumerate}
-    \item Node checks local cache populated by local peer discovery broadcasts
-      and updated anually after success query operation
-    \item If coordinates were not found in cache, node goes to the next lookup layer
-    \item Node queries regional database to find repository coordinates
-    \item If coordinates were not found in database, goes to the next lookup layer
-    \item Node queries DHT nodes using lookup algorithms, e.g. Kademlia.
-    \item On success, node updates regional database with actual information
-    \item Node stores actual information in local cache
-\end{enumerate}
-
-\begin{figure}
-  \begin{center}
-    \begin{tikzpicture}
-      \begin{umlseqdiag}
-        \umlobject[no ddots]{Node}
-        \umldatabase[no ddots]{RDB}
-        \umlmulti[no ddots]{DHT}
-        \begin{umlcallself}[op={1: getCache(r)}]{Node}
-        \end{umlcallself}
-        \begin{umlfragment}[type=OPT, label={2}]
-          \begin{umlcall}[op={3: query(r)}, return={(l, a)}]{Node}{RDB}
-          \end{umlcall}
-          \begin{umlfragment}[type=OPT, label={4}]
-            \begin{umlcall}[op={5: query(r)}, return={(l, a)}, dt=7]{Node}{DHT}
-            \end{umlcall}
-            \begin{umlcall}[op={6: update(r, (l, a))}]{Node}{RDB}
-            \end{umlcall}
-          \end{umlfragment}
-          \begin{umlcallself}[op={7: putCache(r, (l, a))}]{Node}
-          \end{umlcallself}
-        \end{umlfragment}
-      \end{umlseqdiag}
-    \end{tikzpicture}
-  \end{center}
-  \caption{Node discovery and metadata exchange components}
-  \label{fig:ex-node-lookup}
-\end{figure}
-
-\subsection{How the client pushs new commit to git repository}
-
-The diagram \ref{fig:ex-push-to-repo} explains how the client can push to git repository.
-
-Stakeholders are:
-\begin{description}
-  \item[Client] --- front-end client, e.g. GitLab or other supported client
-  \item[FE] --- front-end of DeGitX (load-balancer, multiplexer)
-  \item[BE] --- back-end of DeGitX (git storage)
-  \item[Meta] --- Metadata storage (LPD, DB, DHT)
-\end{description}
-
-The workflow:
-\begin{description}
-  \item[1] Client calls RPC of FE to push commits \code{c} to repository \code{r}
-  \item[2] FE performs lookup in metadata to find lcoators \code{L[]} of repository \code{r}
-  \item[3] FE calls RPC of any storage node from \code{L[]} list to push commits \code{c} to
-    repository \code{r}
-  \item[4] BE RPC receiver organizes leader-election across replicas of repository \code{r}
-    and asks a leader to add new commit \code{c} to repository git storage
-  \item[5] At least the half plus one replica performs update and commit new changes
-\end{description}
-
-\begin{figure}
-  \begin{center}
-    \begin{tikzpicture}
-      \begin{umlseqdiag}
-        \umlcontrol[no ddots]{Client}
-        \umlobject[no ddots]{FE}
-        \umlmulti[no ddots]{BE}
-        \umldatabase[no ddots]{Meta}
-        \begin{umlcall}[op={1: push(r,c)}, return=OK]{Client}{FE}
-          \begin{umlcall}[op={2: lookup(r)}, return={L[]}]{FE}{Meta}
-          \end{umlcall}
-          \begin{umlcall}[op={3: l.push(r,c)}, return=OK]{FE}{BE}
-            \begin{umlcallself}[op={4: leader-election}]{BE}
-            \end{umlcallself}
-            \begin{umlcallself}[op={5: git data update}]{BE}
-            \end{umlcallself}
-          \end{umlcall}
-        \end{umlcall}
-      \end{umlseqdiag}
-    \end{tikzpicture}
-  \end{center}
-  \caption{Push commmit \code{c} to repository \code{r}}
-\label{fig:ex-push-to-repo}
-\end{figure}
-
-\subsection{How the client fetches git data from repository}
-
-\subsection{How new replica node connected to the cluster}
-
-\todo{explain all questions}
-
-
-\subsubsection{what makes repository slow}
-
-\todo{}
+\include{explanation}
 
 \section{Requirements}
 \label{sec:requirements}
