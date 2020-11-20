@@ -197,9 +197,9 @@ other diagrams below.
 }\label{fig:gitlab-push-gitaly}
 \end{figure}
 
-\subsection{How the client pushs new commit to git repository}
+\subsection{How the front-end pushes data to the storage}
 
-The diagram \ref{fig:ex-push-to-repo} explains how the client can push to git repository.
+The diagram~\ref{fig:ex-push-to-repo} explains how the client can push to git repository.
 
 Stakeholders are:
 \begin{description}
@@ -241,8 +241,9 @@ The workflow:
       \end{umlseqdiag}
     \end{tikzpicture}
   \end{center}
-  \caption{Push commmit \code{c} to repository \code{r}}
-\label{fig:ex-push-to-repo}
+  \caption{%
+    Push commmit \code{c} to repository \code{r}%
+  }\label{fig:ex-push-to-repo}
 \end{figure}
 
 \subsection{How the client fetches git data from repository}
@@ -250,8 +251,3 @@ The workflow:
 \subsection{How new replica node connected to the cluster}
 
 \todo{explain all questions}
-
-
-\subsubsection{what makes repository slow}
-
-\todo{}
