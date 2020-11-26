@@ -48,13 +48,12 @@
 
 \begin{abstract}
   Big software companies or open source communities 
-  may have millions of code repositories,
-  and use them extensively by programmers and continuous integration (CI) pipelines.
-  One git server is not able to satisfy performance expectations,
-  many servers with load-balancing can't solve this issue too because
-  of inability storage IO scaling for read operations.
-  Also, a big company may have distributed teams around the world,
-  where each team collaborates with others in one git repo,
+  may have millions of code repositories extensively used by programmers and continuous integration (CI) pipelines.
+	One git server is not able to satisfy performance expectations;
+	many servers with load-balancing cannot solve this issue too because
+	of inability to use storage IO scaling for reading operations.
+  A big company may have distributed teams around the world,
+  where each team collaborates with others in one git repo;
   cross-region repo access could be slow in such cases.
   The solution for this problem is distributed git repository storage,
   which replicates repositories across region nodes.
@@ -65,80 +64,87 @@
 \section{Introduction}
 
 \todo{Add introduction}
+Providing efficient access to code repositories is a significant challenge that large software companies or open-source communities may face when the number of code repositories used by software developers may count on millions. This challenge becomes especially critical for companies that have distributed teams around the world.  In this case, using a single git server does not provide even nearly-appropriate performance. On the other hand, deploying multiple servers with load balancing isn’t feasible either because storage I/O scaling is not possible for reading operations. 
+This article describes how to achieve significant performance improvement by configuring a distributed git repository storage that replicates repositories across region nodes. The result can be achieved by implementing a distributed Git repository manager DeGit with strong, consistent replica nodes, guaranteeing high availability, as well as availability across diﬀerent regions. Such a solution also provides durability by replicating repositories on diﬀerent server racks and read scalability by routing fetch traﬃc to diﬀerent nodes.
+There is a number of technical problems related to scalability, dispatching, and consistency that need to be solved when implementing the distributed Git repository manager with strong and consistent replica nodes. In addition to describing the suggested solution's major work principles and functionality, this article also addresses these issues. The DeGit architecture and components, including the main system protocols that enable the system to identify the node, establish the node's connection, lookup at the node’s real address, and map a git repository to the storage node, are also explained.
+The potential presence of malicious nodes can misroute, corrupt, or drop messages and routing information in the system. This article reviews the methods with which the adopted DeGit approach protects the system infrastructure from potential attacks.
+In this paper, you can find detailed instructions on creating a new repository. The article also explains how a node finds a replica with a git repository and provides descriptions of the node discovery workflow and metadata exchange components.
+In this solution, the git communicates with the data storage via a front-end. The document describes communication between the git and the front-end and explains how data is passed between the front-end and the repository.
+The functional and non-functional requirements for building a distributed git repository storage and the metrics expected for large enterprises are addressed further in the document. Readers can also find helpful information regarding the comparison of DeGit with other solutions.
 
 \section{Technical problems}
 
 
-There are 3 main probles to solve for distributed git repository manager (DGRM):
+There are three main problems to solve for distributed git repository manager (DGRM):
 \begin{description}
 \item[scalability] --- one repository may be used actively by many users simultaneously. Storage disk
-  has input output (IO) operarion limits, and can't perform a lot of \code{fetch} operations in
+  has input-output (IO) operation limits and can't perform a lot of \code{fetch} operations in
   short period of time. The git repository storage should be replicated on different system nodes to
   solve this problem.
-\item[dispatching] --- this user doesn't know network address of git repository storages. Also, according to the
+\item[dispatching] --- this user does not know the network addresses of git repository storages. Also, according to the
   previous problem, one repository can be located on multiple replicas.
   So the system should be able to locate and redirect user's requests
-  from git client\footnote{Git client is a software that performs git fetch and push operations, it can be
-  command line tool, IDE or any graphical user interface communicating with DGRM} to correct git repository
-  storage. It should lookup for repository nodes in system and load-balance requests to different storage replicas.
-\item[consistency] --- the user may \code{push} to repository and \code{fetch} then, in that case it must receive
-  same or newer data that user \code{push}ed previously, even if user \code{fetch}ed data from another
-  replica of this repository. The linearizability of each single repository in a system is a must have option.
+  from git client\footnote{Git client is a software that performs git fetch and push operations; it can be
+  a command-line tool, IDE or any graphical user interface communicating with DGRM} to correct git repository
+  storage. It should lookup for repository nodes in the system and load-balance requests to different storage replicas.
+\item[consistency] --- the user may \code{push} to the repository and \code{fetch} then; in that case it must receive
+  the same or newer data that user \code{push}ed previously, even if the user \code{fetch}ed data from another
+  replica of this repository. The linearizability of every single repository in a system is a must-have option.
 \end{description}
 
 \subsection{Scalability}
 
-Big software companies or big developer's communities have
-millions of repositories distributed around the world, and big teams located in different countries
-(regions). On high load of \code{fetch} requests git repository storage disks may go above IO operation limits.
+Big software companies or large developer communities have
+millions of repositories distributed around the world and big teams located in different countries
+(regions). On a high load of \code{fetch} requests, git repository storage disks may go above IO operation limits.
 Usually, repositories are accessed by different ways:
 \begin{description}
   \item[Developer personal activity] --- programmers access git repositories via
     \code{git} client and performs \code{fetch}/\code{push} actions. Also, they
     may use web UI interface to upload files, edit files in browser, merge pull requests, etc.
-    The number of requests for this activity is not very big according to collected statistics.
-  \item[API access] --- a lot of services depends on repository management services. It's API robots
-    collecting developers activity, background code analyzers of repository, IDEs communicating
+    The number of requests for this activity is not very large, according to statistics.
+  \item[API access] --- many services depend on repository management services: API robots
+    collecting developers' activity, background code analyzers of a repository, IDEs communicating
     with repositories and reading some history data. The number of such requests is about
-    few thousands requests per minute for each million of repositories.
-  \item[CI systems] --- many events may trigger CI worfkflow, most coommon events are:
+    a few thousand requests per minute for each million repositories.
+  \item[CI systems] --- many events may trigger CI workflow; most common events are:
     new commit pushed, new pull (merge) request created, new tag pushed, etc.
-    On each action CI system downloads the whole repository to run some workflows,
+    On each action, the CI system downloads the whole repository to run some workflows,
     the download (\code{clone}) operation accompanied by huge bandwidth consumption.
-    In additional, some repositories may include submodules, it leads to submodules cloning by CI
-    system. According to the statistic, the number is measured as ten thousands requests per minute
-    for each million of repositories.
+    In addition, some repositories may include submodules; this leads to submodules cloning by the CI
+    system. According to the statistic, the number is measured as ten thousand requests per minute
+    for each million repositories.
 \end{description}
 
 Event if git repository storage is distributed and clients are routed to storage with
-correct git repository, the huge amount of \code{fetch} traffic for one repository still able to
-make disk go above input output operations (IOP) limits and repository storage will stop
+correct git repository, the large amount of \code{fetch} traffic for one repository still able to
+make disk go above input-output operations (IOP) limits, and repository storage will stop
 serving requests.
 
-The scalability problem was tried to fix by asynchronous replication of git repository data:
+It was an attempt to fix the scalability problem by asynchronous replication of git repository data:
 there was proof of concept DGRM with eventually consistency guarantee;
-one repository was replicated asynchronously after any update operation to multiple git repository storages,
-and clients were load balanced to different git repository storages.
-But it was not succeed because of two reasons:
+one repository was replicated asynchronously after any update operation to multiple git repository storages. Thererfore,
+clients were load balanced to different git repository storages.
+However, it did not succeed because of two reasons:
 \begin{enumerate}
-  \item fetch traffic correlated with push frequency because of huge amount of
-  CI systems and API robots involved in development process: each update event usually triggers
+  \item fetch traffic correlated with push frequency because of the huge amount of
+  CI systems and API robots involved in the development process: each update event usually triggers
   CI build immediately, and CI clones the repository. CI was able to clone only
   primary repository (repository with actual data) because the replication has not been completed
   before CI cloning started.
   \item \code{push} and \code{fetch} frequency was not distributed uniformly over the time --- in each
   repository team members may have different responsibilities for review and merge process,
-  project technical lead can merge all approved pull-requests in short period of time
-  which causes frequent push operations in git repo.
+  project technical lead can merge all approved pull-requests in a short period of time
+  which causes frequent push operations in a git repo.
 \end{enumerate}
 
 These two conditions lead to high fetch traffic peaks for git repositories:
-frequent push operations turn replication storages into inconsistent state,
-and lead to high fetch traffic to primary repository storages from CI systems which clones these repositories.
+frequent push operations turn replication storages into an inconsistent state,
+and lead to high fetch traffic to primary repository storages from CI systems, which clones these repositories.
 It causes the same problems as were common for non-replicated system --- the primary node goes beyond IOPS limits and
 rejects new \code{fetcj} requests.
 
-Futhermore, \code{merge} is not the only way to ``update'' the repository. Lots of other activities can do that,
+Furthermore, \code{merge} is not the only way to ``update'' the repository. Lots of other activities can do that,
 here is the list of some:
 
 \begin{description}
@@ -148,19 +154,19 @@ here is the list of some:
     \emph{\code{refs/merge-requests/IID\footnote{Internal id of a project on gitlab}/head}} named ref
     is created. When source branch of the merge request is updated, the ref is also updated.
   \item[migrations] sometimes repository administrator can migrate the repository to
-    another physical device or another region node, it also could be treated as an update.
-    Also, delete a repository could be treated as migrate it to a trash area.
+    another physical device or another region node; it also could be treated as an update.
+    Also, deleting a repository could be treated as migrating it to a trash area.
 \end{description}
 
 \subsection{Dispatching}
 
-Git client doesn't know where repository replica is located in the system. Dispatching algorithm
-should be able to locate correct storage nodes (distributed system nodes) of repository and redirect
-each client's request to one of these nodes. Moreover, it's not enough just to redirect client's request,
+Git client doesn't know where repository replica is located in the system. The dispatching algorithm
+should be able to locate correct storage nodes (distributed system nodes) of the repository and redirect
+each client's request to one of these nodes. Moreover, it is not enough just to redirect the client's request;
 the dispatching endpoint should load-balance all requests for each particular repository to distribute
-storage load over the time. Round-robin load-balancing solves this problem, since the scalability problems
-occurs only on peeks of high read traffic, so statistically redirecting each next read request to
-different storage node reduces disk load by \code{n}-times, where \code{n} is amount of storage replicas.
+storage load over time. Round-robin load-balancing solves this problem since the scalability problems
+occur only on peeks of high read traffic, so statistically redirecting each next read request to
+a different storage node reduces disk load by \code{n}-times, where \code{n} is the number of storage replicas.
 
 \subsection{Consistency}
 
@@ -168,8 +174,8 @@ different storage node reduces disk load by \code{n}-times, where \code{n} is am
 
 % \subsection{Government restrictions}
 % The most popular repository management systems are \href{https://github.com/}{GitHub} and
-% \href{https://about.gitlab.com}{GitLab} are under control of government, these servcice may
-% restric access for some groups of people based on their location and may reject to provide paid
+% \href{https://about.gitlab.com}{GitLab} are under the control of the government, these services may
+% restrict access for some groups of people based on their location and may reject to provide paid
 % versions for hosting internal servers. \todo{add more details}.
 
 \section{Solution}
@@ -180,13 +186,13 @@ It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-
 \begin{description}
   \item[The back end] --- (core network, storage), P2P\footnote{peer to peer} system which stores git data
     and metadata\footnote{Here git data referenced to git objects, and git metadata to git references.
-    In this document git data usually refer to both objects and references unless otherwise stated},
-    it's responsible for replication of repositories, and guarantee
-    strong consistency of git storage across replicas. It exposes internal RPC API to accept git intermediate
-    requests, which can modify repository state. And provide endpoints to read (\code{fetch}) repository data.
+    In this document, git data usually refer to both objects and references unless otherwise stated};
+    it's responsible for replication of repositories and guarantees
+    strong consistency of git storage across replicas. It exposes internal RPC API to accept intermediate git 
+    requests, which can modify the repository state and provide endpoints to read (\code{fetch}) repository data.
   \item[The front end] --- (multiplexer, load balancer). It exposes public API for all git operations,
     translates all operations request into intermediate RPC language, routes requests to proper storage
-    nodes and load-balancing read (\code{fetch}) requests to different replicas of same repository.
+    nodes and load-balancing read (\code{fetch}) requests to different replicas of the same repository.
 \end{description}
 
 \begin{figure}
@@ -223,8 +229,8 @@ It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-
 
 The front end exposes public API for well-known protocol, e.g. one front-end implementation provides
 \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly} gRPC interfaces for GitLab
-instance set\footnote{In this document GitLab instance set is a set of shell, workhorce and web components of GitLab},
-see Figure ~\ref{fig:gitlab-set} diagram. There GitLab is a client of DeGitX front-end, it sends gRPC requests to
+instance set\footnote{In this document GitLab instance set is a set of shell, workhorce and web components of GitLab}
+(see Figure ~\ref{fig:gitlab-set} diagram). GitLab is a client of DeGitX front-end, it sends gRPC requests to the
 front-end to modify and fetch git data.
 
 \begin{figure}
@@ -261,32 +267,32 @@ front-end to modify and fetch git data.
   \caption{
     GitLab set and Gitaly front-end:
     git client communicates with GitLab-shell via SSH or with GitLab-workhorse via HTTP(S).
-    Browser uses GitLab-web. All three GitLab components communicates with git storage via DeGitX load balancer
+    The browser uses GitLab-web. All three GitLab components communicate with git storage via DeGitX load balancer
     (front-end) via gRPC protocol defined by Gitaly component of GitLab.
   }
   \label{fig:gitlab-set}
 \end{figure}
 
 The communication layer of DeGit front-end and back-end is DeGit metadata: it consists of mapping
-of repository hash to storage node locator, the front-end can be configured differently depends on
-setup kind, it can query metadata from database, it can query lookup it via DHT\footnote{Distributed hash table}
+of repository hash to storage node locator. The front-end can be configured differently depends on
+setup kind; it can query metadata from the database; it can query lookup it via DHT\footnote{Distributed hash table}
 or it can receive metadata updates broadcast from storage node peers in local network via UDP protocol,
 see \ref{sec:metadata}.
 
-When a client (e.g. GitLab-shell) write git data to the system (via \code{push}), the request is routing
-by front-end load balancer to one of the storage replicas.
-Storage back-end node starts leader election with other repository replicas and updates the log\footnote{Here: node log
-or back-end log is distributed replicated log of state machine associated with certain git repository storage}
-of consensus of repository holders (replicas), see \ref{sec:data}.
+When a client (e.g., GitLab-shell) write git data to the system (via \code{push}), the request is being routed
+by the front-end load balancer to one of the storage replicas.
+The storage back-end node starts leader election with other repository replicas and updates the log\footnote{Here: node log
+or back-end log is distributed replicated log of a state machine associated with specific git repository storage}
+of repository holders (replicas) consensus, see \ref{sec:data}.
 
-The system autmatically rebalances repository storage: when repository is not used actively for a
-long time, the node can remove a repository from storage if 3 replicas of this repository exists on other nodes;
-if some node has a lot of free space on storage, and storage of another node is almost full,
-full node can transfer (move) some repositories to another node, and IOPS of storage device is also
-a importance measure.
+The system automatically rebalances repository storage: when the repository is not used actively for a
+long time, the node can remove a repository from storage if 3 replicas of this repository exist on other nodes;
+if some node has a lot of free space on storage, and the storage of another node is almost full,
+the node that is full can transfer (move) some repositories to another node. IOPS of storage device is also
+a measure of importance.
 
-The system can accept new nodes and automatically fill it with replica repository and
-move some repository to new node. Same for disconnecting: if node was disconnected from the system or crashed,
+The system can accept new nodes and automatically fill them with a replica repository and
+move some repository to new node. Same for disconnecting: if a node was disconnected from the system or crashed,
 it creates additional replicas on nodes to have at least 3 replicas for each repository in a system.
 
 \subsection{Protocol}
@@ -294,7 +300,7 @@ Main system protocols are:
 \begin{description}
   \item[Location protocol] - unique node identity.
   \item[Network protocols] - nodes communication protocols.
-  \item[Discovery protocol] - lookup of node real address by locator ID.
+  \item[Discovery protocol] - lookup of a node real address by locator ID.
   \item[Metadata exchange protocol] - a mapping of git repository to storage back-end node.
   \item[Data exchange protocol] - Git objects and references exchange protocol,
     commands to add new objects and update references, linearizability guarantee.
@@ -302,13 +308,13 @@ Main system protocols are:
 
 \subsubsection{Locators}
 \label{sec:locators}
-Network addresses are not stable, back-end node may get network address via
+Network addresses are not stable; back-end node may get network address via
 Dynamic Host Configuration Protocol (DHTP), or node owner may move it from one server to another.
-So we can't rely on network addresses when working with back-end nodes, we need some
-overlay networks and unique identifiers for each node. To identify a node DeGit uses
+So we can't rely on network addresses when working with back-end nodes; we need some
+overlay networks and unique identifiers for each node. To identify a node, DeGit uses
 public-key cryptography: node owner generates private and public key pair using one of the supported
-crypto algorithms \todo{which exactly?}, these keys will identify back-end node uniquelly.
-Node uses cryptographic hash \todo{choose algorithm} of public key as node locator ID,
+crypto algorithms \todo{which exactly?}, these keys will identify back-end node uniquely.
+Node uses cryptographic hash \todo{choose algorithm} of the public key as node locator ID,
 %FIXME
 % as reseearched in the ~\cite{securebaserouting}. Nodes uses locator IDs to introduce
 itself to the system and build overlay network on top of real network. DeGit uses
@@ -316,10 +322,10 @@ Multihash\footnote{https://multiformats.io/multihash/} format to encode locator 
 
 Private and public keys can be used to sign requests to other nodes or to build
 trusted discovery (see ~\ref{sec:discovery}) point in a system: when a new system is created,
-administrator can create certification authority (CA) for issuing digital certificates for node
-public keys, so each node will be able to verify certificate of any other node when
-using seed list URLs or other peers exchange algorithms. Node instances uses locators to talk
-with each other, it can find real network address of nodes using this locator ID.
+the administrator can create certification authority (CA) for issuing digital certificates for node
+public keys, so each node will be able to verify the certificate of any other node when
+using seed list URLs or other peers exchange algorithms. Node instances use locators to talk
+with each other. The real network address of nodes can be found using this locator ID.
 Also, system uses locators for node-repository mapping (see ~\ref{sec:data}),
 the item of mapping table consists of locator ID and unique repository name hash.
 
@@ -334,34 +340,54 @@ DeGitX uses a routing system (see \ref{sec:discovery}) to find addresses of node
 \subsubsection{Discovery}
 \label{sec:discovery}
 
-Each node doesn't know network addresses of others by default, it knows only locator ID.
-Different discovery techicues are used for node lookup, it can be configured independenly by node
-administrator and they could be used together:
+Each node doesn't know the network addresses of others by default; it knows only locator ID.
+Different discovery techniques are used for node lookup. They can be configured independenly by node
+administrator and used together:
 
 \begin{description}
   \item[LPD] - local peer discovery: each peer sends UDP messages with locator ID.
-    It's cheap and fast for network layer (due to UDP messages); other system components,
+    It's cheap and fast for the network layer (due to UDP messages); other system components,
     such as front-ends and back-ends receive these messages and update local cache of node locators.
-    These approach dramatically improve lookup performance in local networks, e.g. when most of communications
-    are performed in one local region, and all region nodes are connected via local networ.
-    This protocol supposed to be used with other discovery dechicues.
+    This approach dramatically improves lookup performance in local networks, e.g. when most of the communications
+    are performed in one local region, and all regional nodes are connected via a local network.
+    This protocol is supposed to be used with other discovery techniques.
     For security reasons, in untrusted networks, the broadcast messages may be optionally signed with
-    node private keys to be verified by the receiver using CA public certificate.
-    For optimization reasons, this protocol is resused by metadata exchange protocol for
+    node private keys to be verified by the receiver using the CA public certificate.
+    For optimization reasons, this protocol is reused by metadata exchange protocol for
     repository hash table propagation (see \ref{sec:metadata}). \todo{lookup for researches}.
-  \item[Distributed DB] - network addresses could be propagated to the system using supplimentary distributed
-    database, e.g. etcd or others. On startup, the back-end node registers itself in database,
-    and other system nodes (both front-ends and back-ends) uses this database for lookups. 
-    It requires additional system configuration, but delegating some responsibilities to third-party services.
-  \item[Seed hosts] - nodes can use other nodes as seed hosts as caching optimization, some nodes
-    will be responsible for caching lookup results. In other words, these seed nodes represents similar abstraction
+    There are two common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{bep 26}.
+    Bep 14 is SSDP-like style and Bep 26 is zeroconf style LDP. To implement Bep 26 each host is required to run a zeroconf service discovery daemon.
+    There is a popular \href{https://github.com/grandcat/zeroconf}{go zeroconf implementation} that could be used.
+    BitTorrent uses following multicast groups: A) \code{239.192.152.143:6771} (\href{https://tools.ietf.org/html/rfc2365#section-6.2}{org-local}) and B) \code{[ff15::efc0:988f]:6771} (\href{https://tools.ietf.org/html/rfc4291#section-2.5.7}{site-local}) for Bep 14 implementation.
+    \begin{itemize}
+      \item Site-Local scope is intended to span a single site.
+      \item Organization-Local scope is intended to span multiple sites
+      belonging to a single organization.
+    \end{itemize}
+    They've chosen such IPs because \code{239.192.0.0/14} is defined to be the IPv4 Organization Local Scope,
+    and is the space from which an organization should allocate sub-
+    ranges when defining scopes for private use.
+    \code{ff15::efc0:988f} also comes from \href{http://tools.ietf.org/html/rfc4291#section-2.7}{IPv6 spec} and means:
+    \begin{itemize}
+      \item[--] FF == Multicast
+      \item[--] 1 == ‘Flags' - where 1 indicates a non-permanently-assigned ("transient” or "dynamically" assigned) multicast address.
+      \item[--] 5 == Site-Local scope
+      \item[--] efc0:988f - the hex representation of 239.192.152.143
+    \end{itemize}
+    We could easily implement BEP 14 as described and take \href{https://github.com/transmission/transmission/blob/7f147c65fb07a6baed3d079703ff0a31d1b1ca4c/libtransmission/tr-lpd.c}{this implementation} as an example.
+  \item[Distributed DB] - network addresses could be propagated to the system using a supplementary distributed
+    database, e.g., etcd or others. On startup, the back-end node registers itself in the database,
+    and other system nodes (both front-ends and back-ends) use this database for lookups. 
+    It requires additional system configuration but delegating some responsibilities to third-party services.
+  \item[Seed hosts] - nodes can use other nodes as seed hosts as caching optimization; some nodes
+    will be responsible for caching lookup results. In other words, these seed nodes represent a similar abstraction
     as Content Delivery Network (CDN) in web caching.
-  \item[DHT] - distributed hash tables uses different metrics to compare the distance of nodes in overlay network.
+  \item[DHT] - distributed hash tables use different metrics to compare the distance of nodes in the overlay network.
     For example Kademlia\footnote{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf} uses
     \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed -
-    DeGit locators satisfies this requirements, being generated as cryptographic hash function from
-    public key. In Kademlia lookup system each node stores references in K-buckets, where each K-bucket
-    contains node addresses with same ID prefix.
+    DeGit locators satisfy these requirements, being generated as cryptographic hash function from
+    the public key. In the Kademlia lookup system, each node stores references in K-buckets, where each K-bucket
+    contains node addresses with the same ID prefix.
 \end{description}
 
 \begin{figure}
@@ -396,15 +422,15 @@ administrator and they could be used together:
   \label{fig:discovery-protocol}
 \end{figure}
 
-Depends on configuration node may use or may not some discovery protocols. They are performed
-in well specified order: firstly, the node is lookup for locator ID in local cache, the cache is updated
-by LPD broadcasts; in case if not found, the node is quering discovery database, then seed hosts, and DHT
-as last resort.
+Depends on configuration, the node may use or may not some discovery protocols. They are performed
+in well-specified order: firstly, the node is lookup for locator ID in the local cache; the cache is updated
+by LPD broadcasts; in case if not found, the node queries the discovery database, then seed hosts, and DHT
+as a last resort.
 
 The structure of discovery entries is a mapping of locator ID (which is cryptographic hash by design)
 to network address in Multiaddr format (as described in network section: ~\ref{sec:network}).
 
-Example of routing table:
+Example of the routing table:
 
 \begin{tabular}{l | l}
   Locator ID & Node address \\ \hline
@@ -416,8 +442,8 @@ Example of routing table:
 \subsection{Metadata}
 \label{sec:metadata}
 
-DeGit peers doesn't know where to find repository storage by default,
-to solve it, the system introduces metadata layer to exchange repository coordinates
+DeGit peers don't know where to find repository storage by default.
+To solve it, the system introduces metadata layer to exchange repository coordinates
 to locator IDs. The structure of metadata is a many-to-many relation of
 repository cryptographic hash to storage locator ID.
 
@@ -433,22 +459,22 @@ the repository \code{repo2} is located only on node \code{node2}:
 \end{tabular}
 
 The repository hash is encoded in Multihash format. Metadata exchange protocol partially reuses
-discovery protocol for network optimizations, e.g. peers sends local broadcasts
+discovery protocol for network optimizations, e.g., peers send local broadcasts
 with locator IDs and known repository hashes, discovery database may keep (if configured)
 repository hash map to node locator IDs relations (see \ref{fig:repo-lookup-db}),
 DHT keeps locator IDs as a value for repository hash keys \ref{fig:repo-lookup-dht},
-it keeps all metadata of the whole system. The metadata lookup process is similar to discovery protocol:
-firstly, peer is looking for metadata in local cache (populated with network broadcasts); then, it checks
-region database; and as last resort, it performs query lookup for global DHT.
+it keeps all metadata of the whole system. The metadata lookup process is similar to the discovery protocol:
+firstly, the peer is looking for metadata in the local cache (populated with network broadcasts); then, it checks
+the region database; and as a last resort, it performs query lookup for global DHT.
 
 When a new node starts replicating some repository, it's synchronizing with other replicas first, and then
-updates metadata asynchronously. It's how metadata is updated:
+updates metadata asynchronously. The metadata is updated as follows:
 \begin{enumerate}
   \item A new node wants to replicate some repository
-  \item The node finds current repository holders (replicas) in existing metadata and choose random node from this list
+  \item The node finds current repository holders (replicas) in existing metadata and choose a random node from this list
   \item A node sends the request to the node to add itself to the replica list
   \item Receiver node starts leader election and updates node log to add new node to the replica list
-  \item The consensus accepts new node and stores it in local persistant storage
+  \item The consensus accepts a new node and stores it in local persistent storage
   \item The leader notifies a new node that it becomes a part of the replicas and consider it when consensus is required
   \item New node replicates the state of consensus and holds the repository and sends UDP broadcast to
     local peers on success
@@ -456,10 +482,10 @@ updates metadata asynchronously. It's how metadata is updated:
     (as configured)
 \end{enumerate}
 
-Repository mapping could be stored in distributed hash table (e.g. Kademlia),
+Repository mapping could be stored in a distributed hash table (e.g., Kademlia),
 database cache or broadcasted via local network broadcasts.
-E.g. for multi-region cluster setup, the front-end load balancer may look for node in local cache
-populated by local network broadcasts, then check region database where all repositories in same region are
+Therefore, for multi-region cluster setup, the front-end load balancer may look for a node in the local cache
+populated by local network broadcasts, then check region database where all repositories in the same region are
 registered, and if not found perform DHT query lookup in different regions,
 see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
 
@@ -527,14 +553,14 @@ see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
 \label{subsec:security}
 A small fraction of malicious nodes can prevent correct message delivery throughout the overlay.
 
-Such nodes may mis-route, corrupt, or drop messages and routing information.
+Such nodes may misroute, corrupt, or drop messages and routing information.
 Additionally, they may attempt to assume the identity of other nodes and corrupt or delete objects
 they are supposed to store on behalf of the system.
 
-All attacks based on presence of malicious nodes.
-There are 2 ways:
+All attacks are based on the presence of malicious nodes.
+There are two ways:
 \begin{itemize}
-  \item[$-$] Implement techniques that allow nodes to join the overlay, to maintain routing state, and to forward messages securely in the presence of malicious nodes.
+  \item[$-$] Implement techniques that allow nodes to join the overlay, maintain routing state, and forward messages securely in malicious nodes.
   \item[$-$] Make the appearance of malicious nodes impossible.
 \end{itemize}
 
@@ -543,18 +569,18 @@ where resource pooling without preexisting trusted relationships is possible.
 It means that untrusted nodes aren't allowed to join
 and all members of the network are trusted not to cheat.
 
-To be sure that node is trusted, it's nodeId certificates should be signed by trusted CAs.
+To be sure that the node is trusted, its nodeId certificates should be signed by trusted CAs.
 Then each node rejects all unsigned requests.
 
 Certified nodeIds work well when nodes have fixed nodeIds.
-This condition is met while Node uses cryptographic hash of public key as nodeId.
+This condition is met while Node uses a cryptographic hash of public key as nodeId.
 
-These certificates give the overlay a public key infrastructure,
+These certificates give the overlay a public key infrastructure
 suitable for establishing encrypted and authenticated channels between nodes.
 Nodes with valid nodeId certificates can join the overlay, route messages,
-and leave repeatedly without involvement of the CAs.
+and repeatedly leave without the involvement of the CAs.
 
-When the membership of a peer-to-peer system is constraint and all nodes are trusted as in DeGitX,
+When the membership of a peer-to-peer system is constraint and all nodes are trusted as in DeGitX (??????),
 %FIXME
 % CAs could solve security issues, because, according to the ~\cite{securerouting} research, all attacks are based on malicious nodes presence.
 
