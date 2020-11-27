@@ -589,6 +589,23 @@ When the membership of a peer-to-peer system is constraint and all nodes are tru
 Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
 \emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
 
+Github Spokes and Gitaly HA achieve strong consistency via \emph{\href{https://en.wikipedia.org/wiki/Three-phase_commit_protocol}{3PC protocol}}.
+Spokes sources are closed but they mentioned the protocol in their \emph{\href{https://github.blog/2017-10-13-stretching-spokes/#reducing-round-trips}{blog}}.
+So we only know they use it somehow.
+On the other hand, Gitaly team, that had faced the same issue, have made open research and a couple of POC to decide how exactly to implement 3PC protocol.
+After all experiments:
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{Implement 3PC for WriteRef RPC}}
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2529}{3PC git-update-ref experiment}}
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2635}{2PC via pre-receive hook}},
+  they concluded, that the best and only way is to push transaction handling as far down as possible, which is the git client itself and, more specifically, its ref transaction handling.
+The only problem is that they need a place in git, where all write operations could be captured, checked and committed or safely aborted.
+There was no such place to cover all write operation, and new
+\emph{\href{https://github.com/git/git/commit/675415976704459edaf8fb39a176be2be0f403d8}{reference transaction hook}}
+was introduced by Gitaly team.
+It was designed to implement a voting mechanism and it could be integrated with any consensus algorithm including raft or paxos.
+It also provides a lock mechanism on set of refs tha should be updated in current transaction, so it is possible to handle multiple updates to different independent sets of refs inside one repo at the same time.
+It means that several branches could be updated parallel without locking each other.
+
 \todo{search for more algorithms}.
 
 \include{explanation}
