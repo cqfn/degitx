@@ -590,7 +590,7 @@ Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf
 \emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
 
 Github Spokes and Gitaly HA achieve strong consistency via \emph{\href{https://en.wikipedia.org/wiki/Three-phase_commit_protocol}{3PC protocol}}.
-Spokes sources are closed but they mentioned the protocol in their \emph{\href{https://github.blog/2017-10-13-stretching-spokes/#reducing-round-trips}{blog}}.
+Spokes sources are closed but they mentioned the protocol in their \emph{\href{https://github.blog/2017-10-13-stretching-spokes/\#reducing-round-trips}{blog}}.
 So we only know they use it somehow.
 On the other hand, Gitaly team, that had faced the same issue, have made open research and a couple of POC to decide how exactly to implement 3PC protocol.
 After all experiments:
