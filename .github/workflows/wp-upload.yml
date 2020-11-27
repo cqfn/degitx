@@ -8,7 +8,7 @@ name: Upload white paper PDF
     branches: [master]
     paths: ["white-paper/**"]
 jobs:
-  build_latex:
+  upload_pdf:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
