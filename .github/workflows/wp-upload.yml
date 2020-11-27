@@ -1,5 +1,5 @@
 ---
-name: Build white paper document
+name: Upload white paper PDF
 "on":
   push:
     branches: [master]
