@@ -1,4 +1,4 @@
-\documentclass[acmlarge, screen, nonacm]{acmart}
+\documentclass[acmlarge, screen, nonacm, 11pt]{acmart}
 \usepackage[utf8]{inputenc}
 \usepackage{float}
 \usepackage{setspace}
@@ -47,33 +47,65 @@
 \raggedbottom
 
 \begin{abstract}
-  Big software companies or open source communities 
-  may have millions of code repositories extensively used by programmers and continuous integration (CI) pipelines.
-	One git server is not able to satisfy performance expectations;
-	many servers with load-balancing cannot solve this issue too because
-	of inability to use storage IO scaling for reading operations.
-  A big company may have distributed teams around the world,
-  where each team collaborates with others in one git repo;
-  cross-region repo access could be slow in such cases.
-  The solution for this problem is distributed git repository storage,
-  which replicates repositories across region nodes.
+  DeGitX is a distributed git repository manager.
+  It provides a front-end interface for git operations by
+  exposing one of supported endpoints for git clients, and
+  hides the distributed nature of git storage located on back-end nodes.
+  The back-end keeps git repository replicas simultaneously on
+  multiple different nodes to scale up the read capacity,
+  increase durability and provides better availability especially
+  for different geographically distributed regions.
 \end{abstract}
 
 \maketitle
 
-\section{Introduction}
+\section{Introduction}\label{sec:intro}
 
-\todo{Add introduction}
-Providing efficient access to code repositories is a significant challenge that large software companies or open-source communities may face when the number of code repositories used by software developers may count on millions. This challenge becomes especially critical for companies that have distributed teams around the world.  In this case, using a single git server does not provide even nearly-appropriate performance. On the other hand, deploying multiple servers with load balancing isn’t feasible either because storage I/O scaling is not possible for reading operations. 
-This article describes how to achieve significant performance improvement by configuring a distributed git repository storage that replicates repositories across region nodes. The result can be achieved by implementing a distributed Git repository manager DeGit with strong, consistent replica nodes, guaranteeing high availability, as well as availability across diﬀerent regions. Such a solution also provides durability by replicating repositories on diﬀerent server racks and read scalability by routing fetch traﬃc to diﬀerent nodes.
-There is a number of technical problems related to scalability, dispatching, and consistency that need to be solved when implementing the distributed Git repository manager with strong and consistent replica nodes. In addition to describing the suggested solution's major work principles and functionality, this article also addresses these issues. The DeGit architecture and components, including the main system protocols that enable the system to identify the node, establish the node's connection, lookup at the node’s real address, and map a git repository to the storage node, are also explained.
-The potential presence of malicious nodes can misroute, corrupt, or drop messages and routing information in the system. This article reviews the methods with which the adopted DeGit approach protects the system infrastructure from potential attacks.
-In this paper, you can find detailed instructions on creating a new repository. The article also explains how a node finds a replica with a git repository and provides descriptions of the node discovery workflow and metadata exchange components.
-In this solution, the git communicates with the data storage via a front-end. The document describes communication between the git and the front-end and explains how data is passed between the front-end and the repository.
-The functional and non-functional requirements for building a distributed git repository storage and the metrics expected for large enterprises are addressed further in the document. Readers can also find helpful information regarding the comparison of DeGit with other solutions.
+Providing efficient access to code repositories is a significant challenge
+that large software companies or open-source communities may face when
+the number of code repositories used by software developers may count
+on millions. This challenge becomes especially critical for companies
+that have distributed teams around the world.  In this case, using a single
+git server does not provide even nearly-appropriate performance.
+On the other hand, deploying multiple servers with load balancing
+isn’t feasible either because storage I/O scaling is not possible
+for reading operations.
 
-\section{Technical problems}
+This article describes how to achieve significant performance improvement
+by configuring a distributed git repository storage that replicates
+repositories across nodes. The result can be achieved by implementing
+a distributed Git repository manager DeGit with strong-consistent replica
+nodes, guaranteeing high availability for read operations,
+as well as availability across different regions.
+Such a solution also provides durability by replicating repositories
+on different server racks and read scalability by routing fetch traffc
+to different nodes.
+There is a number of technical problems related to scalability,
+dispatching, and consistency that need to be solved when implementing
+the distributed Git repository manager with strong-consistent replica nodes.
+In addition to describing the suggested solution's major work principles
+and functionality, this article also addresses these issues.
+The DeGit architecture and components, including the main system protocols
+that enable the system to identify the node, establish the node's connection,
+lookup at the node’s real address, and map a git repository to the
+storage node, are also explained.
+The potential presence of malicious nodes can misroute, corrupt,
+or drop messages and routing information in the system.
+This article reviews the methods with which the adopted DeGit approach
+protects the system infrastructure from potential attacks.
+In this paper, you can find detailed instructions on creating a new repository.
+The article also explains how a node finds a replica with a git repository
+and provides descriptions of the node discovery workflow and metadata
+exchange components.
+In this solution, the git communicates with the data storage via a front-end.
+The document describes communication between the git and the front-end
+and explains how data is passed between the front-end and the repository.
+The functional and non-functional requirements for building a distributed
+git repository storage and the metrics expected for large enterprises
+are addressed further in the document. Readers can also find helpful
+information regarding the comparison of DeGit with other solutions.
 
+\section{Technical problems}\label{sec:technical-problems}
 
 There are three main problems to solve for distributed git repository manager (DGRM):
 \begin{description}
@@ -92,7 +124,7 @@ There are three main problems to solve for distributed git repository manager (D
   replica of this repository. The linearizability of every single repository in a system is a must-have option.
 \end{description}
 
-\subsection{Scalability}
+\subsection{Scalability}\label{sec:scalability}
 
 Big software companies or large developer communities have
 millions of repositories distributed around the world and big teams located in different countries
@@ -158,7 +190,7 @@ here is the list of some:
     Also, deleting a repository could be treated as migrating it to a trash area.
 \end{description}
 
-\subsection{Dispatching}
+\subsection{Dispatching}\label{sec:dispatching}
 
 Git client doesn't know where repository replica is located in the system. The dispatching algorithm
 should be able to locate correct storage nodes (distributed system nodes) of the repository and redirect
@@ -178,10 +210,12 @@ a different storage node reduces disk load by \code{n}-times, where \code{n} is 
 % restrict access for some groups of people based on their location and may reject to provide paid
 % versions for hosting internal servers. \todo{add more details}.
 
-\section{Solution}
+\section{Solution}\label{sec:solution}
 
-The solution is a distributed Git repository manager with strong consistent replica nodes.
-It consists of two parts: the back-end and front-end (see Figure ~\ref{fig:comp-arc-overview} diagram):
+The solution is a distributed Git repository manager with strong
+consistent replica nodes.
+It consists of two parts: the back-end and front-end
+(see Figure~\ref{fig:comp-arc-overview} diagram):
 
 \begin{description}
   \item[The back end] --- (core network, storage), P2P\footnote{peer to peer} system which stores git data
@@ -269,21 +303,20 @@ front-end to modify and fetch git data.
     git client communicates with GitLab-shell via SSH or with GitLab-workhorse via HTTP(S).
     The browser uses GitLab-web. All three GitLab components communicate with git storage via DeGitX load balancer
     (front-end) via gRPC protocol defined by Gitaly component of GitLab.
-  }
-  \label{fig:gitlab-set}
+  }\label{fig:gitlab-set}
 \end{figure}
 
 The communication layer of DeGit front-end and back-end is DeGit metadata: it consists of mapping
 of repository hash to storage node locator. The front-end can be configured differently depends on
 setup kind; it can query metadata from the database; it can query lookup it via DHT\footnote{Distributed hash table}
 or it can receive metadata updates broadcast from storage node peers in local network via UDP protocol,
-see \ref{sec:metadata}.
+see~\ref{sec:metadata}.
 
 When a client (e.g., GitLab-shell) write git data to the system (via \code{push}), the request is being routed
 by the front-end load balancer to one of the storage replicas.
 The storage back-end node starts leader election with other repository replicas and updates the log\footnote{Here: node log
 or back-end log is distributed replicated log of a state machine associated with specific git repository storage}
-of repository holders (replicas) consensus, see \ref{sec:data}.
+of repository holders (replicas) consensus, see~\ref{sec:data}.
 
 The system automatically rebalances repository storage: when the repository is not used actively for a
 long time, the node can remove a repository from storage if 3 replicas of this repository exist on other nodes;
@@ -298,16 +331,15 @@ it creates additional replicas on nodes to have at least 3 replicas for each rep
 \subsection{Protocol}
 Main system protocols are:
 \begin{description}
-  \item[Location protocol] - unique node identity.
-  \item[Network protocols] - nodes communication protocols.
-  \item[Discovery protocol] - lookup of a node real address by locator ID.
-  \item[Metadata exchange protocol] - a mapping of git repository to storage back-end node.
-  \item[Data exchange protocol] - Git objects and references exchange protocol,
+  \item[Location protocol] --- unique node identity.
+  \item[Network protocols] --- nodes communication protocols.
+  \item[Discovery protocol] --- lookup of a node real address by locator ID.
+  \item[Metadata exchange protocol] --- a mapping of git repository to storage back-end node.
+  \item[Data exchange protocol] --- Git objects and references exchange protocol,
     commands to add new objects and update references, linearizability guarantee.
 \end{description}
 
-\subsubsection{Locators}
-\label{sec:locators}
+\subsubsection{Locators}\label{sec:locators}
 Network addresses are not stable; back-end node may get network address via
 Dynamic Host Configuration Protocol (DHTP), or node owner may move it from one server to another.
 So we can't rely on network addresses when working with back-end nodes; we need some
@@ -321,7 +353,7 @@ itself to the system and build overlay network on top of real network. DeGit use
 Multihash\footnote{https://multiformats.io/multihash/} format to encode locator IDs.
 
 Private and public keys can be used to sign requests to other nodes or to build
-trusted discovery (see ~\ref{sec:discovery}) point in a system: when a new system is created,
+trusted discovery (see~\ref{sec:discovery}) point in a system: when a new system is created,
 the administrator can create certification authority (CA) for issuing digital certificates for node
 public keys, so each node will be able to verify the certificate of any other node when
 using seed list URLs or other peers exchange algorithms. Node instances use locators to talk
@@ -329,23 +361,23 @@ with each other. The real network address of nodes can be found using this locat
 Also, system uses locators for node-repository mapping (see ~\ref{sec:data}),
 the item of mapping table consists of locator ID and unique repository name hash.
 
-\subsubsection{Network}
-\label{sec:network}
+\subsubsection{Network}\label{sec:network}
 
 DeGitX uses TCP or UDP protocols for transport layer, TCP is used by default. It uses IPv4 or IPv6 for addressing,
 it stores addresses in \href{https://github.com/multiformats/multiaddr}{multiaddr} format, for instance:
 \code{/ipv4/1.2.3.4/udp/4444} evaluates to \code{4444} UDP port on \code{1.2.3.4} IPv4 address.
 DeGitX uses a routing system (see \ref{sec:discovery}) to find addresses of nodes by locators.
 
-\subsubsection{Discovery}
-\label{sec:discovery}
+\subsubsection{Discovery}\label{sec:discovery}
 
-Each node doesn't know the network addresses of others by default; it knows only locator ID.
-Different discovery techniques are used for node lookup. They can be configured independenly by node
+Each node doesn't know the network addresses of others by default;
+it knows only locator identifier.
+Different discovery techniques are used for node lookup.
+They can be configured independenly by node
 administrator and used together:
 
 \begin{description}
-  \item[LPD] - local peer discovery: each peer sends UDP messages with locator ID.
+  \item[LPD] --- local peer discovery: each peer sends UDP messages with locator ID.
     It's cheap and fast for the network layer (due to UDP messages); other system components,
     such as front-ends and back-ends receive these messages and update local cache of node locators.
     This approach dramatically improves lookup performance in local networks, e.g. when most of the communications
@@ -370,21 +402,22 @@ administrator and used together:
     \code{ff15::efc0:988f} also comes from \href{http://tools.ietf.org/html/rfc4291#section-2.7}{IPv6 spec} and means:
     \begin{itemize}
       \item[--] FF == Multicast
-      \item[--] 1 == ‘Flags' - where 1 indicates a non-permanently-assigned ("transient” or "dynamically" assigned) multicast address.
+      \item[--] 1 == ‘Flags' --- where 1 indicates a nonpermanently assigned
+        (``transient'' or ``dynamically'' assigned) multicast address.
       \item[--] 5 == Site-Local scope
-      \item[--] efc0:988f - the hex representation of 239.192.152.143
+      \item[--] efc0:988f --- the hex representation of 239.192.152.143
     \end{itemize}
     We could easily implement BEP 14 as described and take \href{https://github.com/transmission/transmission/blob/7f147c65fb07a6baed3d079703ff0a31d1b1ca4c/libtransmission/tr-lpd.c}{this implementation} as an example.
-  \item[Distributed DB] - network addresses could be propagated to the system using a supplementary distributed
+  \item[Distributed DB] --- network addresses could be propagated to the system using a supplementary distributed
     database, e.g., etcd or others. On startup, the back-end node registers itself in the database,
     and other system nodes (both front-ends and back-ends) use this database for lookups. 
     It requires additional system configuration but delegating some responsibilities to third-party services.
-  \item[Seed hosts] - nodes can use other nodes as seed hosts as caching optimization; some nodes
+  \item[Seed hosts] --- nodes can use other nodes as seed hosts as caching optimization; some nodes
     will be responsible for caching lookup results. In other words, these seed nodes represent a similar abstraction
     as Content Delivery Network (CDN) in web caching.
-  \item[DHT] - distributed hash tables use different metrics to compare the distance of nodes in the overlay network.
+  \item[DHT] --- distributed hash tables use different metrics to compare the distance of nodes in the overlay network.
     For example Kademlia\footnote{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf} uses
-    \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed -
+    \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed ---
     DeGit locators satisfy these requirements, being generated as cryptographic hash function from
     the public key. In the Kademlia lookup system, each node stores references in K-buckets, where each K-bucket
     contains node addresses with the same ID prefix.
@@ -418,17 +451,18 @@ administrator and used together:
     and uses multiple discovery interfaces: LPD on local network,
     regional database to speedup the lookup, DHT for global lookup
     in all system.
-  }
-  \label{fig:discovery-protocol}
+  }\label{fig:discovery-protocol}
 \end{figure}
 
-Depends on configuration, the node may use or may not some discovery protocols. They are performed
-in well-specified order: firstly, the node is lookup for locator ID in the local cache; the cache is updated
-by LPD broadcasts; in case if not found, the node queries the discovery database, then seed hosts, and DHT
-as a last resort.
+Depends on configuration, the node may use or may not some discovery protocols.
+They are performed in well-specified order: firstly,
+the node is lookup for locator ID in the local cache; the cache is updated
+by LPD broadcasts; in case if not found, the node queries the discovery
+database, then seed hosts, and DHT as a last resort.
 
-The structure of discovery entries is a mapping of locator ID (which is cryptographic hash by design)
-to network address in Multiaddr format (as described in network section: ~\ref{sec:network}).
+The structure of discovery entries is a mapping of locator ID
+(which is cryptographic hash by design) to network address
+in Multiaddr format (as described in network section:~\ref{sec:network}).
 
 Example of the routing table:
 
@@ -439,8 +473,7 @@ Example of the routing table:
   \code{132052eb4dd19f...6f8c7d235eef5f4} & \code{/ipv4/172.18.11.22/tcp/9031} \\
 \end{tabular}
 
-\subsection{Metadata}
-\label{sec:metadata}
+\subsection{Metadata}\label{sec:metadata}
 
 DeGit peers don't know where to find repository storage by default.
 To solve it, the system introduces metadata layer to exchange repository coordinates
@@ -502,11 +535,10 @@ see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
   \end{center}
   \caption{
     Repository lookup in database:
-    DB - Database with metadata for current region.
-    1 step - front-end load balancer query database for repository metadata.
-    2 step - front-end access node N$_{x}$ with required repository.
-  }
-  \label{fig:repo-lookup-db}
+    DB --- Database with metadata for current region.
+    1 step --- front-end load balancer query database for repository metadata.
+    2 step --- front-end access node N$_{x}$ with required repository.
+  }\label{fig:repo-lookup-db}
 \end{figure}
 
 \begin{figure}
@@ -545,12 +577,11 @@ see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
     Front-end in Region R$_{1}$ unable to find repository located on node N$_{r3,3}$ in same region,
     but it query the nearest known node N$_{r2,1}$, the node N$_{r2,1}$ knows where repository is located
     and redirects the query to node N$_{r3,3}$ with repository.
-  }
-  \label{fig:repo-lookup-dht}
+  }\label{fig:repo-lookup-dht}
 \end{figure}
 
-\subsection{Security}
-\label{subsec:security}
+\subsection{Security}\label{subsec:security}
+
 A small fraction of malicious nodes can prevent correct message delivery throughout the overlay.
 
 Such nodes may misroute, corrupt, or drop messages and routing information.
