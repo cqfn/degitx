@@ -664,7 +664,24 @@ are:
     nodes, e.g.\@ how many nodes contains each repository, the state of nodes, etc.
 \end{description}
 
-\section{Compare to other solutions}
+\subsection{Load balancing}\label{sec:load-balancing}
+
+The front-end decides how to redirect incoming fetch requests to replica nodes.
+It knows network addresses and current availability of repository replicas,
+so it can decide how to route next fetch request to git repository back-end storage node.
+On read access to repository, it sends a health check message to replica nodes to be sure
+which are available. It stores the result in local cache with configurable time to live
+properties. When front-end unable to access some of back-end node, it marks it as unavailable
+and forget about it for some time. Then in check availability periodically.
+It uses ``Round robin'' load balancing for fetch requests, since it provides uniformly distributed
+load for repository nodes on high load peaks. \todo{find references, proves}
+Due to strong consistency of back-end nodes provided by data-exchange protocol
+it has linearizability property, and provides always latest git data (blobs) and metadata (references).
+In case if any node crashes or becomes down, the front-end won't be able to update repository
+but it still can read it from live replicas, it means on node failure all repositories located on this
+node becomes read-only.
+
+\section{Compare to other solutions}\label{sec:compare}
 
 These products are similar to DeGit by some aspects:
 \begin{description}
