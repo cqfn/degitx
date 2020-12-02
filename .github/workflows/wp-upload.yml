@@ -1,5 +1,5 @@
 ---
-name: Build white paper document
+name: Upload white paper PDF
 "on":
   push:
     branches: [master]
@@ -8,7 +8,7 @@ name: Build white paper document
     branches: [master]
     paths: ["white-paper/**"]
 jobs:
-  build_latex:
+  upload_pdf:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
