@@ -602,8 +602,16 @@ The only problem is that they need a place in git, where all write operations co
 There was no such place to cover all write operation, and new
 \emph{\href{https://github.com/git/git/commit/675415976704459edaf8fb39a176be2be0f403d8}{reference transaction hook}}
 was introduced by Gitaly team.
-It was designed to implement a voting mechanism and it could be integrated with any consensus algorithm including raft or paxos.
-It also provides a lock mechanism on set of refs tha should be updated in current transaction, so it is possible to handle multiple updates to different independent sets of refs inside one repo at the same time.
+
+It was designed to implement a voting mechanism, so 2PC, 3PC or Paxos-commit much better than Raft or Paxos here.
+Git itself is also a system for which Raft or Paxos doesn't really fit well.
+It's unclear how to implement log and local state machine over git.
+In this algorithms replicas should apply any value proposed by leader, but git could deny some updates.
+An atomic commit algorithms care exactly about this problem and it includes voting, which allow git servers to check if they can apply proposed value.
+
+So this hook couldn't be integrated with Raft or Paxos, but can provide strong consistency via atomic commit algorithm such as 2PC.
+
+The hook also provides a lock mechanism on set of refs tha should be updated in current transaction, so it is possible to handle multiple updates to different independent sets of refs inside one repo at the same time.
 It means that several branches could be updated parallel without locking each other.
 
 \todo{search for more algorithms}.
