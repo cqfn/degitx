@@ -475,12 +475,20 @@ Example of the routing table:
 
 \subsection{Metadata}\label{sec:metadata}
 
-DeGit peers don't know where to find repository storage by default.
-To solve it, the system introduces metadata layer to exchange repository coordinates
-to locator IDs. The structure of metadata is a many-to-many relation of
+The DeGit metadata aimed to solve these issues:
+\begin{enumerate}
+  \item peers don't know where to find repository nodes
+  \item peers don't know which version of protocol uses other nodes
+  \item coordination peers don't know disk usage of other peer to choose
+    best node for replication
+\end{enumerate}
+
+To solve the first issue, the system introduces metadata layer to
+exchange repository coordinates to locator IDs. The structure
+of metadata is a many-to-many relation of
 repository cryptographic hash to storage locator ID.
 
-For instance, here is the example of metadata of two repositories located at two nodes,
+Here is the example of metadata of two repositories located at two nodes,
 repository \code{repo1} is located on both nodes \code{node1} and \code{node2},
 the repository \code{repo2} is located only on node \code{node2}:
 
@@ -491,36 +499,47 @@ the repository \code{repo2} is located only on node \code{node2}:
   \code{hash(epo2)} & \code{locator(node2)} \\
 \end{tabular}
 
-The repository hash is encoded in Multihash format. Metadata exchange protocol partially reuses
-discovery protocol for network optimizations, e.g., peers send local broadcasts
-with locator IDs and known repository hashes, discovery database may keep (if configured)
-repository hash map to node locator IDs relations (see \ref{fig:repo-lookup-db}),
-DHT keeps locator IDs as a value for repository hash keys \ref{fig:repo-lookup-dht},
-it keeps all metadata of the whole system. The metadata lookup process is similar to the discovery protocol:
-firstly, the peer is looking for metadata in the local cache (populated with network broadcasts); then, it checks
-the region database; and as a last resort, it performs query lookup for global DHT.
+The repository hash is encoded in Multihash format. Metadata exchange
+protocol partially reuses discovery protocol for network optimizations,
+e.g., peers send local broadcasts with locator IDs and known
+repository hashes, discovery database may keep (if configured)
+repository hash map to node locator IDs relations (see~\ref{fig:repo-lookup-db}),
+DHT keeps locator IDs as a value for repository hash keys~\ref{fig:repo-lookup-dht},
+it keeps all metadata of the whole system.
+The metadata lookup process is similar to the discovery protocol:
+firstly, the peer is looking for metadata in the local cache
+(populated with network broadcasts); then, it checks the region database;
+and as a last resort, it performs query lookup for global DHT.
 
-When a new node starts replicating some repository, it's synchronizing with other replicas first, and then
-updates metadata asynchronously. The metadata is updated as follows:
+When a new node starts replicating some repository, it's synchronizing
+with other replicas first, and then updates metadata asynchronously.
+The metadata is updated as follows:
 \begin{enumerate}
-  \item A new node wants to replicate some repository
-  \item The node finds current repository holders (replicas) in existing metadata and choose a random node from this list
-  \item A node sends the request to the node to add itself to the replica list
+  \item A new asked to replicate some repository
+  \item The node finds current repository holders (replicas) in existing
+    metadata and choose a random node from this list
+  \item A node sends the request to the coordinator node to add itself
+    to the replica list
   \item Receiver node starts leader election and updates node log to add new node to the replica list
   \item The consensus accepts a new node and stores it in local persistent storage
   \item The leader notifies a new node that it becomes a part of the replicas and consider it when consensus is required
-  \item New node replicates the state of consensus and holds the repository and sends UDP broadcast to
-    local peers on success
-  \item Leader node propagates replicas change in metadata storages asynchronously: updates DHT or database storage
-    (as configured)
+  \item New node replicates the state of consensus and holds the repository
+    and sends the broadcast to local peers on success
+  \item Leader node propagates replicas change in metadata storages asynchronously:
+    updates DHT or database storage (as configured)
 \end{enumerate}
 
-Repository mapping could be stored in a distributed hash table (e.g., Kademlia),
-database cache or broadcasted via local network broadcasts.
-Therefore, for multi-region cluster setup, the front-end load balancer may look for a node in the local cache
-populated by local network broadcasts, then check region database where all repositories in the same region are
+Repository mapping storage is configurable, ot could be stored in a
+distributed hash table (e.g., Kademlia),
+database or broadcasted via local network broadcasts.
+Therefore, for multi-region cluster setup, the front-end load balancer may
+look for a node in the local cache populated by local network broadcasts,
+then check region database where all repositories in the same region are
 registered, and if not found perform DHT query lookup in different regions,
-see Figures \ref{fig:repo-lookup-db} \ref{fig:repo-lookup-dht}.
+see Figures~\ref{fig:repo-lookup-db}~\ref{fig:repo-lookup-dht}. If some of
+metadata connections are not configured, then these steps will be skipped:
+e.g.\@if a database will be set as the only option, then nodes won't use DHT
+and won't send local broadcasts at all.
 
 \begin{figure}
   \begin{center}
