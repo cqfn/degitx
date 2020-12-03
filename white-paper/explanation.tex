@@ -1,5 +1,4 @@
 \section{Special cases}\label{sec:explanation}
-
 \subsection{How to create new repository}
 
 The diagram~\ref{fig:ex-create-repo} explains how administrator creates new repository with replication
@@ -80,7 +79,7 @@ on predefined storage nodes by specifying its locator IDs:
 \subsection{How the node finds the replica with git repository}
 
 Each node (both front-end and back-end nodes) has metadata exchange and discovery protocol components,
-both components rely on network module and locators systems.
+both components rely on network modules and locator systems.
 
 Stakeholders:
 \begin{description}
@@ -95,13 +94,13 @@ pair of replica locator IDs and network address, see figure~\ref{fig:ex-node-loo
 Workflow:
 \begin{enumerate}
     \item Node checks local cache populated by local peer discovery broadcasts
-      and updated anually after success query operation
-    \item If coordinates were not found in cache, node goes to the next lookup layer
-    \item Node queries regional database to find repository coordinates
-    \item If coordinates were not found in database, goes to the next lookup layer
-    \item Node queries DHT nodes using lookup algorithms, e.g. Kademlia.
-    \item On success, node updates regional database with actual information
-    \item Node stores actual information in local cache
+      and updated annually after successful query operation
+    \item If coordinates were not found in the cache, the node goes to the next lookup layer
+    \item Node queries the regional database to find repository coordinates
+    \item If coordinates were not found in the database, it goes to the next lookup layer
+    \item Node queries DHT nodes using lookup algorithms, e.g., Kademlia.
+    \item On success, the node updates the regional database with actual information
+    \item Node stores actual information in the local cache
 \end{enumerate}
 
 \begin{figure}
@@ -141,13 +140,13 @@ exposes Gitaly gRPC~API.\@ GitLab performs push with two RPC calls:
   \item[PostReceivePack] --- for add new git objects to the repository
 \end{description}
 
-At figure~\ref{fig:gitlab-push-gitaly}, front-end updates repository lookup routing table
-to request git references from one of the replica and send new git objects to back-end nodes.
+At figure~\ref{fig:gitlab-push-gitaly}, the front-end updates repository lookup routing table
+to request git references from one of the replicas and send new git objects to back-end nodes.
 See~\ref{sec:appendix-a} to become familiar with git internals.
 
-This diagram explains only communication between GitLab and DeGitX Gitaly front-end,
-to understand how the front-end can read and write git data from/to back-ends, see
-other diagrams below.
+This diagram explains only communication between GitLab and DeGitX Gitaly front-end.
+To understand how the front-end can read and write git data from/to back-ends, see
+other diagrams provided below.
 
 \begin{figure}
 \centering
@@ -198,11 +197,11 @@ other diagrams below.
 
 \subsection{How the front-end pushes data to the storage}
 
-The diagram~\ref{fig:ex-push-to-repo} explains how the front-end can push data to git repository.
+The diagram~\ref{fig:ex-push-to-repo} explains how the front-end can push data to the git repository.
 Front-end ``FE'' chooses one repository ``R'' replica to communicate with (``BE$_{1}$'' in example diagram),
-this node is responsible to talk to the leader or initiate leader election if no leader exist.
-The leader is responsible to replicate push command and data across consensus of replicas
-and notify BE$_{1}$ node on success.
+this node is responsible for talking to the leader or initiate leader election if no leader exists.
+The leader is responsible for replicating push command and data across consensus of replicas
+and notifying BE$_{1}$ node on success.
 
 On this diagram, the stakeholders are:
 \begin{description}
