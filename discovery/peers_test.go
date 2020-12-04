@@ -12,7 +12,7 @@ import (
 
 func blockingUpdate(prs *Peers, upd *Peer) error {
 	done := make(chan struct{})
-	if err := prs.Update(upd, done); err != nil {
+	if err := prs.update(upd, done); err != nil {
 		return err
 	}
 	<-done
