@@ -5,28 +5,29 @@
 package discovery
 
 import (
+	"bytes"
 	"context"
-	"log"
-
-	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 )
 
-// Discovery interface
-type Discovery interface {
-	Lookup(mh.Multihash, context.Context) (ma.Multiaddr, error)
+// Discovery protocol
+type Discovery struct {
+	peers *Peers
+	prov  Provider
 }
 
-// Service is a discovery client or server daemon to synchornize
-// or provide peers information
-type Service interface {
-	Start(context.Context) error
+// NewDiscovery creates discovery protocol encapsulating
+// peers table and discovery providers
+func NewDiscovery(peers *Peers, prov Provider) *Discovery {
+	return &Discovery{peers, prov}
 }
 
-// StubService of discovery. Does nothing.
-type StubService struct{}
-
-func (s *StubService) Start(_ context.Context) error {
-	log.Print("No discovery server/client started: running stub")
-	return nil
+func (d *Discovery) Resolve(ctx context.Context,
+	loc mh.Multihash) (*Peer, error) {
+	for _, p := range d.peers.Peers() {
+		if bytes.Equal(loc, p.Locator.ID) {
+			return p, nil
+		}
+	}
+	return d.prov.Resolve(ctx, loc)
 }
