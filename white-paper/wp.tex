@@ -642,8 +642,13 @@ An atomic commit algorithms care exactly about this problem and it includes voti
 
 So this hook couldn't be integrated with Raft or Paxos, but can provide strong consistency via atomic commit algorithm such as 2PC.
 
-The hook also provides a lock mechanism on set of refs tha should be updated in current transaction, so it is possible to handle multiple updates to different independent sets of refs inside one repo at the same time.
+The hook also provides a lock mechanism on set of refs tha should be updated in current transaction,
+so it is possible to handle multiple updates to different independent sets of refs inside one repo at the same time.
 It means that several branches could be updated parallel without locking each other.
+
+Transaction starts right before a user attempts to write new refs.
+It means that it doesn't block all writes while someone is pushing a payload.
+Objects are uploaded asynchronously and only reference updates are synchronised and locked.
 
 \todo{search for more algorithms}.
 
