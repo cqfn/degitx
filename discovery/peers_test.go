@@ -10,13 +10,10 @@ import (
 	m "github.com/g4s8/go-matchers"
 )
 
-func blockingUpdate(prs *Peers, upd *Peer) error {
+func blockingUpdate(prs *Peers, upd *Peer) {
 	done := make(chan struct{})
-	if err := prs.update(upd, done); err != nil {
-		return err
-	}
+	prs.update(upd, done)
 	<-done
-	return nil
 }
 
 func Test_peersMerge(t *testing.T) {
@@ -24,14 +21,10 @@ func Test_peersMerge(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	prs := NewPeers(ctx)
-	err := blockingUpdate(prs, testPeer(1, "1.1.1.1"))
-	assert.That("updated 1 peer without err", err, m.Nil())
-	err = blockingUpdate(prs, testPeer(2, "1.1.1.2"))
-	assert.That("updated 2 peer without err", err, m.Nil())
-	err = blockingUpdate(prs, testPeer(2, "2.2.2.2"))
-	assert.That("updated 2 (new data) peer without err", err, m.Nil())
-	err = blockingUpdate(prs, testPeer(3, "3.3.3.3"))
-	assert.That("updated 3 peer without err", err, m.Nil())
+	blockingUpdate(prs, testPeer(1, "1.1.1.1"))
+	blockingUpdate(prs, testPeer(2, "1.1.1.2"))
+	blockingUpdate(prs, testPeer(2, "2.2.2.2"))
+	blockingUpdate(prs, testPeer(3, "3.3.3.3"))
 	peers := prs.Peers()
 	assert.That("there are 3 peers after update", peers, m.LenIs(3))
 	assert.That("has all peers", peers,

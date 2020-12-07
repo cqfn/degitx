@@ -64,10 +64,7 @@ func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingRe
 			return
 		}
 		updated := make(chan struct{})
-		if err := s.peers.update(upd, updated); err != nil {
-			failure <- err
-			return
-		}
+		s.peers.update(upd, updated)
 		<-updated
 		rsp := new(pb.PingResponse)
 		rsp.Peers = make([]*pb.NodeCoord, len(s.peers.peers))

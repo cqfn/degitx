@@ -1,11 +1,15 @@
+// MIT License. Copyright (c) 2020 CQFN
+// https://github.com/cqfn/degitx/blob/master/LICENSE
+
 package discovery
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	mh "github.com/multiformats/go-multihash"
 	"strings"
+
+	mh "github.com/multiformats/go-multihash"
 )
 
 // ErrPeerNotFound returned by provider if provider
