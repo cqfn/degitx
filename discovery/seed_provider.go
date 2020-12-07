@@ -58,7 +58,7 @@ func (c *grpcSeedProvider) String() string {
 	return fmt.Sprintf("gRPC seed provider: host=`%s`", c.seed)
 }
 
-func (c *grpcSeedProvider) sync(ctx context.Context) error {
+func (c *grpcSeedProvider) sync(ctx context.Context) {
 	ticker := time.NewTicker(ping)
 	go func() {
 		for {
@@ -75,7 +75,6 @@ func (c *grpcSeedProvider) sync(ctx context.Context) error {
 		}
 	}()
 	log.Printf("Discovery seed provider sync started with host=`%s`", c.seed)
-	return nil
 }
 
 var errInvalidSeedAddr = errors.New("invalid seed address, should contain IP and TCP components")
@@ -118,9 +117,7 @@ func (c *grpcSeedProvider) ping(ctx context.Context, done chan struct{}) error {
 		if err := p.fromGRPCCoord(crd); err != nil {
 			return err
 		}
-		if err := c.peers.update(p, done); err != nil {
-			return err
-		}
+		c.peers.update(p, done)
 		upd[i] = p
 	}
 	return nil

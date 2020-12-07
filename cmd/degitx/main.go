@@ -89,7 +89,9 @@ func cmdRun(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		seed.Start(ctx.Context)
+		if err := seed.Start(ctx.Context); err != nil {
+			return err
+		}
 	}
 	if seed != "" {
 		addr, err := ma.NewMultiaddr(seed)

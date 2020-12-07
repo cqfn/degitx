@@ -69,7 +69,7 @@ func (p *Peers) Address(hash mh.Multihash, ctx context.Context) (ma.Multiaddr, e
 }
 
 // update peers with new peer, notifies optional done channel on complete
-func (p *Peers) update(peer *Peer, done chan struct{}) error {
+func (p *Peers) update(peer *Peer, done chan struct{}) {
 	hash := peer.Locator.ID
 	upd := &updateMsg{
 		id:   hash.HexString(),
@@ -78,7 +78,6 @@ func (p *Peers) update(peer *Peer, done chan struct{}) error {
 		done: done,
 	}
 	p.updates <- upd
-	return nil
 }
 
 // Peer node
