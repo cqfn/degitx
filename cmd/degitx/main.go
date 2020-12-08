@@ -77,7 +77,7 @@ func cmdRun(ctx *cli.Context) error {
 	}
 	logging.Init(node, cfg.LogConfig)
 	peers := discovery.NewPeers(ctx.Context)
-	var dsc discovery.Service
+	dps := make([]discovery.Provider, 0)
 	peer := ctx.String("peer-host")
 	seed := ctx.String("peer-seed")
 	if peer != "" { //nolint:nestif,gocritic // consider refactoring later
@@ -85,19 +85,24 @@ func cmdRun(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		dsc, err = discovery.NewGrpcServer(addr, node, peers)
+		seed, err := discovery.NewGrpcSeed(addr, node, peers)
 		if err != nil {
 			return err
 		}
-	} else if seed != "" {
+		if err := seed.Start(ctx.Context); err != nil {
+			return err
+		}
+	}
+	if seed != "" {
 		addr, err := ma.NewMultiaddr(seed)
 		if err != nil {
 			return err
 		}
-		dsc = discovery.NewGrpcClient(addr, node, peers)
-	} else {
-		dsc = new(discovery.StubService)
+		dsc := discovery.NewGrpcSeedProvider(ctx.Context,
+			addr, node, peers)
+		dps = append(dps, dsc)
 	}
+	dsc := discovery.NewDiscovery(peers, discovery.NewProviderChain(dps...))
 	node.Addr, err = ma.NewMultiaddr(ctx.String("gitaly-host"))
 	if err != nil {
 		return err
