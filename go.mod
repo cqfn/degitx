@@ -8,7 +8,7 @@ go 1.14
 require (
 	github.com/g4s8/go-bundle v0.0.1
 	github.com/g4s8/go-matchers v0.0.0-20201209072131-8aaefc3fcb9c
-	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multihash v0.0.14
@@ -18,6 +18,6 @@ require (
 	go.uber.org/zap v1.16.0
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	google.golang.org/grpc v1.27.0
-	google.golang.org/protobuf v1.25.0 // indirect
+	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0
 )

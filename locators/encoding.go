@@ -1,11 +1,11 @@
 // MIT License. Copyright (c) 2020 CQFN
 // https://github.com/cqfn/degitx/blob/master/LICENSE
+
 package locators
 
 import (
 	"bytes"
 	"encoding/binary"
-
 	"fmt"
 
 	"github.com/g4s8/go-bundle"
@@ -14,7 +14,8 @@ import (
 )
 
 var version = [...]byte{0x00, 0x01}
-var byteOrder = binary.BigEndian
+
+var byteOrder = binary.BigEndian //nolint:gochecknoglobals //package private constant
 
 // Binary encoding implementation of BinaryMarshaler and BinaryUnmarshaler interfaces
 
