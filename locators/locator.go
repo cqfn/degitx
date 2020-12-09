@@ -25,7 +25,12 @@ type Node struct {
 }
 
 func (n *Node) String() string {
-	return fmt.Sprintf("Node `%s`", n.ID.HexString())
+	return fmt.Sprintf("Node(`%s`)", n.ID.HexString())
+}
+
+func (n *Node) GoString() string {
+	return fmt.Sprintf("Node(ID(%#v), PubKey(%#v), Addr(%#v))",
+		n.ID, n.PubKey, n.Addr)
 }
 
 const hname = "sha1"

@@ -28,7 +28,7 @@ func Test_peersMerge(t *testing.T) {
 	peers := prs.Peers()
 	assert.That("there are 3 peers after update", peers, m.LenIs(3))
 	assert.That("has all peers", peers,
-		m.AllOf(m.HasItemEq(testPeer(1, "1.1.1.1")),
-			m.HasItemEq(testPeer(2, "2.2.2.2")),
-			m.HasItemEq(testPeer(3, "3.3.3.3"))))
+		m.AllOf(m.HasItem(peerMatcher(testPeer(1, "1.1.1.1"))),
+			m.HasItem(peerMatcher(testPeer(2, "2.2.2.2"))),
+			m.HasItem(peerMatcher(testPeer(3, "3.3.3.3")))))
 }
