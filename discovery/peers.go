@@ -87,7 +87,12 @@ type Peer struct {
 }
 
 func (p *Peer) String() string {
-	return fmt.Sprintf("Peer loc=%s addr=%s", p.Locator, p.Addr)
+	return fmt.Sprintf("Peer(`%s`, `%s`)", p.Locator, p.Addr)
+}
+
+func (p *Peer) GoString() string {
+	return fmt.Sprintf("Peer(Locator(%#v), Addr(%#v))",
+		p.Locator, p.Addr)
 }
 
 // Copy peer to new structure
