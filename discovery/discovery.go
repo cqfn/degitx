@@ -22,20 +22,22 @@ package discovery
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	mh "github.com/multiformats/go-multihash"
 )
 
-// Discovery protocol
+// Discovery protocol. It's provider and registry in one struct
 type Discovery struct {
 	peers *Peers
 	prov  Provider
+	reg   Registry
 }
 
 // NewDiscovery creates discovery protocol encapsulating
-// peers table and discovery providers
-func NewDiscovery(peers *Peers, prov Provider) *Discovery {
-	return &Discovery{peers, prov}
+// peers table, discovery providers and registries
+func NewDiscovery(peers *Peers, prov Provider, reg Registry) *Discovery {
+	return &Discovery{peers, prov, reg}
 }
 
 func (d *Discovery) Resolve(ctx context.Context,
@@ -50,4 +52,24 @@ func (d *Discovery) Resolve(ctx context.Context,
 		d.peers.update(p, nil)
 	}
 	return p, err
+}
+
+func (d *Discovery) Update(ctx context.Context, p *Peer) error {
+	done := make(chan struct{})
+	err := make(chan error)
+	d.peers.update(p, done)
+	go func() {
+		select {
+		case <-done:
+			err <- d.reg.Update(ctx, p)
+		case <-ctx.Done():
+			err <- ctx.Err()
+		}
+	}()
+	return <-err
+}
+
+func (d *Discovery) String() string {
+	return fmt.Sprintf("Discovery: provider=%s, registry=%s",
+		d.prov, d.reg)
 }

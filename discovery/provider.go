@@ -44,11 +44,29 @@ func (e *ErrFailedToResolve) Unwrap() error {
 
 // Provider of peer nodes addresses
 type Provider interface {
+	fmt.Stringer
+
 	// Resolve peer by locator hash
 	Resolve(context.Context, mh.Multihash) (*Peer, error)
+}
 
-	// String representation
-	String() string
+// Registry of discovery peers
+type Registry interface {
+	fmt.Stringer
+
+	// Update discovery registry with new peer coordinates
+	Update(context.Context, *Peer) error
+}
+
+// NopRegistry does nothing on update
+type NopRegistry struct{}
+
+func (r *NopRegistry) Update(context.Context, *Peer) error {
+	return nil
+}
+
+func (r *NopRegistry) String() string {
+	return "NopRegistry"
 }
 
 type pChain struct {
