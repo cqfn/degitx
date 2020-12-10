@@ -13,10 +13,10 @@ import (
 )
 
 /*
-* @todo #74:30min Implement health check
+ * @todo #74:30min Implement health check
  *  When all services will be ready, we shall remove this stub type & package
  *  and implement real health check correctly: return SERVING only if checks passed.
-*/
+ */
 type serverStub struct {
 	log *logging.Logger
 }
