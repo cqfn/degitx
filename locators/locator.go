@@ -37,7 +37,7 @@ func (n *Node) GoString() string {
 const hname = "sha1"
 
 // FromKeys creates new Node struct from public and private keys
-// by generating node id as multihash of SHA1 of public key.
+// by generating node id as multihash of SHA1 of public key
 func FromKeys(pub, priv []byte) (*Node, error) {
 	hfunc, err := hashFunc(hname)
 	if err != nil {

@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new CommitServiceServer
 func NewServer(log *logging.Logger) gitalypb.CommitServiceServer {
 	return &server{
 		log: log,

@@ -17,6 +17,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new SSHServiceServer
 func NewServer(log *logging.Logger) gitalypb.SSHServiceServer {
 	return &server{
 		log: log,

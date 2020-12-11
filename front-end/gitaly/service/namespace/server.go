@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new NamespaceServiceServer
 func NewServer(log *logging.Logger) gitalypb.NamespaceServiceServer {
 	return &server{
 		log: log,

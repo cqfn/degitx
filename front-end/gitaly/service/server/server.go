@@ -17,6 +17,7 @@ type server struct {
 	log     *logging.Logger
 }
 
+// NewServer creates new ServerServiceServer
 func NewServer(log *logging.Logger, degitxVersion string) gitalypb.ServerServiceServer {
 	return &server{
 		version: fmt.Sprintf("degitx-v%s (gitaly-v1.27.1)", degitxVersion),
