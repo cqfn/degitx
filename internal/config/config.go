@@ -37,7 +37,7 @@ func (e *errConfigNotFound) Error() string {
 		strings.Join(e.paths, ":"))
 }
 
-// FromFiles ensures that at least one file by given paths exist and parses it's yaml content.
+// FromFiles ensures that at least one file by given paths exist and parses its yaml content.
 func (config *DegitxConfig) FromFiles(paths ...string) error {
 	var path string
 	for _, p := range paths {
