@@ -17,8 +17,7 @@ var version = [...]byte{0x00, 0x01}
 
 var byteOrder = binary.BigEndian //nolint:gochecknoglobals //package private constant
 
-// Binary encoding implementation of BinaryMarshaler and BinaryUnmarshaler interfaces
-
+// MarshalBinary is a binary encoding implementation
 func (n *Node) MarshalBinary() ([]byte, error) {
 	out := bundle.NewOut(byteOrder)
 	out.PutBytes(version[:])
@@ -36,6 +35,7 @@ func (e *errUnsupportedVersion) Error() string {
 	return fmt.Sprintf("Unsupported version `%s`", e.version)
 }
 
+// UnmarshalBinary is a binary decoding implementation
 func (n *Node) UnmarshalBinary(data []byte) error {
 	inp := bundle.NewInput(byteOrder)
 	if err := inp.UnmarshalBinary(data); err != nil {
