@@ -44,9 +44,6 @@ install-deps:
 
 # run golangci-lint
 lint:
-	golint .
-	golint ./discovery
-	golint ./locators
 	@golangci-lint --version
 	golangci-lint run
 
