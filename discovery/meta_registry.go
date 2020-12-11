@@ -15,6 +15,7 @@ type metaRegistry struct {
 	meta meta.Storage
 }
 
+// Update metadata storage with new peer
 func (r *metaRegistry) Update(ctx context.Context, p *Peer) error {
 	cto, cancel := context.WithTimeout(ctx, resolveTimeout)
 	defer cancel()

@@ -38,6 +38,7 @@ func (e *ErrFailedToResolve) Error() string {
 		e.loc.HexString(), e.p)
 }
 
+// Unwrap origin error
 func (e *ErrFailedToResolve) Unwrap() error {
 	return e.origin
 }
@@ -61,6 +62,7 @@ type Registry interface {
 // NopRegistry does nothing on update
 type NopRegistry struct{}
 
+// Update nothing
 func (r *NopRegistry) Update(context.Context, *Peer) error {
 	return nil
 }

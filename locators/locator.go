@@ -28,6 +28,7 @@ func (n *Node) String() string {
 	return fmt.Sprintf("Node(`%s`)", n.ID.HexString())
 }
 
+// GoString returns debug information for `%#v` format option
 func (n *Node) GoString() string {
 	return fmt.Sprintf("Node(ID(%#v), PubKey(%#v), Addr(%#v))",
 		n.ID, n.PubKey, n.Addr)

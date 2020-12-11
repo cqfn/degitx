@@ -23,6 +23,7 @@ const keyPrefix = "cqfn.org/degitx/discovery/node/"
 
 const resolveTimeout = 30 * time.Second
 
+// Resolve peer from metadata storage
 func (p *metaProvider) Resolve(ctx context.Context,
 	loc mh.Multihash) (*Peer, error) {
 	buf := bytes.NewBuffer([]byte(keyPrefix))

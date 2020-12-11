@@ -40,6 +40,7 @@ func NewDiscovery(peers *Peers, prov Provider, reg Registry) *Discovery {
 	return &Discovery{peers, prov, reg}
 }
 
+// Resolve a peer from local table or discovery provider
 func (d *Discovery) Resolve(ctx context.Context,
 	loc mh.Multihash) (*Peer, error) {
 	for _, p := range d.peers.Peers() {
@@ -54,6 +55,7 @@ func (d *Discovery) Resolve(ctx context.Context,
 	return p, err
 }
 
+// Update local peers table and registry with new peer
 func (d *Discovery) Update(ctx context.Context, p *Peer) error {
 	done := make(chan struct{})
 	err := make(chan error)

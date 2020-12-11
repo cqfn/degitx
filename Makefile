@@ -22,7 +22,6 @@ test: build
 	go test $(FLAGS) ./cmd/degitx
 	go test $(FLAGS) ./cmd/degitx-gitaly
 
-
 degitx: build proto
 	go build $(FLAGS) ./cmd/degitx
 
@@ -45,6 +44,9 @@ install-deps:
 
 # run golangci-lint
 lint:
+	golint .
+	golint ./discovery
+	golint ./locators
 	@golangci-lint --version
 	golangci-lint run
 
