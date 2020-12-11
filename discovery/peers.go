@@ -22,6 +22,7 @@ type Peers struct {
 const chanSize = 16
 
 // NewPeers initialises and start queue for peers processing
+// `ctx' cancellation will stop this queue
 func NewPeers(ctx context.Context) *Peers {
 	p := new(Peers)
 	p.peers = make(map[string]*Peer)
@@ -59,16 +60,16 @@ func (e *errPeerNotFound) Error() string {
 	return fmt.Sprintf("Peer `%s` not found locally", e.peer.HexString())
 }
 
-// Lookup lookups for peer address.
-func (p *Peers) Lookup(ctx context.Context, hash mh.Multihash) (ma.Multiaddr, error) {
+// Address of peer node
+func (p *Peers) Address(hash mh.Multihash, ctx context.Context) (ma.Multiaddr, error) {
 	if peer, found := p.peers[hash.HexString()]; found {
 		return peer.Addr, nil
 	}
 	return nil, &errPeerNotFound{hash}
 }
 
-// Update peers with new peer, notifies optional done channel on complete
-func (p *Peers) Update(peer *Peer, done chan struct{}) error {
+// update peers with new peer, notifies optional done channel on complete
+func (p *Peers) update(peer *Peer, done chan struct{}) {
 	hash := peer.Locator.ID
 	upd := &updateMsg{
 		id:   hash.HexString(),
@@ -77,7 +78,6 @@ func (p *Peers) Update(peer *Peer, done chan struct{}) error {
 		done: done,
 	}
 	p.updates <- upd
-	return nil
 }
 
 // Peer node
@@ -87,7 +87,12 @@ type Peer struct {
 }
 
 func (p *Peer) String() string {
-	return fmt.Sprintf("Peer loc=%s addr=%s", p.Locator, p.Addr)
+	return fmt.Sprintf("Peer(`%s`, `%s`)", p.Locator, p.Addr)
+}
+
+func (p *Peer) GoString() string {
+	return fmt.Sprintf("Peer(Locator(%#v), Addr(%#v))",
+		p.Locator, p.Addr)
 }
 
 // Copy peer to new structure
