@@ -40,7 +40,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-// Server interface
+// Server is a degitx front-end gRPC Server interface
 type Server interface {
 	Start(context.Context) error
 }

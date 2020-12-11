@@ -29,13 +29,13 @@ var logCtx *logContext //nolint:gochecknoglobals
 var mux sync.Mutex //nolint:gochecknoglobals
 
 // Init inits zap logger context from config and predeclared settings.
-// Init also adds node ID to logger context.
+// Init also adds node ID to logger context
 func Init(node *locators.Node, cfg *LogConfig) {
 	InitNodeless(cfg)
 	logCtx.nodeID = node.ID.HexString()
 }
 
-// InitNodeless inits zap logger context from config and predeclared settings.
+// InitNodeless inits zap logger context from config and predeclared settings
 func InitNodeless(cfg *LogConfig) {
 	mux.Lock()
 	defer mux.Unlock()
