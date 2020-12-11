@@ -22,7 +22,6 @@ test: build
 	go test $(FLAGS) ./cmd/degitx
 	go test $(FLAGS) ./cmd/degitx-gitaly
 
-
 degitx: build proto
 	go build $(FLAGS) ./cmd/degitx
 

@@ -61,7 +61,7 @@ func (e *errPeerNotFound) Error() string {
 }
 
 // Address of peer node
-func (p *Peers) Address(hash mh.Multihash, ctx context.Context) (ma.Multiaddr, error) {
+func (p *Peers) Address(hash mh.Multihash) (ma.Multiaddr, error) {
 	if peer, found := p.peers[hash.HexString()]; found {
 		return peer.Addr, nil
 	}
@@ -90,6 +90,7 @@ func (p *Peer) String() string {
 	return fmt.Sprintf("Peer(`%s`, `%s`)", p.Locator, p.Addr)
 }
 
+// GoString returns debug information for `%#v` format option
 func (p *Peer) GoString() string {
 	return fmt.Sprintf("Peer(Locator(%#v), Addr(%#v))",
 		p.Locator, p.Addr)

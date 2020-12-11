@@ -102,7 +102,8 @@ func cmdRun(ctx *cli.Context) error {
 			addr, node, peers)
 		dps = append(dps, dsc)
 	}
-	dsc := discovery.NewDiscovery(peers, discovery.NewProviderChain(dps...))
+	dsc := discovery.NewDiscovery(peers, discovery.NewProviderChain(dps...),
+		new(discovery.NopRegistry))
 	node.Addr, err = ma.NewMultiaddr(ctx.String("gitaly-host"))
 	if err != nil {
 		return err
