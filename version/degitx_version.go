@@ -6,6 +6,7 @@ package version
 
 var version = "dev"
 
+// GetVersion returns the version of degitx that is taken from goreleaser.
 func GetVersion() string {
 	return version
 }

@@ -21,6 +21,7 @@ type serverStub struct {
 	log *logging.Logger
 }
 
+// NewServer creates new HealthServer
 func NewServer(log *logging.Logger) healthpb.HealthServer {
 	return &serverStub{
 		log: log,

@@ -59,7 +59,8 @@ func (e *errPeerNotFound) Error() string {
 	return fmt.Sprintf("Peer `%s` not found locally", e.peer.HexString())
 }
 
-func (p *Peers) Lookup(hash mh.Multihash, ctx context.Context) (ma.Multiaddr, error) {
+// Lookup lookups for peer address.
+func (p *Peers) Lookup(ctx context.Context, hash mh.Multihash) (ma.Multiaddr, error) {
 	if peer, found := p.peers[hash.HexString()]; found {
 		return peer.Addr, nil
 	}

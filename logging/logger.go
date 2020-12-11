@@ -16,6 +16,7 @@ import (
 //go:generate stringer -type=LogLevel
 type LogLevel int8
 
+// Supported log levels.
 const (
 	Debug LogLevel = iota
 	Info
@@ -23,11 +24,13 @@ const (
 	Error
 )
 
+// Logger is a struct that encapsulates logger implementation.
 type Logger struct {
 	internalLogger        *zap.Logger
 	internalSugaredLogger *zap.SugaredLogger
 }
 
+// NewLogger creates new Logger
 func NewLogger(tag string) (*Logger, error) {
 	internalLogger, internalSugaredLogger, err := initInternalLogger(tag)
 	if err != nil {
@@ -40,34 +43,42 @@ func NewLogger(tag string) (*Logger, error) {
 		nil
 }
 
+// Debug level log.
 func (log *Logger) Debug(template string) {
 	log.internalLogger.Debug(template)
 }
 
+// Info level log.
 func (log *Logger) Info(template string) {
 	log.internalLogger.Info(template)
 }
 
+// Warn level log.
 func (log *Logger) Warn(template string) {
 	log.internalLogger.Warn(template)
 }
 
+// Error level log.
 func (log *Logger) Error(template string) {
 	log.internalLogger.Error(template)
 }
 
+// Debugf Printf-like debug level log.
 func (log *Logger) Debugf(template string, args ...interface{}) {
 	log.internalSugaredLogger.Debugf(template, args...)
 }
 
+// Infof Printf-like info level log.
 func (log *Logger) Infof(template string, args ...interface{}) {
 	log.internalSugaredLogger.Infof(template, args...)
 }
 
+// Warnf Printf-like warn level log.
 func (log *Logger) Warnf(template string, args ...interface{}) {
 	log.internalSugaredLogger.Warnf(template, args...)
 }
 
+// Errorf Printf-like error level log.
 func (log *Logger) Errorf(template string, args ...interface{}) {
 	log.internalSugaredLogger.Errorf(template, args...)
 }

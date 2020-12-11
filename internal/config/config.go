@@ -16,12 +16,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Keys is a key's algorithm and paths to private and public keys.
 type Keys struct {
 	Alg           string `yaml:"alg"`
 	PathToPrivate string `yaml:"private"`
 	PathToPublic  string `yaml:"public"`
 }
 
+// DegitxConfig is a config for both front- and back-end apps.
 type DegitxConfig struct {
 	Version   string             `yaml:"version"`
 	Keys      *Keys              `yaml:"keys"`
@@ -35,6 +37,7 @@ func (e *errConfigNotFound) Error() string {
 		strings.Join(e.paths, ":"))
 }
 
+// FromFiles ensures that at least one file by given paths exist and parses it's yaml content.
 func (config *DegitxConfig) FromFiles(paths ...string) error {
 	var path string
 	for _, p := range paths {
@@ -58,6 +61,7 @@ func (config *DegitxConfig) FromFiles(paths ...string) error {
 	return nil
 }
 
+// FromFile parses yaml file.
 func (config *DegitxConfig) FromFile(fileName string) error {
 	source, err := ioutil.ReadFile(fileName) //nolint:gosec // no user input for filename
 	if err != nil {

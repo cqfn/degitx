@@ -14,7 +14,7 @@ import (
 
 // Discovery interface
 type Discovery interface {
-	Lookup(mh.Multihash, context.Context) (ma.Multiaddr, error)
+	Lookup(context.Context, mh.Multihash) (ma.Multiaddr, error)
 }
 
 // Service is a discovery client or server daemon to synchornize
@@ -26,6 +26,7 @@ type Service interface {
 // StubService of discovery. Does nothing.
 type StubService struct{}
 
+// Start stub service. Does nothing.
 func (s *StubService) Start(_ context.Context) error {
 	log.Print("No discovery server/client started: running stub")
 	return nil
