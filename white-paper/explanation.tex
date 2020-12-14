@@ -197,72 +197,7 @@ other diagrams provided below.
 
 \subsection{How the front-end pushes data to the storage}
 
-The diagram~\ref{fig:ex-push-to-repo} explains how the front-end can push data to the git repository.
-Front-end ``FE'' chooses one repository ``R'' replica to communicate with (``BE$_{1}$'' in example diagram),
-this node is responsible for talking to the leader or initiate leader election if no leader exists.
-The leader is responsible for replicating push command and data across consensus of replicas
-and notifying BE$_{1}$ node on success.
-
-On this diagram, the stakeholders are:
-\begin{description}
-  \item[FE] --- front-end of DeGitX (load-balancer, multiplexer), who received the request to push new data
-  \item[BE$_{1}$] --- the back-end of DeGitX (git storage), chosen by front-end load-balancer to interact with
-  \item[BE$_{o}$] --- other back-end replicas, containing target repository to push
-  \item[Meta] --- Metadata storage (LPD, DB, DHT)
-\end{description}
-
-The workflow:
-\begin{description}
-  \item[1] Client calls RPC of FE to push commits \code{c} to repository \code{r}
-  \item[2] FE performs lookup in metadata to find lcoators \code{L[]} of repository \code{r}
-  \item[3] FE calls RPC of any storage node from \code{L[]} list to push commits \code{c} to
-    repository \code{r}
-  \item[4] BE RPC receiver organizes leader-election across replicas of repository \code{r}
-    and asks a leader to add new commit \code{c} to repository git storage
-  \item[5] At least the half plus one replica performs update and commit new changes
-\end{description}
-
-\begin{figure}
-  \centering
-  \begin{tikzpicture}
-    \begin{umlseqdiag}
-      \umlobject[no ddots]{FE}
-      \umlmulti[no ddots]{BE$_{1}$}
-      \umlmulti[no ddots]{BE$_{n}$}
-      \umldatabase[no ddots]{Meta}
-      \begin{umlcall}[op={lookup(R)}, return={L}]{FE}{Meta}
-      \end{umlcall}
-      \begin{umlcallself}[op={BE$_{1}$ = any(L)}]{FE}
-      \end{umlcallself}
-      \begin{umlcall}[op={receive\_pack(R, d)}]{FE}{BE$_{1}$}
-        \begin{umlcallself}[op={l = leader(R)}]{BE$_{1}$}
-        \end{umlcallself}
-        \begin{umlfragment}[type=ALT, name=repl, inner xsep=6, label={l in BE$_{n}$}]
-          \begin{umlcall}[op={receive\_pack(R, d)}, return={confirmed}]{BE$_{1}$}{BE$_{n}$}
-            \begin{umlcall}[op={append\_entries}]{BE$_{n}$}{BE$_{1}$}
-            \end{umlcall}
-          \end{umlcall}
-        \umlfpart[else]
-          \begin{umlcallself}[op={elect}]{BE$_{1}$}
-          \end{umlcallself}
-          \begin{umlcall}[op={append\_entries}, return={confirmed}]{BE$_{1}$}{BE$_{n}$}
-          \end{umlcall}
-        \end{umlfragment}
-        \umlnote[x=11.5, y=-6.5]{repl}{%
-          Add entries to existing leader, or propose itself as leader candidate%
-        }
-      \end{umlcall}
-    \end{umlseqdiag}
-  \end{tikzpicture}
-  \caption{%
-    Front end FE performs query lookup in metadata for repository replicas,%
-    chooses any available (BE$_{1}$), and sends \code{receive\_pack} request with pushed data%
-    to replica. Replica checks current term leader and asks a leader to add pack to replicated log,%
-    in case if leader doesn't exist, the replica initiate new leader election and proposes itself%
-    as leader candidate. On success, the replica adds new pack to replicated log via \code{append\_entries}%
-    call, and commits the data.%
-  }\label{fig:ex-push-to-repo}
-\end{figure}
+\todo{part of 76 ticket}
 
 \subsection{How the client fetches git data from repository}
 
