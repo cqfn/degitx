@@ -1,4 +1,3 @@
-
 \section{Appendix A}
 \label{sec:appendix-a}
 
@@ -16,18 +15,97 @@
   \code{100644 blob 8f94139338f9404f26296befa88755fc2598c289      Rakefile}\\
   \code{040000 tree 99f1a6d12cb4b6f19c8655fca46c3ecf317074e0      lib}
   \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{data-model-1.png}
-    \label{fig:tree-objects}
+    \begin{center}
+      \begin{tikzpicture}
+        \node[rectangle,rounded corners, draw=green, fill=green, scale=2] (tree) at(0,0){tree};
+        \node[rectangle,rounded corners, draw=gray, fill=gray, scale=2] (Rakefile-blob) at(0,-3){blob};
+        \node[rectangle,rounded corners, draw=gray, fill=gray, scale=2] (README-blob) at(-3,-3){blob};
+        \node[rectangle,rounded corners, draw=green, fill=green, scale=2] (lib-tree) at(3,-3){tree};
+        \node[rectangle,rounded corners, draw=gray, fill=gray, scale=2] (simplegit-blob) at(3,-6){blob};
+
+        \node[rectangle,rounded corners, draw=white, fill=white] (Rakefile) at(0,-1.5){Rakefile};
+        \node[rectangle,rounded corners, draw=white, fill=white] (README) at(-2,-1.5){README};
+        \node[rectangle,rounded corners, draw=white, fill=white] (lib) at(1.5,-1.5){lib};
+        \node[rectangle,rounded corners, draw=white, fill=white] (simplegit) at(3,-4.5){simplegit.rb};
+
+        \draw (tree) -- (Rakefile);
+        \draw [->] (Rakefile) -- (Rakefile-blob);
+
+        \draw (tree) to (README);
+        \draw [->] (README) to (README-blob);
+
+        \draw (tree) -- (lib);
+        \draw [->] (lib) -- (lib-tree);
+
+        \draw (lib-tree) -- (simplegit);
+        \draw [->] (simplegit) -- (simplegit-blob);
+
+
+      \end{tikzpicture}
+    \end{center}
+    \caption{git tree sample}
+    \label{fig:git-tree-sample}
   \end{figure}
   \item [Commit] is just a pointer to parent(previous) commit if any
   and to top-level tree for current one with some metadata
   (the author information and so on).
   \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{data-model-3.png}
+    \begin{center}
+      \begin{tikzpicture}
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (3-commit) at(0,0){third commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (2-commit) at(0,-3){second commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (1-commit) at(0,-6){first commit};
+        \draw [->] (3-commit) -- (2-commit);
+        \draw [->] (2-commit) -- (1-commit);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (3-tree) at(4,0){tree 3c4e};
+        \draw [->] (3-commit) -- (3-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (2-tree) at(4,-3){tree 0155};
+        \draw [->] (2-commit) -- (2-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (1-tree) at(4,-6){tree d832};
+        \draw [->] (1-commit) -- (1-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-bak) at(7,1){bak};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-new) at(7,0){new.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-test) at(7,-1){test.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-test) at(7,-2.5){test.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-new) at(7,-3.5){new.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (1-test) at(7,-6){test.txt};
+
+        \draw (3-tree) -- (3-bak);
+        \draw (3-tree) -- (3-new);
+        \draw (3-tree) -- (3-test);
+
+        \draw (2-tree) -- (2-test);
+        \draw (2-tree) -- (2-new);
+
+        \draw (1-tree) -- (1-test);
+
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-2) at(10,-1.75){"version 2"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (new-file) at(10,-4){"new file"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-1) at(10,-6){"version 1"};
+
+        \draw [->] (1-test) -- (version-1);
+        \draw [->] (2-new) -- (new-file);
+        \draw [->] (2-test) -- (version-2);
+        \draw [->] (3-test) -- (version-2);
+        \draw (3-new) to (11.7, 0);
+        \draw [->] (11.7, 0) |- (new-file);
+        \draw (3-bak) -| (12, -7);
+        \draw (12, -7) -- (7, -7);
+        \draw [->] (7, -7) -- (1-tree);
+
+      \end{tikzpicture}
+    \end{center}
+    \caption{commit objects}
     \label{fig:commit-objects}
   \end{figure}
+
+
 \end{description}
 
 {\large Other things, listed below, serve to make our interaction with these objects easier.
@@ -39,9 +117,66 @@
   \item[Branch] is a simple pointer or reference to the head of a line of work(the latest commit) in .git/refs/heads.
   Branch name is mapped to the SHA of the commit that is latest for this branch.
   \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{data-model-4.png}
+    \begin{center}
+      \adjustbox{scale=0.8,center}{%
+      \begin{tikzpicture}
+        \node[rectangle,rounded corners, draw=white, fill=red, scale=1.5] (master) at(-5,0){refs/heads/master};
+        \node[rectangle,rounded corners, draw=white, fill=red, scale=1.5] (test) at(-5,-3){refs/heads/test};
+
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (3-commit) at(0,0){third commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (2-commit) at(0,-3){second commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (1-commit) at(0,-6){first commit};
+        \draw [->] (master) -- (3-commit);
+        \draw [->] (test) -- (2-commit);
+        \draw [->] (3-commit) -- (2-commit);
+        \draw [->] (2-commit) -- (1-commit);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (3-tree) at(4,0){tree 3c4e};
+        \draw [->] (3-commit) -- (3-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (2-tree) at(4,-3){tree 0155};
+        \draw [->] (2-commit) -- (2-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (1-tree) at(4,-6){tree d832};
+        \draw [->] (1-commit) -- (1-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-bak) at(7,1){bak};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-new) at(7,0){new.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-test) at(7,-1){test.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-test) at(7,-2.5){test.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-new) at(7,-3.5){new.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (1-test) at(7,-6){test.txt};
+
+        \draw (3-tree) -- (3-bak);
+        \draw (3-tree) -- (3-new);
+        \draw (3-tree) -- (3-test);
+
+        \draw (2-tree) -- (2-test);
+        \draw (2-tree) -- (2-new);
+
+        \draw (1-tree) -- (1-test);
+
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-2) at(10,-1.75){"version 2"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (new-file) at(10,-4){"new file"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-1) at(10,-6){"version 1"};
+
+        \draw [->] (1-test) -- (version-1);
+        \draw [->] (2-new) -- (new-file);
+        \draw [->] (2-test) -- (version-2);
+        \draw [->] (3-test) -- (version-2);
+        \draw (3-new) to (11.7, 0);
+        \draw [->] (11.7, 0) |- (new-file);
+        \draw (3-bak) -| (12, -7);
+        \draw (12, -7) -- (7, -7);
+        \draw [->] (7, -7) -- (1-tree);
+
+      \end{tikzpicture}
+      }
+    \end{center}
     \label{fig:reference}
+    \caption{git references}
   \end{figure}
   When you run commands like \code{git branch <branch>},
   Git basically runs update-ref command to add the SHA-1
