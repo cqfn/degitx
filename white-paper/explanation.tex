@@ -146,11 +146,21 @@ exposes Gitaly gRPC~API.\@ GitLab performs push with two RPC calls:
 
 At figure~\ref{fig:gitlab-push-gitaly}, the front-end updates repository lookup routing table
 to request git references from one of the replicas and send new git objects to back-end nodes.
-See~\ref{sec:appendix-a} to become familiar with git internals.
+
+User pushes git data to repository \code{R} via Gitlab using \code{git-push} command;
+Gitlab calls \code{InfoRefsReceivePack} of DeGitX front-end to get latest information
+about repository \code{R}; front-end performs lookup in metadata storage,
+if repository was not found, front-end returns error for gRPC~call;
+otherwise, it updates local cache with repository locators \code{L}, and reads git references from
+any load-balanced replica \code{L$_{lb}$}; the front-end returns git data to GitLan server;
+on success, GitLab sends \code{PostReceivePack} gRPC~call to DeGitX front-end with data to push \code{bin};
+front-end write data via \code{receive\_pack} git method to any replica \code{L$_{lb}$};
+(see other examples to understand how back-end nodes updates repository data on push).
 
 This diagram explains only communication between GitLab and DeGitX Gitaly front-end.
 To understand how the front-end can read and write git data from/to back-ends, see
-other diagrams provided below.
+other diagrams provided below;
+To become familiar with git internals see~\ref{sec:appendix-a}.
 
 \begin{figure}
 \centering
@@ -189,15 +199,7 @@ other diagrams provided below.
     \end{tikzpicture}
   }
 \caption{%
-  User pushes git data to repository \code{R} via Gitlab using \code{git-push} command;%
-  Gitlab calls \code{InfoRefsReceivePack} of DeGitX front-end to get latest information%
-  about repository \code{R}; front-end perorms lookup in metadata storage,%
-  if repository was not found, front-end returns error for gRPC~call;%
-  otherwise, it updates local cache with repository locators \code{L}, and reads git references from%
-  any load-balanced replica \code{L$_{lb}$}; the front-end returns git data to GitLan server;%
-  on success, GitLab sends \code{PostReceivePack} gRPC~call to DeGitX front-end with data to push \code{bin};%
-  front-end write data via \code{receive\_pack} git method to any replica \code{L$_{lb}$};%
-  (see other examples to understand how back-end nodes updates repository data on push).%
+  Communication between GitLab and DeGitX Gitaly front-end%
 }\label{fig:gitlab-push-gitaly}
 \end{figure}
 
