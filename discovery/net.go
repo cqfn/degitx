@@ -9,11 +9,13 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+// MaNetworkAddr implements NetworkAddress interface from Multiaddr
 type MaNetworkAddr struct {
 	net  string
 	addr string
 }
 
+// Network name string, e.g. ipv4 or ipv6
 func (n *MaNetworkAddr) Network() string { //nolint:dupl // linter mistake
 	return n.net
 }

@@ -7,26 +7,25 @@ import (
 	"context"
 	"testing"
 
+	"cqfn.org/degitx/locators"
 	"cqfn.org/degitx/meta"
-	matcher "github.com/g4s8/go-matchers"
+	m "github.com/g4s8/go-matchers"
 )
 
-func Test_Resolve(t *testing.T) {
-	assert := matcher.Assert(t)
+func Test_Update(t *testing.T) {
+	assert := m.Assert(t)
 	st := meta.NewInMemStorage()
 	peer := testPeer(1, "1.1.1.1")
-	bin, err := peer.Locator.MarshalBinary()
-	if err != nil {
+	reg := NewMetaRegistry(st)
+	err := reg.Update(context.Background(), peer)
+	assert.That("Updated successfully", err, m.Nil())
+	data, err := meta.GetSync(st,
+		"cqfn.org/degitx/discovery/node/"+peer.Locator.ID.HexString())
+	assert.That("Get peer data successfully", err, m.Nil())
+	updated := peer.Copy()
+	updated.Locator = new(locators.Node)
+	if err := updated.Locator.UnmarshalBinary(data.Slice()); err != nil {
 		panic(err)
 	}
-	if err := meta.SetSync(st,
-		"cqfn.org/degitx/discovery/node/"+peer.Locator.ID.HexString(),
-		meta.Data(bin)); err != nil {
-		panic(err)
-	}
-	pr := NewMetaProvider(st)
-	resolve, err := pr.Resolve(context.Background(), peer.Locator.ID)
-	assert.That("Resolved without errors", err, matcher.Nil())
-	assert.That("Resolved correct peer", resolve.Addr.Bytes(),
-		matcher.Eq(peer.Addr.Bytes()))
+	assert.That("Peer's data is OK", updated, peerMatcher(peer))
 }

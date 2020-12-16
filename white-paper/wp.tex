@@ -472,6 +472,12 @@ Example of a routing table:
   \code{132052eb4dd19f...6f8c7d235eef5f4} & \code{/ipv4/172.18.11.22/tcp/9031} \\
 \end{tabular}
 
+When a new node starts, it requires discovery protocols to be configured,
+depends on configuration, it starts corresponding services to register itself in a system,
+then other nodes will be able to find new node using this registration inforation. In case
+of distributed database, the node just put new value with network address for node locator ID
+as a key.
+
 \subsection{Metadata}\label{sec:metadata}
 
 DeGit peers don't know where to find repository storage by default.

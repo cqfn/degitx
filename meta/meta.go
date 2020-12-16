@@ -23,8 +23,8 @@ func (md Data) Slice() []byte {
 	return []byte(md)
 }
 
-// MetaResponse - type of metadata storage response
-type MetaResponse struct {
+// Response - type of metadata storage response
+type Response struct {
 	// Key of metadata response
 	Key string
 	// Value of metadata
@@ -47,13 +47,13 @@ type Storage interface {
 	// Get returns a channel with single response item,
 	// channel is closed on context cancellation. Context
 	// shold be cancelled with defer.
-	Get(ctx context.Context, key string) <-chan MetaResponse
+	Get(ctx context.Context, key string) <-chan Response
 	// Set updates metadata storage, channel with a
 	// value is returned on success, a value could differ from
 	// provided value, if storage received new value after this request
 	// but before response. Channel is closed on context
 	// cancellation. Context should be cancelled with defer.
-	Set(ctx context.Context, key string, val Data) <-chan MetaResponse
+	Set(ctx context.Context, key string, val Data) <-chan Response
 }
 
 // NewInMemStorage creates metadata storage in memory, useful for testing
@@ -66,15 +66,15 @@ type mapStorage struct {
 	mux *sync.RWMutex
 }
 
-func (s *mapStorage) Get(ctx context.Context, key string) <-chan MetaResponse {
-	ch := make(chan MetaResponse)
+func (s *mapStorage) Get(ctx context.Context, key string) <-chan Response {
+	ch := make(chan Response)
 	go func() {
-		var rsp MetaResponse
+		var rsp Response
 		s.mux.RLock()
 		if val, ok := s.mem[key]; ok {
-			rsp = MetaResponse{key, val, nil}
+			rsp = Response{key, val, nil}
 		} else {
-			rsp = MetaResponse{key, noData, &ErrNotFound{key}}
+			rsp = Response{key, noData, &ErrNotFound{key}}
 		}
 		s.mux.RUnlock()
 		ch <- rsp
@@ -84,8 +84,8 @@ func (s *mapStorage) Get(ctx context.Context, key string) <-chan MetaResponse {
 	return ch
 }
 
-func (s *mapStorage) Set(ctx context.Context, key string, val Data) <-chan MetaResponse {
-	ch := make(chan MetaResponse)
+func (s *mapStorage) Set(ctx context.Context, key string, val Data) <-chan Response {
+	ch := make(chan Response)
 	go func() {
 		s.mux.Lock()
 		if val == noData {
@@ -94,7 +94,7 @@ func (s *mapStorage) Set(ctx context.Context, key string, val Data) <-chan MetaR
 			s.mem[key] = val
 		}
 		s.mux.Unlock()
-		ch <- MetaResponse{key, val, nil}
+		ch <- Response{key, val, nil}
 		<-ctx.Done()
 		close(ch)
 	}()

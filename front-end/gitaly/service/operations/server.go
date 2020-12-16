@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new OperationServiceServer
 func NewServer(log *logging.Logger) gitalypb.OperationServiceServer {
 	return &server{
 		log: log,

@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new RefServiceServer
 func NewServer(log *logging.Logger) gitalypb.RefServiceServer {
 	return &server{
 		log: log,

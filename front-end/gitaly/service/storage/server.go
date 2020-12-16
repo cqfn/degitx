@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new StorageServiceServer
 func NewServer(log *logging.Logger) gitalypb.StorageServiceServer {
 	return &server{
 		log: log,

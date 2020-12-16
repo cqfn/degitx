@@ -28,6 +28,7 @@ func (n *Node) String() string {
 	return fmt.Sprintf("Node(`%s`)", n.ID.HexString())
 }
 
+// GoString returns debug information for `%#v` format option
 func (n *Node) GoString() string {
 	return fmt.Sprintf("Node(ID(%#v), PubKey(%#v), Addr(%#v))",
 		n.ID, n.PubKey, n.Addr)
@@ -36,7 +37,7 @@ func (n *Node) GoString() string {
 const hname = "sha1"
 
 // FromKeys creates new Node struct from public and private keys
-// by generating node id as multihash of SHA1 of public key.
+// by generating node id as multihash of SHA1 of public key
 func FromKeys(pub, priv []byte) (*Node, error) {
 	hfunc, err := hashFunc(hname)
 	if err != nil {
