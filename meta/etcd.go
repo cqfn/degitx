@@ -7,43 +7,42 @@ import (
 	"context"
 	"time"
 
-	"cqfn.org/degitx/discovery"
 	"cqfn.org/degitx/misc"
 
-	ma "github.com/multiformats/go-multiaddr"
 	"go.etcd.io/etcd/clientv3"
 )
 
+const etcdConTimeout = time.Second * 5
+
 type etcd struct {
-	Endpoints []string
+	client clientv3.Client
 }
 
-func NewEtcd(endpoints ...string) (Storage, error) {
-	var urls []string
-	for _, endpoint := range endpoints {
-		multiaddr, err := ma.NewMultiaddr(endpoint)
-		if err != nil {
-			return nil, err
-		}
-		addr := new(discovery.MaNetworkAddr)
-		if err := addr.Parse(multiaddr); err != nil { //nolint:dupl // just parsing an address
-			return nil, err
-		}
-		urls = append(urls, addr.String())
+// NewEtcd creates new Storage, that encapsulates official etcd client
+func NewEtcd(ctx context.Context, endpoints ...string) (Storage, error) {
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   endpoints,
+		DialTimeout: etcdConTimeout,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return &etcd{
-			Endpoints: urls,
-		},
-		nil
+	go func() {
+		select { //nolint:gosimple // Done is provided for use in select statements
+		case <-ctx.Done():
+			misc.CloseWithLog(client)
+		}
+	}()
+
+	return &etcd{*client}, nil
 }
 
-const conTimeout = time.Second * 5
-
-func (storage *etcd) Get(ctx context.Context, key string) <-chan MetaResponse {
+// See Storage.Get
+func (storage *etcd) Get(ctx context.Context, key string) <-chan Response {
 	return storage.callEtcd(ctx,
-		func(ctx context.Context, client *clientv3.Client, response *MetaResponse) {
-			get, err := client.Get(ctx, key)
+		func(ctx context.Context, response *Response) {
+			get, err := storage.client.Get(ctx, key)
 			if err != nil {
 				response.Error = err
 			} else if len(get.Kvs) > 0 {
@@ -53,14 +52,15 @@ func (storage *etcd) Get(ctx context.Context, key string) <-chan MetaResponse {
 		})
 }
 
-func (storage *etcd) Set(ctx context.Context, key string, val Data) <-chan MetaResponse {
+// See Storage.Set
+func (storage *etcd) Set(ctx context.Context, key string, val Data) <-chan Response {
 	return storage.callEtcd(ctx,
-		func(ctx context.Context, client *clientv3.Client, response *MetaResponse) {
-			_, err := client.Put(ctx, key, string(val))
+		func(ctx context.Context, response *Response) {
+			_, err := storage.client.Put(ctx, key, string(val))
 			if err != nil {
 				response.Error = err
 			} else {
-				//etcd ensures linearizability for all operations except watch operations
+				// etcd ensures linearizability for all operations except watch operations
 				response.Key = key
 				response.Value = val
 			}
@@ -69,32 +69,22 @@ func (storage *etcd) Set(ctx context.Context, key string, val Data) <-chan MetaR
 
 func (storage *etcd) callEtcd(
 	ctx context.Context,
-	query func(ctx context.Context, client *clientv3.Client, response *MetaResponse),
-) <-chan MetaResponse {
-
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   storage.Endpoints,
-		DialTimeout: conTimeout,
-	})
-	if err != nil {
-		return nil //todo return an error somehow
-	}
-	defer misc.CloseWithLog(client)
-
-	ctx, cancel := context.WithTimeout(ctx, conTimeout)
+	query func(ctx context.Context, response *Response),
+) <-chan Response {
+	ctx, cancel := context.WithTimeout(ctx, etcdConTimeout)
 	defer cancel()
 
-	out := make(chan MetaResponse)
+	out := make(chan Response)
 
 	go func() {
-		select {
+		select { //nolint:gosimple // Done is provided for use in select statements
 		case <-ctx.Done():
 			close(out)
 		}
 	}()
 
-	response := &MetaResponse{}
-	query(ctx, client, response)
+	response := &Response{}
+	query(ctx, response)
 	out <- *response
 	return out
 }
