@@ -47,13 +47,13 @@ type Storage interface {
 	// Get returns a channel with single response item,
 	// channel is closed on context cancellation. Context
 	// shold be cancelled with defer.
-	Get(ctx context.Context, key string) <-chan Response
+	Get(ctx context.Context, key string) <-chan *Response
 	// Set updates metadata storage, channel with a
 	// value is returned on success, a value could differ from
 	// provided value, if storage received new value after this request
 	// but before response. Channel is closed on context
 	// cancellation. Context should be cancelled with defer.
-	Set(ctx context.Context, key string, val Data) <-chan Response
+	Set(ctx context.Context, key string, val Data) <-chan *Response
 }
 
 // NewInMemStorage creates metadata storage in memory, useful for testing
@@ -66,26 +66,31 @@ type mapStorage struct {
 	mux *sync.RWMutex
 }
 
-func (s *mapStorage) Get(ctx context.Context, key string) <-chan Response {
-	ch := make(chan Response)
+func (s *mapStorage) Get(ctx context.Context, key string) <-chan *Response {
+	ch := make(chan *Response)
 	go func() {
-		var rsp Response
+		rsp := new(Response)
+		rsp.Key = key
 		s.mux.RLock()
 		if val, ok := s.mem[key]; ok {
-			rsp = Response{key, val, nil}
+			rsp.Value = val
 		} else {
-			rsp = Response{key, noData, &ErrNotFound{key}}
+			rsp.Error = &ErrNotFound{key}
 		}
 		s.mux.RUnlock()
-		ch <- rsp
-		<-ctx.Done()
+		select {
+		case ch <- rsp:
+		case <-ctx.Done():
+			rsp.Error = ctx.Err()
+			rsp.Value = noData
+		}
 		close(ch)
 	}()
 	return ch
 }
 
-func (s *mapStorage) Set(ctx context.Context, key string, val Data) <-chan Response {
-	ch := make(chan Response)
+func (s *mapStorage) Set(ctx context.Context, key string, val Data) <-chan *Response {
+	ch := make(chan *Response)
 	go func() {
 		s.mux.Lock()
 		if val == noData {
@@ -94,8 +99,13 @@ func (s *mapStorage) Set(ctx context.Context, key string, val Data) <-chan Respo
 			s.mem[key] = val
 		}
 		s.mux.Unlock()
-		ch <- Response{key, val, nil}
-		<-ctx.Done()
+		rsp := &Response{key, val, nil}
+		select {
+		case ch <- rsp:
+		case <-ctx.Done():
+			rsp.Error = ctx.Err()
+			rsp.Value = noData
+		}
 		close(ch)
 	}()
 	return ch
