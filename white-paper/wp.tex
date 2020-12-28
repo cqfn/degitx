@@ -620,12 +620,43 @@ When the membership of a peer-to-peer system is a constraint and all nodes are t
 %FIXME
 % CAs could solve security issues, since according to the ~\cite{securerouting} research, all attacks are based on the presence of malicious nodes.
 
-\subsection{Git data exchange}
-\label{sec:data}
-Consensus could be implemented using \emph{\href{https://raft.github.io/raft.pdf}{Raft}} or
-\emph{\href{http://www.cs.yale.edu/homes/aspnes/pinewiki/Paxos.html}{Paxos}} algorithm.
+\subsection{Git data exchange}\label{sec:data}
 
-\todo{search for more algorithms}.
+Git is a \href{https://git-scm.com/book/en/v2/Git-Internals-Git-Objects}{content-addressable} file system,
+it means that we can safely upload blob objects asynchronously to repository replicas with different changes,
+since each blob object will have different name (address) due to content-digest naming.
+
+When multiple clients (front-ends) uploads different changes simultaneously (to different branch or same branch, doesn't matter),
+ginternal git storage algorithm guarantee that file names fill be different and correlation is not possible.
+The only possible scenario when different clients may upload same blob object is when clients uploads
+exactly same changes by all aspects. But in this case it's not a problem, since identical changes will not override
+each other, and blob data will be stored consistently.
+
+To summarize --- we allow clients to upload blobs asynchronously to all replicas before uploading references.
+
+The only problem we need to solve is a git references synchronization. We have to update references atomically
+on all repository replicas. If any replica fails to update git reference, then the whole reference update should fail.
+For this problem we can uses some atomic commit protocol. The possible solutions are three phase commit (3PC), and
+two phase commit modification (2PC) with replicas vouting mechanism implemented via total ordering broadcasts,
+for example \href{https://www.microsoft.com/en-us/research/uploads/prod/2004/01/twophase-revised.pdf}{Paxos-commit}
+could be used. The \href{https://git-scm.com/docs/githooks.html#_reference_transaction}{git reference transaction hook}
+will help us to implement a voting for transaction using git.
+
+\todo{update these steps when decide about atomic-commit protocol}.
+
+The overall scenario for updating repository replicas is following:
+\begin{enumerate}
+    \item The front end uploads git blobs asynchronously to all repository replicas.
+    \item On success, the front-end initiates reference update by introducing itslef
+      as transaction manager (TM). It sends references update to back-ends (resource managers RM).
+    \item RM starts reference update transaction and initiates voting by sending prepare messages
+      to all? other RMs.
+    \item \todo{add more details}
+    \item If all RMs can prepare for transaction, TM sends accept message, and RMs apply references updates
+      to repository. If any RM is not able to prepare for the transaction, TM aborts the transaction
+      on all RMs.
+\end{enumerate}
+
 
 \include{explanation}
 
