@@ -17,6 +17,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new ConflictsServiceServer
 func NewServer(log *logging.Logger) gitalypb.ConflictsServiceServer {
 	return &server{
 		log: log,

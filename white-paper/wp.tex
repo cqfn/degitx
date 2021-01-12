@@ -472,6 +472,12 @@ Example of a routing table:
   \code{132052eb4dd19f...6f8c7d235eef5f4} & \code{/ipv4/172.18.11.22/tcp/9031} \\
 \end{tabular}
 
+When a new node starts, it requires discovery protocols to be configured,
+depends on configuration, it starts corresponding services to register itself in a system,
+then other nodes will be able to find new node using this registration inforation. In case
+of distributed database, the node just put new value with network address for node locator ID
+as a key.
+
 \subsection{Metadata}\label{sec:metadata}
 
 DeGit peers don't know where to find repository storage by default.
@@ -693,7 +699,24 @@ are:
     nodes, e.g.\@ how many nodes contains each repository, the state of nodes, etc.
 \end{description}
 
-\section{Compare to other solutions}
+\subsection{Load balancing}\label{sec:load-balancing}
+
+The front-end decides how to redirect incoming fetch requests to replica nodes.
+It knows network addresses and current availability of repository replicas,
+so it can decide how to route next fetch request to git repository back-end storage node.
+On read access to repository, it sends a health check message to replica nodes to be sure
+which are available. It stores the result in local cache with configurable time to live
+properties. When front-end unable to access some of back-end node, it marks it as unavailable
+and forget about it for some time. Then in check availability periodically.
+It uses ``Round robin'' load balancing for fetch requests, since it provides uniformly distributed
+load for repository nodes on high load peaks. \todo{find references, proves}
+Due to strong consistency of back-end nodes provided by data-exchange protocol
+it has linearizability property, and provides always latest git data (blobs) and metadata (references).
+In case if any node crashes or becomes down, the front-end won't be able to update repository
+but it still can read it from live replicas, it means on node failure all repositories located on this
+node becomes read-only.
+
+\section{Compare to other solutions}\label{sec:compare}
 
 These products are similar to DeGit by some aspects:
 \begin{description}

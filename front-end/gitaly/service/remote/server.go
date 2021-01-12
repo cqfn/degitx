@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new RemoteServiceServer
 func NewServer(log *logging.Logger) gitalypb.RemoteServiceServer {
 	return &server{
 		log: log,

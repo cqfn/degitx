@@ -17,6 +17,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new SmartHTTPServiceServer
 func NewServer(log *logging.Logger) gitalypb.SmartHTTPServiceServer {
 	return &server{
 		log: log,

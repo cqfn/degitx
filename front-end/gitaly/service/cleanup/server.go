@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new CleanupServiceServer
 func NewServer(log *logging.Logger) gitalypb.CleanupServiceServer {
 	return &server{
 		log: log,

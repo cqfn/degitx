@@ -15,13 +15,9 @@ import (
 func Start(
 	ctx context.Context,
 	node *locators.Node,
-	disc discovery.Service,
+	disc *discovery.Discovery,
 ) error {
 	log.Printf("Starting %s", node)
-
-	if err := disc.Start(ctx); err != nil {
-		return err
-	}
 
 	return nil
 }
