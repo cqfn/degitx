@@ -28,48 +28,50 @@ on predefined storage nodes by specifying its locator IDs:
 \end{description}
 \begin{figure}
   \begin{center}
-    \begin{tikzpicture}
-      \begin{umlseqdiag}
-        \umlactor[no ddots]{Administrator}
-        \umlcontrol[no ddots]{Dashboard}
-        \umlmulti[no ddots]{Nodes}
-        \umldatabase[no ddots]{Metadata}
+    \adjustbox{scale=0.5,center}{%
+      \begin{tikzpicture}
+        \begin{umlseqdiag}
+          \umlactor[no ddots]{Administrator}
+          \umlcontrol[no ddots]{Dashboard}
+          \umlmulti[no ddots]{Nodes}
+          \umldatabase[no ddots]{Metadata}
 
-        \begin{umlcall}[op={1: create(R, L)}]{Administrator}{Dashboard}
-          \begin{umlcall}[op={2: lookup(R)}]{Dashboard}{Metadata}
-            \begin{umlcall}[op={3: L'}, type=return]{Metadata}{Dashboard}
+          \begin{umlcall}[op={1: create(R, L)}]{Administrator}{Dashboard}
+            \begin{umlcall}[op={2: lookup(R)}]{Dashboard}{Metadata}
+              \begin{umlcall}[op={3: L'}, type=return]{Metadata}{Dashboard}
+              \end{umlcall}
             \end{umlcall}
-          \end{umlcall}
 
-          \begin{umlfragment}[type=ALT, name=err-already-exist, inner xsep=3,
-            label={4: !empty(L')}]
-            \begin{umlcall}[op={5: error}, type=return]{Dashboard}{Administrator}
-            \end{umlcall}
-            \umlfpart[else]
-            \begin{umlfragment}[type=LOOP, inner xsep=7, label={6: for l in L}]
-              \begin{umlcall}[op={7: l.manage(R, L)}, type=asynchron]{Dashboard}{Nodes}
-                \begin{umlcall}[op={8: update(R, l)}, type=asynchron]{Nodes}{Metadata}
+            \begin{umlfragment}[type=ALT, name=err-already-exist, inner xsep=3,
+              label={4: !empty(L')}]
+              \begin{umlcall}[op={5: error}, type=return]{Dashboard}{Administrator}
+              \end{umlcall}
+              \umlfpart[else]
+              \begin{umlfragment}[type=LOOP, inner xsep=7, label={6: for l in L}]
+                \begin{umlcall}[op={7: l.manage(R, L)}, type=asynchron]{Dashboard}{Nodes}
+                  \begin{umlcall}[op={8: update(R, l)}, type=asynchron]{Nodes}{Metadata}
+                  \end{umlcall}
                 \end{umlcall}
+              \end{umlfragment}
+              \begin{umlfragment}[type=LOOP]
+                \begin{umlcall}[op={9: lookup(R)}, return={L'}]{Dashboard}{Metadata}
+                \end{umlcall}
+                \begin{umlfragment}[type=OPT, label={10: contains(consensus(L), L')}]
+                  \begin{umlcallself}[op={11: break(success=true)}]{Dashboard}
+                  \end{umlcallself}
+                \end{umlfragment}
+                \begin{umlfragment}[type=OPT, label={12: timeout}]
+                  \begin{umlcallself}[op={13: break(success=false, err=timeout)}]{Dashboard}
+                  \end{umlcallself}
+                \end{umlfragment}
+              \end{umlfragment}
+              \begin{umlcall}[type=return, op={14: (success, err)}]{Dashboard}{Administrator}
               \end{umlcall}
             \end{umlfragment}
-            \begin{umlfragment}[type=LOOP]
-              \begin{umlcall}[op={9: lookup(R)}, return={L'}]{Dashboard}{Metadata}
-              \end{umlcall}
-              \begin{umlfragment}[type=OPT, label={10: contains(consensus(L), L')}]
-                \begin{umlcallself}[op={11: break(success=true)}]{Dashboard}
-                \end{umlcallself}
-              \end{umlfragment}
-              \begin{umlfragment}[type=OPT, label={12: timeout}]
-                \begin{umlcallself}[op={13: break(success=false, err=timeout)}]{Dashboard}
-                \end{umlcallself}
-              \end{umlfragment}
-            \end{umlfragment}
-            \begin{umlcall}[type=return, op={14: (success, err)}]{Dashboard}{Administrator}
-            \end{umlcall}
-          \end{umlfragment}
-        \end{umlcall}
-      \end{umlseqdiag}
-    \end{tikzpicture}
+          \end{umlcall}
+        \end{umlseqdiag}
+      \end{tikzpicture}
+    }
   \end{center}
   \caption{Create repository workflow diagram}
   \label{fig:ex-create-repo}
@@ -105,27 +107,29 @@ Workflow:
 
 \begin{figure}
   \begin{center}
-    \begin{tikzpicture}
-      \begin{umlseqdiag}
-        \umlobject[no ddots]{Node}
-        \umldatabase[no ddots]{RDB}
-        \umlmulti[no ddots]{DHT}
-        \begin{umlcallself}[op={1: getCache(r)}]{Node}
-        \end{umlcallself}
-        \begin{umlfragment}[type=OPT, label={2}]
-          \begin{umlcall}[op={3: query(r)}, return={(l, a)}]{Node}{RDB}
-          \end{umlcall}
-          \begin{umlfragment}[type=OPT, label={4}]
-            \begin{umlcall}[op={5: query(r)}, return={(l, a)}, dt=7]{Node}{DHT}
-            \end{umlcall}
-            \begin{umlcall}[op={6: update(r, (l, a))}]{Node}{RDB}
-            \end{umlcall}
-          \end{umlfragment}
-          \begin{umlcallself}[op={7: putCache(r, (l, a))}]{Node}
+    \adjustbox{scale=0.5,center}{%
+      \begin{tikzpicture}
+        \begin{umlseqdiag}
+          \umlobject[no ddots]{Node}
+          \umldatabase[no ddots]{RDB}
+          \umlmulti[no ddots]{DHT}
+          \begin{umlcallself}[op={1: getCache(r)}]{Node}
           \end{umlcallself}
-        \end{umlfragment}
-      \end{umlseqdiag}
-    \end{tikzpicture}
+          \begin{umlfragment}[type=OPT, label={2}]
+            \begin{umlcall}[op={3: query(r)}, return={(l, a)}]{Node}{RDB}
+            \end{umlcall}
+            \begin{umlfragment}[type=OPT, label={4}]
+              \begin{umlcall}[op={5: query(r)}, return={(l, a)}, dt=7]{Node}{DHT}
+              \end{umlcall}
+              \begin{umlcall}[op={6: update(r, (l, a))}]{Node}{RDB}
+              \end{umlcall}
+            \end{umlfragment}
+            \begin{umlcallself}[op={7: putCache(r, (l, a))}]{Node}
+            \end{umlcallself}
+          \end{umlfragment}
+        \end{umlseqdiag}
+      \end{tikzpicture}
+    }
   \end{center}
   \caption{Node discovery and metadata exchange components}
   \label{fig:ex-node-lookup}
@@ -142,56 +146,60 @@ exposes Gitaly gRPC~API.\@ GitLab performs push with two RPC calls:
 
 At figure~\ref{fig:gitlab-push-gitaly}, the front-end updates repository lookup routing table
 to request git references from one of the replicas and send new git objects to back-end nodes.
-See~\ref{sec:appendix-a} to become familiar with git internals.
+
+User pushes git data to repository \code{R} via Gitlab using \code{git-push} command;
+Gitlab calls \code{InfoRefsReceivePack} of DeGitX front-end to get latest information
+about repository \code{R}; front-end performs lookup in metadata storage,
+if repository was not found, front-end returns error for gRPC~call;
+otherwise, it updates local cache with repository locators \code{L}, and reads git references from
+any load-balanced replica \code{L$_{lb}$}; the front-end returns git data to GitLan server;
+on success, GitLab sends \code{PostReceivePack} gRPC~call to DeGitX front-end with data to push \code{bin};
+front-end write data via \code{receive\_pack} git method to any replica \code{L$_{lb}$};
+(see other examples to understand how back-end nodes updates repository data on push).
 
 This diagram explains only communication between GitLab and DeGitX Gitaly front-end.
 To understand how the front-end can read and write git data from/to back-ends, see
-other diagrams provided below.
+other diagrams provided below;
+To become familiar with git internals see~\ref{sec:appendix-a}.
 
 \begin{figure}
 \centering
-  \begin{tikzpicture}
-    \begin{umlseqdiag}
-      \umlcontrol[no ddots]{git}
-      \umlobject[no ddots]{GitLab}
-      \umlmulti[no ddots]{DeGitX-FE}
-      \umldatabase[no ddots]{Meta}
-      \umlmulti[no ddots]{DeGit-BE}
-      \begin{umlcall}[op=git-push, return=success]{git}{GitLab}
-        \begin{umlcall}[op={InfoRefsReceivePack(R)}]{GitLab}{DeGitX-FE}
-          \begin{umlcall}[op={lookup(R)}, return={L}]{DeGitX-FE}{Meta}
+  \adjustbox{scale=0.5,center}{%
+    \begin{tikzpicture}
+      \begin{umlseqdiag}
+        \umlcontrol[no ddots]{git}
+        \umlobject[no ddots]{GitLab}
+        \umlmulti[no ddots]{DeGitX-FE}
+        \umldatabase[no ddots]{Meta}
+        \umlmulti[no ddots]{DeGit-BE}
+        \begin{umlcall}[op=git-push, return=success]{git}{GitLab}
+          \begin{umlcall}[op={InfoRefsReceivePack(R)}]{GitLab}{DeGitX-FE}
+            \begin{umlcall}[op={lookup(R)}, return={L}]{DeGitX-FE}{Meta}
+            \end{umlcall}
+            \begin{umlfragment}[type=ALT, inner xsep=6, label={\code{empty(L)}}]
+              \begin{umlcall}[type=return, op={err-not-found}]{DeGitX-FE}{GitLab}
+              \end{umlcall}
+            \umlfpart[else]
+              \begin{umlcallself}[op={\code{update\_cache(R, L)}}]{DeGitX-FE}
+              \end{umlcallself}
+              \begin{umlcall}[op={L$_{lb}$ \code{read\_refs(R)}}, return={\code{refs}}]{DeGitX-FE}{DeGit-BE}
+              \end{umlcall}
+              \begin{umlcall}[type=return, op={\code{refs}}]{DeGitX-FE}{GitLab}
+              \end{umlcall}
+            \end{umlfragment}
           \end{umlcall}
-          \begin{umlfragment}[type=ALT, inner xsep=6, label={\code{empty(L)}}]
-            \begin{umlcall}[type=return, op={err-not-found}]{DeGitX-FE}{GitLab}
-            \end{umlcall}
-          \umlfpart[else]
-            \begin{umlcallself}[op={\code{update\_cache(R, L)}}]{DeGitX-FE}
-            \end{umlcallself}
-            \begin{umlcall}[op={L$_{lb}$ \code{read\_refs(R)}}, return={\code{refs}}]{DeGitX-FE}{DeGit-BE}
-            \end{umlcall}
-            \begin{umlcall}[type=return, op={\code{refs}}]{DeGitX-FE}{GitLab}
+          \begin{umlfragment}[type=OPT, inner xsep=5, label={found}]
+            \begin{umlcall}[op={\code{PostReceivePack(R, bin)}},return={success}]{GitLab}{DeGitX-FE}
+              \begin{umlcall}[op={L$_{lb}$ \code{receive\_pack(R, bin)}}]{DeGitX-FE}{DeGit-BE}
+              \end{umlcall}
             \end{umlcall}
           \end{umlfragment}
         \end{umlcall}
-        \begin{umlfragment}[type=OPT, inner xsep=5, label={found}]
-          \begin{umlcall}[op={\code{PostReceivePack(R, bin)}},return={success}]{GitLab}{DeGitX-FE}
-            \begin{umlcall}[op={L$_{lb}$ \code{receive\_pack(R, bin)}}]{DeGitX-FE}{DeGit-BE}
-            \end{umlcall}
-          \end{umlcall}
-        \end{umlfragment}
-      \end{umlcall}
-    \end{umlseqdiag}
-  \end{tikzpicture}
+      \end{umlseqdiag}
+    \end{tikzpicture}
+  }
 \caption{%
-  User pushes git data to repository \code{R} via Gitlab using \code{git-push} command;%
-  Gitlab calls \code{InfoRefsReceivePack} of DeGitX front-end to get latest information%
-  about repository \code{R}; front-end perorms lookup in metadata storage,%
-  if repository was not found, front-end returns error for gRPC~call;%
-  otherwise, it updates local cache with repository locators \code{L}, and reads git references from%
-  any load-balanced replica \code{L$_{lb}$}; the front-end returns git data to GitLan server;%
-  on success, GitLab sends \code{PostReceivePack} gRPC~call to DeGitX front-end with data to push \code{bin};%
-  front-end write data via \code{receive\_pack} git method to any replica \code{L$_{lb}$};%
-  (see other examples to understand how back-end nodes updates repository data on push).%
+  Communication between GitLab and DeGitX Gitaly front-end%
 }\label{fig:gitlab-push-gitaly}
 \end{figure}
 
