@@ -1,5 +1,6 @@
 RM = rm -f
 BUILD = pdflatex
+BIB = bibtex
 BUIL_OPTS := -file-line-error -halt-on-error -interaction=nonstopmode -recorder
 
 .PHONY: all build clean show
@@ -7,6 +8,9 @@ BUIL_OPTS := -file-line-error -halt-on-error -interaction=nonstopmode -recorder
 all: build
 
 build: wp.tex
+	$(BUILD) $(BUILD_OPTS) wp.tex
+	$(BIB) wp
+	$(BUILD) $(BUILD_OPTS) wp.tex
 	$(BUILD) $(BUILD_OPTS) wp.tex
 
 clean:
