@@ -68,27 +68,27 @@ the number of code repositories used by software developers counts
 on millions. This challenge becomes especially critical for companies
 that have distributed teams around the world. In this case, using a single
 git server does not provide even nearly appropriate performance.
-On the other hand, deploying multiple servers with load balancing is likewise not feasible
-because storage I/O scaling is not possible for reading operations.
+On the other hand, deploying multiple servers with load balancing is not feasible
+because storage I/O scaling is impossible for reading operations.
 
 This article describes how to achieve significant performance improvement
 by configuring a distributed git repository storage that replicates
 repositories across nodes. The result can be achieved by implementing
 a distributed Git repository manager DeGit with strong-consistent replica
-nodes, guaranteeing high availability for read operations,
+nodes, guaranteeing high availability for reading operations,
 as well as availability across different regions.
 Such a solution also provides durability by replicating repositories
-on different server racks and read scalability by routing fetch traffc
+on different server racks and read scalability by routing fetch traffic
 to different nodes.
 There is a number of technical problems related to scalability,
-dispatching, and consistency that need to be solved when implementing
+dispatching, and consistency, which need to be solved when implementing
 the distributed Git repository manager with strong-consistent replica nodes.
 In addition to describing the suggested solution's major work principles
 and functionality, this article also addresses these issues.
-The DeGit architecture and components, including the main system protocols
-that enable the system to identify the node, establish the node's connection,
-lookup at the node’s real address, and map a git repository to the
-storage node, are also explained.
+The DeGit architecture and components, including the main system protocols, are also explained.
+These enable the system to identify the node, establish the node's connection,
+lookup at the node's real address, and map a git repository to the
+storage node.
 The potential presence of malicious nodes can misroute, corrupt,
 or drop messages and routing information in the system.
 This article reviews the security-related methods with which the adopted DeGit approach
@@ -112,7 +112,7 @@ There are three main problems to solve for the distributed git repository manage
 \item[scalability] --- one repository may be used actively by many users simultaneously. Storage disk
   has input-output (IO) operation limits and cannot perform a lot of \code{fetch} operations in
   a short period of time. The git repository storage should be replicated on different system nodes to
-  solve this problem.~\todo{REF find references about storage scaling to improve read capacity in distributed system.}
+  solve this problem.~\todo{REF find references about storage scaling to improve read capacity in a distributed system.}
 \item[dispatching] --- the user does not know the network addresses of git repository storages. Also, according to the
   previous problem, one repository can be located on multiple replicas.
   Hence, the system should be able to locate and redirect the user's requests
@@ -127,25 +127,25 @@ There are three main problems to solve for the distributed git repository manage
 \subsection{Scalability}\label{sec:scalability}
 
 Big software companies or large developer communities have
-millions of repositories distributed around the world and big teams located in different countries
+millions of repositories distributed worldwide, and big teams located in different countries
 (regions). On a high load of \code{fetch} requests, git repository storage disks may go above IO operation limits.
-Usually, repositories are accessed by different ways:
+Usually, repositories are accessed in different ways:
 \begin{description}
   \item[Developer personal activity] --- programmers access git repositories via
-    \code{git} client and performs \code{fetch}/\code{push} actions. Also, they
-    may use web UI interface to upload files, edit files in browser, merge pull requests, etc.
+    \code{git} client and performs \code{fetch}/\code{push} actions. They may also use web UI interface to upload files,
+    edit files in a browser, merge the pull requests, etc.
     The number of requests for this activity is not very large, according to statistics.
   \item[API access] --- many services depend on repository management services: API robots
     collecting developers' activity, background code analyzers of a repository, IDEs communicating
-    with repositories and reading some history data. The number of such requests is approximately
-    a few thousand requests per minute for each million repositories.
+    with repositories and reading some historical data. The number of such requests is approximately
+    a few thousand requests per minute for every million repositories.
   \item[CI systems] --- many events may trigger a CI workflow; most common events are:
     new commit pushed, new pull (merge) request created, new tag pushed, etc.
     On each action, the CI system downloads the whole repository to run some workflows,
     the download (\code{clone}) operation it typically accompanied by huge bandwidth consumption.
     In addition, some repositories may include submodules; this leads to submodules cloning by the CI
     system. According to statistics, the number of such operations is on the scale of ten thousand requests per minute
-    for each million repositories.
+    for every million repositories.
 \end{description}
 
 Even in cases when git repository storage is distributed, and clients are routed to storage with the correct git repository,
@@ -155,9 +155,9 @@ serving requests.
 
 Asynchronous replication of git repository data was one approach attempting to address such scalability problems;
 the DGRM was a proof-of-concept, which aimed to eventually consistently guarantee that one repository was replicated 
-asynchronously after any update operation to multiple git repository storages. Thererfore,
+asynchronously after any update operation to multiple git repository storages. Therefore,
 clients were load balanced to different git repository storages.~\todo{REF find references about comparing
-eventually consistency with strong consistency in context of bias between read and write operations in
+eventual consistency with strong consistency in the context of bias between Read and Write operations in
 distributed storages}.
 However, it did not succeed because of two reasons:
 
@@ -266,8 +266,8 @@ It consists of two parts: the back-end and front-end
 
 The front end exposes public API for well-known protocol, e.g.\ one front-end implementation provides
 \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly} gRPC interfaces for GitLab
-instance set\footnote{In this document GitLab instance set is a set of shell, workhorce and web components of GitLab}
-(see Figure~\ref{fig:gitlab-set} diagram). GitLab is a client of DeGitX front-end, it sends gRPC requests to the
+instance set\footnote{In this document GitLab instance set is a set of Shell, Workhorse and web components of GitLab}
+(see Figure~\ref{fig:gitlab-set} diagram). GitLab is a client of DeGitX front-end; it sends gRPC requests to the
 front-end to modify and fetch git data.
 
 \begin{figure}
@@ -322,14 +322,14 @@ or back-end log is a distributed replicated log of a state machine associated wi
 of repository holders (replicas) consensus, see~\ref{sec:data}.
 
 The system automatically rebalances repository storage: when the repository is not actively used for a
-long time, the node can remove it from storage, as long as 3 replicas of this repository exist on other nodes;
-if some node has a lot of free storage space, and the storage of another node is almost full,
-the node that is full can transfer (move) some repositories to another node. IOPS of storage device is also
+long time, the node can remove it from storage, as long as 3 replicas of this repository exist on other nodes.
+If some node has a lot of free storage space and another node's storage is almost full,
+the full node can transfer (move) some repositories to another node. IOPS of a storage device is also
 a measure of importance.
 
 The system can accept new nodes, automatically fill them with a replica repository and
 move some repository to a new node. The same is true for disconnecting: if a node was disconnected from the system or has crashed,
-it creates additional replicas on nodes in order to have at least 3 replicas for each repository.
+it creates additional replicas on nodes to have at least 3 replicas for each repository.
 
 \subsection{Protocol}
 Main system protocols are:
@@ -337,14 +337,14 @@ Main system protocols are:
   \item[Location protocol] --- unique node identity.
   \item[Network protocols] --- nodes communication protocols.
   \item[Discovery protocol] --- lookup of a node real address by locator ID.
-  \item[Metadata exchange protocol] --- a mapping of git repository to storage back-end node.
+  \item[Metadata exchange protocol] --- mapping of git repository to storage back-end node.
   \item[Data exchange protocol] --- Git objects and references exchange protocol,
     commands to add new objects and update references, linearizability guarantee.
 \end{description}
 
 \subsubsection{Locators}\label{sec:locators}
 Network addresses are not stable; a back-end node may get its network address via
-Dynamic Host Configuration Protocol (DHTP), or node owner may move it from one server to another.
+Dynamic Host Configuration Protocol (DHTP), or node owner, may move it from one server to another.
 As a result, we cannot rely on network addresses when working with back-end nodes. Instead, we need
 overlay networks and unique identifiers for each node. To identify a node, DeGit uses
 public-key cryptography: the node owner generates a private and public key pair using one of the supported
@@ -356,7 +356,7 @@ themself to the system and build an overlay network on top of the real network. 
 Multihash\footnote{https://multiformats.io/multihash/} format to encode locator IDs.
 \todo{REF cite IPFS research
 https://raw.githubusercontent.com/ipfs-inactive/papers/master/ipfs-cap2pfs/ipfs-p2p-file-system.pdf
-since they uses similar approach for introducing node IDs in P2P system}.
+since they use a similar approach for introducing node IDs in the P2P system}.
 
 Private and public keys can be used to sign requests to other nodes or to build a
 trusted discovery (see~\ref{sec:discovery}) point in a system: when a new system is created,
@@ -379,7 +379,7 @@ DeGitX uses a routing system (see~\ref{sec:discovery}) to find addresses of node
 By default, a node does not know the network addresses of other nodes,
 only their locator IDs.
 Various discovery techniques are used for node lookup.
-They can be configured independenly by node
+They can be configured independently by node
 administrator or used together:
 
 \begin{description}
@@ -391,7 +391,7 @@ administrator or used together:
     This protocol is supposed to be used with other discovery techniques.
     For security reasons, in untrusted networks, the broadcast messages may be optionally signed with
     node private keys to be verified by the receiver using the CA public certificate.
-    For optimization reasons, this protocol is reused by metadata exchange protocol for
+    For optimization reasons, this protocol is reused by a metadata exchange protocol for
     repository hash table propagation (see~\ref{sec:metadata}). \todo{lookup for researches}.
     There are two common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{bep 26}.~\todo{REF use cites to bittorent and zeroconf researches instead of URL links here}.
     Bep 14 is SSDP-like style and Bep 26 is zeroconf style LDP. To implement Bep 26 each host is required to run a zeroconf service discovery daemon.
@@ -418,7 +418,7 @@ administrator or used together:
     database, e.g., etcd or others. On startup, the back-end node registers itself in the database,
     and other system nodes (both front-ends and back-ends) use this database for lookups. 
     It requires additional system configuration but delegates some responsibilities to third-party services.
-    \todo{REF add cites for comparing distributed key-value database in context of metadata storage for cross-region
+    \todo{REF add cites for comparing distributed key-value database in the context of metadata storage for cross-region
     access}.
   \item[Seed hosts] --- nodes can use other nodes as seed hosts for caching optimization; some nodes
     will be responsible for caching lookup results. In other words, these seed nodes represent a similar abstraction
@@ -426,7 +426,7 @@ administrator or used together:
   \item[DHT] --- distributed hash tables use different metrics to compare the distance of nodes in the overlay network.
     For example Kademlia\footnote{pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf} uses the
     \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed ---
-    DeGit locators satisfy these requirements, being generated as cryptographic hash function from
+    DeGit locators satisfy these requirements, being generated as a cryptographic hash function from
     the public key. In the Kademlia lookup system, each node stores references in K-buckets, where each K-bucket
     contains node addresses with the same ID prefix.~\todo{REF add cites to Kademlia and Chord DHT papers.}
 \end{description}
@@ -462,9 +462,9 @@ administrator or used together:
   }\label{fig:discovery-protocol}
 \end{figure}
 
-Depending on configuration, the node may or may not use some discovery protocols.
+Depending on the configuration, the node may or may not use some discovery protocols.
 They are performed in a well-specified order: first,
-the node performs lookup for locator ID in the local cache; the cache is updated
+the node performs a lookup for locator ID in the local cache; the cache is updated
 by LPD broadcasts; in case if it is not found, the node queries the discovery
 database, then seed hosts, and DHT as a last resort.
 
@@ -483,14 +483,14 @@ Example of a routing table:
 
 When a new node starts, it requires discovery protocols to be configured,
 depends on configuration, it starts corresponding services to register itself in a system,
-then other nodes will be able to find new node using this registration inforation. In case
-of distributed database, the node just put new value with network address for node locator ID
+then other nodes will be able to find a new node using this registration information. In case
+of distributed database, the node just puts new value with a network address for node locator ID
 as a key.
 
 \subsection{Metadata}\label{sec:metadata}
 
 DeGit peers don't know where to find repository storage by default.
-To solve it, the system introduces metadata layer to exchange repository coordinates
+The system introduces metadata layer to exchange repository coordinates
 to locator IDs. The structure of metadata is a many-to-many relation of
 repository cryptographic hash to storage locator ID.
 
@@ -507,7 +507,7 @@ repository \code{repo2} is located only on node \code{node2}:
 
 The repository hash is encoded in Multihash format. Metadata exchange protocol partially reuses
 discovery protocol for network optimizations. Peers send local broadcasts
-with locator IDs and known repository hashes and the discovery database may keep (if configured)
+with locator IDs and known repository hashes, and the discovery database may keep (if configured)
 the repository hash map to node locator ID relations (see~\ref{fig:repo-lookup-db}).
 DHT keeps locator IDs as a value for repository hash keys~\ref{fig:repo-lookup-dht};
 it keeps all metadata of the whole system (???). The metadata lookup process is similar to the discovery protocol:
@@ -520,7 +520,7 @@ updates metadata asynchronously. The metadata is updated as follows:
   \item A new node wants to replicate some repository
   \item The node finds current repository holders (replicas) in existing metadata and choose a random node from this list
   \item The node sends a request to the selected node to add itself to the replica list
-  \item Receiver node starts leader election and updates node log to add new node to the replica list
+  \item Receiver node starts leader election and updates node log to add a new node to the replica list
   \item The consensus accepts new node and stores it in local persistent storage
   \item The leader notifies a new node that it becomes a part of the replicas and consider it when consensus is required
   \item New node replicates the state of consensus, holds the repository and sends UDP broadcast to
@@ -551,7 +551,7 @@ see Figures~\ref{fig:repo-lookup-db} and~\ref{fig:repo-lookup-dht}.
     Repository lookup in database:
     DB --- Database with metadata for current region.
     1 step --- front-end load balancer query database for repository metadata.
-    2 step --- front-end access node N$_{x}$ with required repository.
+    2 step --- front-end access node N$_{x}$ with the required repository.
   }\label{fig:repo-lookup-db}
 \end{figure}
 
@@ -599,7 +599,7 @@ see Figures~\ref{fig:repo-lookup-db} and~\ref{fig:repo-lookup-dht}.
 A small fraction of malicious nodes can prevent correct message delivery throughout the overlay.
 
 Such nodes may misroute, corrupt, or drop messages and routing information.
-Additionally, they may attempt to assume the identity of other nodes and corrupt or delete objects
+Additionally, they may attempt to assume other nodes' identity and corrupt or delete objects
 they are supposed to store on behalf of the system.
 
 All attacks are based on the presence of malicious nodes.
@@ -608,12 +608,12 @@ There are two ways:
   \item[$-$] Implement techniques that allow nodes to join the overlay,
     maintain routing state, and forward messages securely in malicious nodes.
   \item[$-$] Make the appearance of malicious nodes impossible.
-\end{itemize}
-
+\end{itemize
 Degitx is not an open peer-to-peer system
 where resource pooling without preexisting trusted relationships is possible.
-It means that untrusted nodes aren't allowed to join
-and all members of the network are trusted not to cheat.
+
+nodes aren't allowed to join,
+and all network members are trusted not to cheat.
 
 To be sure that the node is trusted, its nodeId certificates should be signed by trusted CAs.
 Then each node rejects all unsigned requests.
@@ -627,15 +627,15 @@ Nodes with valid nodeId certificates can join the overlay, route messages,
 and repeatedly leave without the involvement of the CAs.
 
 When the membership of a peer-to-peer system is a constraint and all nodes are trusted as in DeGitX (??????),
-CAs could solve security issues, since according to the~\todo{REF insert a cite for
+CAs could solve security issues since according to the~\todo{REF insert a cite for
 ``Secure routing for structured peer-to-peer overlay networks'' paper}, all attacks are based on the presence of malicious nodes.
 
 \subsection{Git data exchange}\label{sec:data}
 
 Github Spokes and Gitaly HA achieve strong consistency via \emph{\href{https://en.wikipedia.org/wiki/Three-phase_commit_protocol}{3PC protocol}}.
-Spokes sources are closed but they mentioned the protocol in their \emph{\href{https://github.blog/2017-10-13-stretching-spokes/\#reducing-round-trips}{blog}}.
+Spokes sources are closed, but they mentioned the protocol in their \emph{\href{https://github.blog/2017-10-13-stretching-spokes/\#reducing-round-trips}{blog}}.
 So we only know they use it somehow.
-On the other hand, Gitaly team, that had faced the same issue, have made open research and a couple of POC to decide how exactly to implement 3PC protocol.
+On the other hand, Gitaly team, which had faced the same issue, has performed open research and a couple of POC to decide how to implement 3PC protocol.
 After all experiments:
 \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{Implement 3PC for WriteRef RPC}}
 \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2529}{3PC git-update-ref experiment}}
@@ -644,28 +644,28 @@ After all experiments:
 The only problem is that they need a place in git, where all write operations could be captured, checked and committed or safely aborted.
 There was no such place to cover all write operation, and new
 \emph{\href{https://github.com/git/git/commit/675415976704459edaf8fb39a176be2be0f403d8}{reference transaction hook}}
-was introduced by Gitaly team.
+was introduced by the Gitaly team.
 
 It was designed to implement a voting mechanism,
 so two-phase commit protocol (2PC)~\todo{REF add references for two-phase commit protocol},
-three-phase commit protocol (3PC)~\todo{REF add reference for three-phase commit protocol},
+three-phase commit protocol (3PC)~\todo{REF add a reference for three-phase commit protocol},
 or Paxos-commit~\cite{consensus-on-transaction-commit}
 much better than Raft or Paxos here.
-Git itself is also a system for which Raft or Paxos doesn't really fit well.
+Git itself is also a system for which Raft or Paxos doesn't fit well.
 It's unclear how to implement log and local state machine over git.
-In this algorithms replicas should apply any value proposed by leader, but git could deny some updates.
-An atomic commit algorithms care exactly about this problem and it includes voting, which allow git servers to check if they can apply proposed value.
+In these algorithms, replicas should apply any value proposed by a leader, but git could deny some updates.
+Atomic commit algorithms care precisely about this problem, and it includes voting, which allows git servers to check if they can apply the proposed value.
 
-So this hook couldn't be integrated with Raft or Paxos, but can provide strong consistency via
+So this hook couldn't be integrated with Raft or Paxos but can provide strong consistency via
 atomic commit algorithm such as 2PC\@.
 
 The hook also provides a lock mechanism on set of refs tha should be updated in current transaction,
-so it is possible to handle multiple updates to different independent sets of refs inside one repo at the same time.
+so it is possible to handle multiple updates to different independent sets of refs inside one repo simultaneously.
 It means that several branches could be updated parallel without locking each other.
 
-Transaction starts right before a user attempts to write new refs.
+The transaction starts right before a user attempts to write new refs.
 It means that it doesn't block all writes while someone is pushing a payload.
-Objects are uploaded asynchronously and only reference updates are synchronised and
+Objects are uploaded asynchronously, and only reference updates are synchronised and
 locked. Git uses content-addressable
 data storage~\todo{REF add link to the patent ``Content-addressable data storage'' number US009830345B1}
 it means that data update in such kind of storage can't modify old data, only append new data, so we can safely
@@ -683,32 +683,31 @@ are:
 
 \begin{description}
   \item[Read scalability]
-    The solution should scale out the read capacity of a system, each region should be able
-    to access repository using most available replica node.
+    The solution should scale-out the read capacity of a system; each region should be able
+    to access the repository using the most available replica node.
   \item[Strong consistency]
     All? (\todo{discuss, maybe not all but the majority of replicas})
     active replica repositories should be synchronized on updates in any node
     with immediate consistency.
   \item[Durability]
     The system must have enough replicas to recover itself in case of corruption.
-    Corrupted repository could be responsible for recovering itself using replica nodes.
-  \item[Self management (rename?)]
+    The corrupted repository could be responsible for recovering itself using replica nodes.
+  \item[Self-management (rename?)]
     Each node performs cleanup when needed (\code{git gc}) and may remove replica
-    from storage on read inactivity.
-    A node should be able to find and synchronize new repository on read,
-    after that it should be up to date on new updates.
+    from storage on reading inactivity.
+    A node should be able to find and synchronize new repository on reading. After that, it should be up to date on new updates.
   \item[Maintainability]
     Node administrator can change the storage, and perform data migration from one storage
     to another.
-    Repository administrators are able to add or delete node for new region and
-    get all nodes status for repository.
+    Repository administrators can add or delete a node for the new region and
+    get status of all nodes in the repository.
   \item[Auditability]
-    Node doesn't perform access control operations, but logs all
+    Node doesn't perform access control operations but logs all
     requests with identity and performed operation.
   \item[Analytics]
     Node collects statistics for each repository and usage metrics, such as
-    push and pull operations, etc. The system keeps the whole statistics about
-    nodes, e.g.\@ how many nodes contains each repository, the state of nodes, etc.
+    Push and Pull operations, etc. The system keeps the whole statistics about
+    nodes, e.g.\@ how many nodes are contained in each repository, the state of nodes, etc.
 \end{description}
 
 \subsection{Load balancing}\label{sec:load-balancing}
@@ -716,18 +715,17 @@ are:
 The front-end decides how to redirect incoming fetch requests to replica nodes.
 It knows network addresses and current availability of repository replicas,
 so it can decide how to route next fetch request to git repository back-end storage node.
-On read access to repository, it sends a health check message to replica nodes to be sure
+On read access to the repository, it sends a health check message to replica nodes to verify
 which are available. It stores the result in local cache with configurable time to live
-properties. When front-end unable to access some of back-end node, it marks it as unavailable
-and forget about it for some time. Then in check availability periodically.
-It uses ``Round robin'' load balancing for fetch requests, since it provides uniformly distributed
+properties. When the front-end cannot access some of the back-end nodes, it marks it as unavailable
+and forgets about it for some time. Then in check availability periodically.
+It uses "Round robin" load balancing for fetch requests since it provides a uniformly distributed
 load for repository nodes on high load peaks.~\todo{REF find references and proves about round-robin
-load balancing hor high load network traffic and correlation with uniform distribution of storage access}.
-Due to strong consistency of back-end nodes provided by data-exchange protocol
-it has linearizability property, and provides always latest git data (blobs) and metadata (references).
-In case if any node crashes or becomes down, the front-end won't be able to update repository
-but it still can read it from live replicas, it means on node failure all repositories located on this
-node becomes read-only.
+load-balancing hor high load network traffic and correlation with uniform distribution of storage access}.
+Due to the strong consistency of back-end nodes provided by the data-exchange protocol,
+it has linearizability property and always provides the latest git data (blobs) and metadata (references).
+If any node crashes or becomes down, the front-end won't be able to update the repository. However, it still can read it from live replicas, which means that all repositories located on this
+node become read-only on node failure.
 
 \section{Compare to other solutions}\label{sec:compare}
 
@@ -743,21 +741,21 @@ These products are similar to DeGit by some aspects:
       In worst-case failure scenarios, it will refuse to accept writes that it cannot commit,
       synchronously, to at least two replicas.
     \end{quote}
-    It's a proprietary software that can't be used free and the source code is closed.
-    Spokes papers claims that it pays attention to consistency, but on the
+     It is proprietary software that can't be used freely, and the source code is closed.
+    Spokes papers claim that it pays attention to consistency, but on the
     \href{https://www.youtube.com/watch?v=DY0yNRNkYb0}{conference talk} they mentioned that
     it's rarely possible to break the consistency which requires manual intervention.
     Therefore the approach of distributed system design used by Spokes is not suitable for open
-    source project, where maintainance team doesn't exist.
+    source project, where the maintenance team doesn't exist.
   \item[Gitaly]
     \href{https://docs.gitlab.com/ee/README.html}{Gitlab} has
     \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly} service which provides
     \code{gRPC} API for Gitlab website and git-ssh proxy to perform all git operations via API.
     It's \href{https://gitlab.com/gitlab-org/gitaly}{open source} component.
-    Gitaly proposed new design for service which claims to provide
+    Gitaly proposed a new design for service which claims to provid
     \href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/doc/design\_ha.md\#strong-consistency-design}{strong concistency}
-    but in fact it doesn't provide linearability of commands in system \todo{arguments and proves}.
-    Futhermore, it's possible that GitLab may change HA licensing \todo{find cases},
+    but in fact it doesn't provide linearizability of commands in system \todo{arguments and proves}.
+    Furthermore, GitLab can change HA licensing \todo{find cases},
     or restrict HA support \href{https://news.ycombinator.com/item?id=21437334}{based on country residence}.
   \item[JGit]
     \href{https://www.eclipse.org/jgit/}{Jgit} is a Java git server created by \href{https://www.eclipse.org/}{Eclipse}.
@@ -766,13 +764,13 @@ These products are similar to DeGit by some aspects:
       Git Ketch is a multi-master Git repository management system. Writes
       (such as git push) can be started on any server, at any time. Writes
       are successful only if a majority of participant servers agree.
-      Acked writes are durable against server failure, due to a majority of
-      the participants storing all required objects.
+      Asked writes are durable against server failure because a majority of
+      the participants are storing all required objects.
     \end{quote}
     But this is the only place where Ketch is mentioned. \todo{Analyze source code of Ketch module}.
   \item[IPFS]
-    \href{https://ipfs.io/}{IPFS} is not exactly distributed git repository project, but has similar ideas
-    and cound be helpfull for us. \todo{analyze IPFS project}.
+    \href{https://ipfs.io/}{IPFS} is not exactly distributed git repository project but has similar ideas
+    and could be helpful for us. \todo{analyze IPFS project}.
   \item[brig]
     \todo{analyze the project} \href{https://github.com/sahib/brig}{brig}.
 \end{description}
@@ -823,7 +821,7 @@ numbers, in terms of load, size, and speed:
 
 % Building resilience in Spokes, Patrick Reynolds, https://github.blog/2016-09-07-building-resilience-in-spokes/
 
-% Kademlia: A Peer-to-peer information system based on the XOR Metric, Petar Maymounkov and David Mazieres New Yourk University
+% Kademlia: A Peer-to-peer information system based on the XOR Metric, Petar Maymounkov and David Mazieres New York University
 
 % S/Kademlia: A Practicable Approach Towards Secure Key-Based RoutingIngmar Baumgart and Sebastian MiesInstitute of TelematicsUniversit at Karlsruhe (TH)\@ D–76128 Karlsruhe, Germany
 
