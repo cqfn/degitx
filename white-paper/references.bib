@@ -13,11 +13,11 @@
   abstract = {
     The distributed transaction commit problem requires reaching agreement
     on whether a transaction is committed or aborted. The classic Two-Phase Commit protocol
-    blocks if the coordinator fails. Fault-tolerant consensus algorithms also reach agreement,
+    blocks if the coordinator fails. Fault-tolerant consensus algorithms also reach agreement
     but do not block whenever any majority of the processes are working. The Paxos Commit algorithm
     runs a Paxos consensus algorithm on the commit/abort decision of each participant to obtain
     a transaction commit protocol that uses 2F + 1 coordinators and makes progress if at least F + 1
-    of them are working properly. Paxos Commit has the same stable-storage write delay, and can be
+    of them are working properly. Paxos Commit has the same stable-storage write delay and can be
     implemented to have the same message delay in the fault-free case as Two-Phase Commit,
     but it uses more messages. The classic Two-Phase Commit algorithm is obtained as the special F = 0
     case of the Paxos Commit algorithm.
