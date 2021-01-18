@@ -719,7 +719,7 @@ On read access to the repository, it sends a health check message to replica nod
 which are available. It stores the result in local cache with configurable time to live
 properties. When the front-end cannot access some of the back-end nodes, it marks it as unavailable
 and forgets about it for some time. Then in check availability periodically.
-It uses "Round robin" load balancing for fetch requests since it provides a uniformly distributed
+It uses ``Round robin'' load balancing for fetch requests since it provides a uniformly distributed
 load for repository nodes on high load peaks.~\todo{REF find references and proves about round-robin
 load-balancing hor high load network traffic and correlation with uniform distribution of storage access}.
 Due to the strong consistency of back-end nodes provided by the data-exchange protocol,
