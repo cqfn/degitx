@@ -1,7 +1,7 @@
 OUT := ${CURDIR}/go/degitxpb
 GOPATH := $(shell go env GOPATH)
 PROTOC_GEN_GO := $(GOPATH)/bin/protoc-gen-go
-PROTOC := env PATH=$(GOPATH)/bin:${PATH} protoc
+PROTOC := env PATH="$(GOPATH)/bin:${PATH}" protoc
 GOGET := go get -v -u
 
 RMFR := rm -fr

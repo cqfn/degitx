@@ -56,7 +56,7 @@ run:
 linters-settings:
   dupl:
     # tokens count to trigger issue, 150 by default
-    threshold: 15
+    threshold: 150
   exhaustive:
     # indicates that switch statements are to be considered exhaustive if a
     # 'default' case is present, even if all enum members aren't listed in the
@@ -153,6 +153,10 @@ linters-settings:
     # if it's called for subdir of a project it can't find funcs usages. All text editor integrations
     # with golangci-lint call it on a directory with the changed file.
     check-exported: false
+  goheader:
+    template: |-
+      MIT License. Copyright (c) 2020 CQFN
+      https://github.com/cqfn/degitx/blob/master/LICENSE
 linters:
   disable-all: true
   enable:
@@ -187,6 +191,8 @@ linters:
     - gocritic
     - maligned
     - misspell
+    - goheader
+    - golint
 
 issues:
   # List of regexps of issue texts to exclude, empty list by default.

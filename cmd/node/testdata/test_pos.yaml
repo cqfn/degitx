@@ -1,5 +1,0 @@
-version: 42
-keys:
-  alg: expected_alg_name
-  private: expected_sk_location
-  public: expected_pk_location

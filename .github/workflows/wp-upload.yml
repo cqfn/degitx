@@ -1,0 +1,51 @@
+---
+name: Upload white paper PDF
+"on":
+  push:
+    branches: [master]
+    paths: ["white-paper/**"]
+  pull_request:
+    branches: [master]
+    paths: ["white-paper/**"]
+jobs:
+  upload_pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v1
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@2.2.0
+        with:
+          working_directory: ./white-paper
+          root_file: wp.tex
+      - name: "Upload to temporary assetts"
+        uses: actions/upload-artifact@v2
+        with:
+          name: wp.pdf
+          path: "white-paper/wp.pdf"
+      - name: Set env
+        run: echo "SHA6=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+      - name: Upload to Artipie as latest
+        if: github.ref == 'refs/heads/master'
+        uses: "artipie/upload-action@v0.2.1"
+        with:
+          repo: "degit/wp"
+          file: "./white-paper/wp.pdf"
+          path: "white-paper-latest.pdf"
+          username: "${{ secrets.ARTIPIE_USERNAME }}"
+          password: "${{ secrets.ARTIPIE_PASSWORD }}"
+      - name: Upload to Artipie with version
+        id: upload_with_version
+        uses: "artipie/upload-action@v0.2.1"
+        with:
+          repo: "degit/wp"
+          file: "./white-paper/wp.pdf"
+          path: "white-paper-${{ env.SHA6 }}.pdf"
+          username: "${{ secrets.ARTIPIE_USERNAME }}"
+          password: "${{ secrets.ARTIPIE_PASSWORD }}"
+      - name: Comment on pull request
+        if: github.event_name == 'pull_request'
+        uses: allthatjazzleo/actions-pull-request-add-comment@master
+        with:
+          message: "Latest PDF for this PR: ${{ steps.upload_with_version.outputs.url }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
