@@ -19,31 +19,50 @@ type Proposal struct {
 	Proposer uint16
 }
 
+// Compare two proposals
+func (p Proposal) Compare(o Proposal) int {
+	var r int
+	r = int(p.Ballot - o.Ballot)
+	if r == 0 {
+		r = int(p.Proposer - o.Proposer)
+	}
+	return r
+}
+
 // PxAcceptor - Paxos acceptor API for proposer
 type PxAcceptor interface {
-	// Prepare takes Paxos 1A message and sends 1B message to the proposer
+	// Prepare takes Paxos 1A message. The proposer chooses ballot number
+	// that it believes to be larger than any ballot number for which
+	// phase 1 has been performed, and sends it to every acceptor for prepare.
 	Prepare(ctx context.Context, p Proposal) error
-	// Accept takes Paxos 2A message and sends 2B message to proposer
+
+	// Accept takes Paxos 2A message. The proposer uses ballot number it has
+	// already prepared and acceptor promised to reject all proposals fewer than
+	// prepared one. It tries to accept a vote by proposal. If the bigger ballot
+	// number was prepared by acceptor between these two operations, acceptor may
+	// respond with reject.
 	Accept(ctx context.Context, p Proposal, v Vote) error
 }
 
 // PxProposer - Paxos proposer API for acceptor
 type PxProposer interface {
-	// Promise is sent by acceptor as 1B message if acceptor
+	// Promise is a 1B message from acceptor.
 	// was prepared succesffully, it includes a proposal ballot
 	// number. Promise means that acceptor promises to proposer
 	// to reject all next messages if ballot number of such message
 	// are less than ballot number of promise.
-	Promise(ctx context.Context, b Ballot) error
-
-	// Reject 1B message from acceptor. The acceptor sends such message
-	// if it already accepted a value from proposer. The reject message
-	// includes the ballot number of accepted value and the actual value.
-	Reject(ctx context.Context, b Ballot, v Vote) error
+	Promise(ctx context.Context, b Ballot) (max Ballot, acc Ballot, v Vote, err error)
 
 	// Accepted message is sent by acceptor as a 2B message, if it
 	// successfully accepted 2A message from a proposer.
-	Accepted(ctx context.Context, b Ballot) error
+	Accepted(ctx context.Context, b Ballot) (bal Ballot, err error)
+
+	// Reject is a optimization of Paxos. Instead of ignoring 1A message with
+	// small ballot numbers (less than ballot number that acceptor perofrmed any action),
+	// acceptor may send a reject message to avoid proposer restarts by timeout and
+	// sends a hint with ballot number to help choosing proposer next ballot number
+	// greater than any received: bal=max([]rejects)+1
+	Reject(ctx context.Context) (bal Ballot, err error)
 }
 
 // RMProposer - proposer API for resource manager

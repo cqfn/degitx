@@ -13,4 +13,7 @@ type ResourceManager interface {
 
 	// Commit the transaction
 	Commit(ctx context.Context, txn string) error
+
+	// Abort the transaction
+	Abort(ctx context.Context, txn string) error
 }
