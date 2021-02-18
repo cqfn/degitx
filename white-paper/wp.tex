@@ -112,7 +112,7 @@ There are three main problems to solve for the distributed git repository manage
 \item[scalability] --- one repository may be used actively by many users simultaneously. Storage disk
   has input-output (IO) operation limits and cannot perform a lot of \code{fetch} operations in
   a short period of time. The git repository storage should be replicated on different system nodes to
-  solve this problem.~\todo{REF find references about storage scaling to improve read capacity in a distributed system.}
+  solve this problem~\cite{scalability}.
 \item[dispatching] --- the user does not know the network addresses of git repository storages. Also, according to the
   previous problem, one repository can be located on multiple replicas.
   Hence, the system should be able to locate and redirect the user's requests
@@ -156,9 +156,7 @@ serving requests.
 Asynchronous replication of git repository data was one approach attempting to address such scalability problems;
 the DGRM was a proof-of-concept, which aimed to eventually consistently guarantee that one repository was replicated 
 asynchronously after any update operation to multiple git repository storages. Therefore,
-clients were load balanced to different git repository storages.~\todo{REF find references about comparing
-eventual consistency with strong consistency in the context of bias between Read and Write operations in
-distributed storages}.
+clients were load balanced to different git repository storages~\cite{Eventual_Consistency}.
 However, it did not succeed because of two reasons:
 
 \begin{enumerate}
@@ -350,13 +348,10 @@ overlay networks and unique identifiers for each node. To identify a node, DeGit
 public-key cryptography: the node owner generates a private and public key pair using one of the supported
 crypto algorithms \todo{which exactly?}. These keys will uniquely identify a back-end node.
 A cryptographic hash \todo{choose algorithm} of the public key is used as a node locator ID,
-as described in~\todo{REF add cite to "A Practicable Approach Towards Secure Key-Based Routing"}.
+as described in~\cite{S_Kademlia_Secure_Key-Based_Routing}.
 Nodes use locator IDs to introduce
 themself to the system and build an overlay network on top of the real network. DeGit uses
-Multihash\footnote{https://multiformats.io/multihash/} format to encode locator IDs.
-\todo{REF cite IPFS research
-https://raw.githubusercontent.com/ipfs-inactive/papers/master/ipfs-cap2pfs/ipfs-p2p-file-system.pdf
-since they use a similar approach for introducing node IDs in the P2P system}.
+Multihash\footnote{https://multiformats.io/multihash/} format to encode locator IDs~\cite{IPFS_research}.
 
 Private and public keys can be used to sign requests to other nodes or to build a
 trusted discovery (see~\ref{sec:discovery}) point in a system: when a new system is created,
@@ -393,7 +388,7 @@ administrator or used together:
     node private keys to be verified by the receiver using the CA public certificate.
     For optimization reasons, this protocol is reused by a metadata exchange protocol for
     repository hash table propagation (see~\ref{sec:metadata}). \todo{lookup for researches}.
-    There are two common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{bep 26}.~\todo{REF use cites to bittorent and zeroconf researches instead of URL links here}.
+    There are two common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{bep 26}.~\cite{bittorrent}. todo:  Please, check this ref. (Check bittorent and zeroconf researches instead of URL links here)!!!!!
     Bep 14 is SSDP-like style and Bep 26 is zeroconf style LDP. To implement Bep 26 each host is required to run a zeroconf service discovery daemon.
     There is a popular \href{https://github.com/grandcat/zeroconf}{go zeroconf implementation} that could be used.
     BitTorrent uses following multicast groups: A) \code{239.192.152.143:6771} (\href{https://tools.ietf.org/html/rfc2365#section-6.2}{org-local}) and B) \code{[ff15::efc0:988f]:6771} (\href{https://tools.ietf.org/html/rfc4291#section-2.5.7}{site-local}) for Bep 14 implementation.
@@ -417,9 +412,7 @@ administrator or used together:
   \item[Distributed DB] --- network addresses could be propagated to the system using a supplementary distributed
     database, e.g., etcd or others. On startup, the back-end node registers itself in the database,
     and other system nodes (both front-ends and back-ends) use this database for lookups. 
-    It requires additional system configuration but delegates some responsibilities to third-party services.
-    \todo{REF add cites for comparing distributed key-value database in the context of metadata storage for cross-region
-    access}.
+    It requires additional system configuration but delegates some responsibilities to third-party services~\cite{distributed_key-value_database}.
   \item[Seed hosts] --- nodes can use other nodes as seed hosts for caching optimization; some nodes
     will be responsible for caching lookup results. In other words, these seed nodes represent a similar abstraction
     to Content Delivery Network (CDN) in web caching.
@@ -428,7 +421,7 @@ administrator or used together:
     \code{XOR} metric of node ID for distance measurement. It requires node IDs to be widely distributed ---
     DeGit locators satisfy these requirements, being generated as a cryptographic hash function from
     the public key. In the Kademlia lookup system, each node stores references in K-buckets, where each K-bucket
-    contains node addresses with the same ID prefix.~\todo{REF add cites to Kademlia and Chord DHT papers.}
+    contains node addresses with the same ID prefix~\cite{Kademlia_and_Chord_algorithm}.
 \end{description}
 
 \begin{figure}
@@ -627,8 +620,7 @@ Nodes with valid nodeId certificates can join the overlay, route messages,
 and repeatedly leave without the involvement of the CAs.
 
 When the membership of a peer-to-peer system is a constraint and all nodes are trusted as in DeGitX (??????),
-CAs could solve security issues since according to the~\todo{REF insert a cite for
-``Secure routing for structured peer-to-peer overlay networks'' paper}, all attacks are based on the presence of malicious nodes.
+CAs could solve security issues since according to the~\cite{Secure_routing_peer-to-peer_overlay_networks}, all attacks are based on the presence of malicious nodes.
 
 \subsection{Git data exchange}\label{sec:data}
 
@@ -929,7 +921,7 @@ properties. When the front-end cannot access some of the back-end nodes, it mark
 and forgets about it for some time. Then in check availability periodically.
 It uses ``Round robin'' load balancing for fetch requests since it provides a uniformly distributed
 load for repository nodes on high load peaks.~\todo{REF find references and proves about round-robin
-load-balancing hor high load network traffic and correlation with uniform distribution of storage access}.
+load-balancing hor high load network traffic and correlation with uniform distribution of storage access ---??????--- I was unable to find this topic!}.
 Due to the strong consistency of back-end nodes provided by the data-exchange protocol,
 it has linearizability property and always provides the latest git data (blobs) and metadata (references).
 If any node crashes or becomes down, the front-end won't be able to update the repository. However, it still can read it from live replicas, which means that all repositories located on this
@@ -993,9 +985,6 @@ The most important \href{https://en.wikipedia.org/wiki/Functional_requirement}{f
     but it's required to support \href{https://grpc.io/}{gRPC}
     of \href{https://about.gitlab.com/}{GitLab} to integrate the system
     into GitLab service and replace
-    \href{https://docs.gitlab.com/ee/administration/gitaly/}{Gitaly}.
-  \item[Back end]
-    Each node may be connected to different types of storage for git repos,
     but it's required to support file-system storage.
 \end{description}
 
