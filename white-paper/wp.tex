@@ -768,8 +768,13 @@ The flow steps are:
       with success zero status, then git commit the reference-transaction;
       in case of ``error'' signal, hook exits with error code and git aborts the transaction.
     %13
-    \item RM notifies TM that the transaction was finished.
+    \item Git commits or abort the reference transaction locally and call the hook on complete with
+      \code{commited} or \code{aborted} repspectively.
     %14
+    \item Hook notifies RM that transaction finished and immediately exit
+    %15
+    \item RM notifies TM that the transaction was finished.
+    %16
     \item TM waits for all RM to finish transaction, and sends the response to the actor with success or error
       code based on final transaction decision (commited or aborted).
 \end{enumerate}
@@ -777,9 +782,9 @@ The flow steps are:
 \begin{figure}
   \begin{center}
     \begin{tikzpicture}[
-        wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=4.7cm, minimum height=1cm},
-        half-wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1cm},
-        group-node/.style={rectangle, draw=gray, inner sep=0.4cm}
+        wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=4.7cm, minimum height=1.2cm},
+        half-wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1.2cm},
+        group-node/.style={rectangle, draw=gray, inner sep=0.6cm}
       ]
       %    FE            BE
       % [  lb  ]    [git] [hook]
@@ -800,8 +805,11 @@ The flow steps are:
       % flow
       \draw[->]         ($(lb.west)+(-1.6,0)$)          -- node[above] {1}      (lb.west);
       \draw[->]         (lb)                            -- node {2}             (git);
-      \draw[->]         ($(git.east)+(0,0.2)$)          -- node[above] {3}      ($(hook.west)+(0,0.2)$);
-      \draw[->]         ($(hook.south)+(-0.4,0)$)       -- node[left] {4}       ++(0,-0.6);
+      % \draw[->]         ($(git.east)+(0,0.2)$)          -- node[above] {3}      ($(hook.west)+(0,0.2)$);
+      \draw[->]         ($(git.north)+(0,0)$)          ..
+            controls ($(git.north)+(0.7,0.7)$) and ($(hook.north)+(-0.7,0.7)$)
+                                                        .. node[below] {3}      ($(hook.north)+(0,0)$);
+      \draw[->]         ($(hook.south)+(-0.7,0)$)       -- node[right] {4}      ++(0,-0.6);
       \draw[->]         ($(rm.south)+(-1.5,0)$)         -- node[left] {5}       ++(0,-0.6);
       \draw[<->]        (prop.east)                     -- node[above] {6}      (acc.west);
       \draw[->]         ($(rm.south)+(-1.1,-0.6)$)      -- node[right] {7}      ($(rm.south)+(-1.1,0)$);
@@ -810,12 +818,14 @@ The flow steps are:
             controls ($(rm.west)+(-0.7,-0.7)$) and ($(tm.east)+(0.7,-0.7)$)
                                                         .. node[above] {9}      ($(tm.east)+(0,-0.3)$);
       \draw[->]         (tm.east)                       -- node[above] {10}     (rm.west);
-      \draw[->]         ($(hook.south)+(0.4,-0.6)$)     -- node[right] {11}     ($(hook.south)+(0.4,0)$);
-      \draw[->]         ($(hook.west)+(0,-0.2)$)        -- node[below] {12}     ($(git.east)+(0,-0.2)$);
-      \draw[->]         ($(rm.west)+(0,0.3)$)          ..
+      \draw[->]         ($(hook.south)+(0,-0.6)$)       -- node[right] {11}     ($(hook.south)+(0,0)$);
+      \draw[->]         ($(hook.west)+(0,0.2)$)         -- node[above] {12}     ($(git.east)+(0,0.2)$);
+      \draw[->]         ($(git.east)+(0,-0.2)$)         -- node[below] {13}     ($(hook.west)+(0,-0.2)$);
+      \draw[->]         ($(hook.south)+(0.7,0)$)        -- node[right] {14}     ++(0,-0.6);
+      \draw[->]         ($(rm.west)+(0,0.3)$)           ..
             controls ($(rm.west)+(-0.7,0.7)$) and ($(tm.east)+(0.7,0.7)$)
-                                                        .. node[above] {13}     ($(tm.east)+(0,0.3)$);
-      \draw[->]         (tm.west)                       -- node[above] {14}     ($(tm.west)+(-1.6,0)$);
+                                                        .. node[above] {15}     ($(tm.east)+(0,0.3)$);
+      \draw[->]         (tm.west)                       -- node[above] {16}     ($(tm.west)+(-1.6,0)$);
     \end{tikzpicture}
   \end{center}
   \caption{
@@ -825,19 +835,19 @@ The flow steps are:
 
 \begin{figure}
   \begin{center}
-    \adjustbox{scale=0.5,center}{%
+    \adjustbox{scale=1,center}{%
       \begin{tikzpicture}
         \begin{umlseqdiag}
           \umlactor[no ddots]{CLI}
-          \umlobject[no ddots]{LB}
-          \umlobject[no ddots]{TM}
-          \umlobject[no ddots]{git}
-          \umlobject[no ddots]{hook}
-          \umlobject[no ddots]{RM}
-          \umlobject[no ddots]{Proposer}
-          \umlobject[no ddots]{Acceptor}
+          \umlobject[no ddots, x=2]{LB}
+          \umlobject[no ddots, x=4]{TM}
+          \umlobject[no ddots, x=6]{git}
+          \umlobject[no ddots, x=8]{hook}
+          \umlobject[no ddots, x=10]{RM}
+          \umlobject[no ddots, x=12]{Proposer}
+          \umlobject[no ddots, x=14]{Acceptor}
           \begin{umlcall}[type=asynchron, op=1]{CLI}{LB}
-            \begin{umlcall}[op=2]{LB}{git}
+            \begin{umlcall}[op=2, return={2'}]{LB}{git}
             \end{umlcall}
             \begin{umlcall}[op=3, return=12]{git}{hook}
               \begin{umlcall}[op=4, type=asynchron]{hook}{RM}
@@ -847,7 +857,7 @@ The flow steps are:
                   \begin{umlcall}[op=7, type=asynchron]{Proposer}{RM}
                   \end{umlcall}
                 \end{umlcall}
-                \begin{umlcall}[op=8]{RM}{Acceptor}
+                \begin{umlcall}[op=8, dt=5, return={8'}]{RM}{Acceptor}
                 \end{umlcall}
                 \begin{umlcall}[op=9, type=asynchron]{RM}{TM}
                 \end{umlcall}
@@ -857,9 +867,13 @@ The flow steps are:
                 \end{umlcall}
               \end{umlcall}
             \end{umlcall}
-            \begin{umlcall}[op=13, type=asynchron, dt=7]{RM}{TM}
+            \begin{umlcall}[op=13, return={13'}]{git}{hook}
+              \begin{umlcall}[op=14, type=asynchron]{hook}{RM}
+              \end{umlcall}
             \end{umlcall}
-            \begin{umlcall}[op=14, type=asynchron]{TM}{CLI}
+            \begin{umlcall}[op=15, type=asynchron, dt=7]{RM}{TM}
+            \end{umlcall}
+            \begin{umlcall}[op=16, type=asynchron]{TM}{CLI}
             \end{umlcall}
           \end{umlcall}
         \end{umlseqdiag}
