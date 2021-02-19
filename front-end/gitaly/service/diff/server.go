@@ -17,6 +17,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new DiffServiceServer
 func NewServer(log *logging.Logger) gitalypb.DiffServiceServer {
 	return &server{
 		log: log,

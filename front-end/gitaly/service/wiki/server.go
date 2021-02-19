@@ -18,6 +18,7 @@ type server struct {
 	log *logging.Logger
 }
 
+// NewServer creates new WikiServiceServer
 func NewServer(log *logging.Logger) gitalypb.WikiServiceServer {
 	return &server{
 		log: log,

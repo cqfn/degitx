@@ -1,57 +1,196 @@
-
 \section{Appendix A}
 \label{sec:appendix-a}
 
 \subsection{Git Internals}
-\subsubsection{Dictionary}
-\label{subsec:git-internals}
-\begin{description}
-  \item[Git] -- is a simple key-value data store and stores 3 main types of Objects: blob, tree, commit, and one additional: tag.
-  \item[Blob] -- content of file w/o filename.
-  \item[Tree] -- A single tree object contains one or more entries, each of which is the SHA-1 hash of a blob or subtree with its associated mode, type, and filename.
-  For example, the most recent tree in a project may look something like this:\\
-  \\
-  \code{\$ git cat-file -p master\^\{tree\}}\\
-  \code{100644 blob a906cb2a4a904a152e80877d4088654daad0c859      README}\\
-  \code{100644 blob 8f94139338f9404f26296befa88755fc2598c289      Rakefile}\\
-  \code{040000 tree 99f1a6d12cb4b6f19c8655fca46c3ecf317074e0      lib}
+
+
+  \code{Git} - is a simple key-value data store that stores 3 main types of Objects: \code{blob}, \code{tree}, \code{commit}, and one additional: \code{tag}.
+  Git stores content in a manner similar to a UNIX filesystem,
+  but a bit simplified.
+  All the content is stored as tree and blob objects,
+  with trees corresponding to UNIX directory entries and blobs corresponding more or less to inodes or file contents.
+
+  Conceptually, the data that Git is storing looks something like this::\\
+
   \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{data-model-1.png}
-    \label{fig:tree-objects}
+    \begin{center}
+      \begin{tikzpicture}
+        \node[rectangle,rounded corners, draw=green, fill=green, scale=2] (tree) at(0,0){tree};
+        \node[rectangle,rounded corners, draw=gray, fill=gray, scale=2] (Rakefile-blob) at(0,-3){blob};
+        \node[rectangle,rounded corners, draw=gray, fill=gray, scale=2] (README-blob) at(-3,-3){blob};
+        \node[rectangle,rounded corners, draw=green, fill=green, scale=2] (lib-tree) at(3,-3){tree};
+        \node[rectangle,rounded corners, draw=gray, fill=gray, scale=2] (simplegit-blob) at(3,-6){blob};
+
+        \node[rectangle,rounded corners, draw=white, fill=white] (Rakefile) at(0,-1.5){Rakefile};
+        \node[rectangle,rounded corners, draw=white, fill=white] (README) at(-2,-1.5){README};
+        \node[rectangle,rounded corners, draw=white, fill=white] (lib) at(1.5,-1.5){lib};
+        \node[rectangle,rounded corners, draw=white, fill=white] (simplegit) at(3,-4.5){simplegit.rb};
+
+        \draw (tree) -- (Rakefile);
+        \draw [->] (Rakefile) -- (Rakefile-blob);
+
+        \draw (tree) to (README);
+        \draw [->] (README) to (README-blob);
+
+        \draw (tree) -- (lib);
+        \draw [->] (lib) -- (lib-tree);
+
+        \draw (lib-tree) -- (simplegit);
+        \draw [->] (simplegit) -- (simplegit-blob);
+
+
+      \end{tikzpicture}
+    \end{center}
+    \caption{Simple version of the Git data model}
+    \label{fig:git-tree-sample}
   \end{figure}
-  \item [Commit] is just a pointer to parent(previous) commit if any
-  and to top-level tree for current one with some metadata
-  (the author information and so on).
+
+  Blobs store content without file names and trees store filenames and also allows to store a group of files together.
+  Top level trees represent the different snapshots of a project that you want to track.
+
+  Commit objects point to that top level trees(snapshots)
+  and store information about who saved the snapshots, when they were saved, or why they were saved.
+
+  To order snapshots Commit object also points to parent(previous) commit if any.
+
+  So snapshots could be reached and tracked via commit objects.
+
   \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{data-model-3.png}
+    \begin{center}
+      \begin{tikzpicture}
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (3-commit) at(0,0){third commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (2-commit) at(0,-3){second commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (1-commit) at(0,-6){first commit};
+        \draw [->] (3-commit) -- (2-commit);
+        \draw [->] (2-commit) -- (1-commit);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (3-tree) at(4,0){tree 3c4e};
+        \draw [->] (3-commit) -- (3-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (2-tree) at(4,-3){tree 0155};
+        \draw [->] (2-commit) -- (2-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (1-tree) at(4,-6){tree d832};
+        \draw [->] (1-commit) -- (1-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-bak) at(7,1){bak};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-new) at(7,0){new.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-test) at(7,-1){test.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-test) at(7,-2.5){test.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-new) at(7,-3.5){new.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (1-test) at(7,-6){test.txt};
+
+        \draw (3-tree) -- (3-bak);
+        \draw (3-tree) -- (3-new);
+        \draw (3-tree) -- (3-test);
+
+        \draw (2-tree) -- (2-test);
+        \draw (2-tree) -- (2-new);
+
+        \draw (1-tree) -- (1-test);
+
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-2) at(10,-1.75){"version 2"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (new-file) at(10,-4){"new file"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-1) at(10,-6){"version 1"};
+
+        \draw [->] (1-test) -- (version-1);
+        \draw [->] (2-new) -- (new-file);
+        \draw [->] (2-test) -- (version-2);
+        \draw [->] (3-test) -- (version-2);
+        \draw (3-new) to (11.7, 0);
+        \draw [->] (11.7, 0) |- (new-file);
+        \draw (3-bak) -| (12, -7);
+        \draw (12, -7) -- (7, -7);
+        \draw [->] (7, -7) -- (1-tree);
+
+      \end{tikzpicture}
+    \end{center}
+    \caption{All the reachable objects in Git directory}
     \label{fig:commit-objects}
   \end{figure}
-\end{description}
 
-{\large Other things, listed below, serve to make our interaction with these objects easier.
+
+{\large Things, listed below, serve to make our interaction with these objects easier.
 }
 \begin{description}
-  \item[Reference] - A file in which you could store SHA-1 value
+  \item[Reference] -- A file in which you could store SHA-1 value
   of a commit under a simple name, so you could use that simple name
   rather than the raw SHA-1 value.
-  \item[Branch] is a simple pointer or reference to the head of a line of work(the latest commit) in .git/refs/heads.
+  \item[Branch] -- is a simple pointer or reference to the head of a line of work(the latest commit) in .git/refs/heads.
   Branch name is mapped to the SHA of the commit that is latest for this branch.
   \begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{data-model-4.png}
+    \begin{center}
+      \adjustbox{scale=0.8,center}{%
+      \begin{tikzpicture}
+        \node[rectangle,rounded corners, draw=white, fill=red, scale=1.5] (master) at(-5,0){refs/heads/master};
+        \node[rectangle,rounded corners, draw=white, fill=red, scale=1.5] (test) at(-5,-3){refs/heads/test};
+
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (3-commit) at(0,0){third commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (2-commit) at(0,-3){second commit};
+        \node[rectangle,rounded corners, draw=white, fill=orange, scale=1.5] (1-commit) at(0,-6){first commit};
+        \draw [->] (master) -- (3-commit);
+        \draw [->] (test) -- (2-commit);
+        \draw [->] (3-commit) -- (2-commit);
+        \draw [->] (2-commit) -- (1-commit);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (3-tree) at(4,0){tree 3c4e};
+        \draw [->] (3-commit) -- (3-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (2-tree) at(4,-3){tree 0155};
+        \draw [->] (2-commit) -- (2-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=green, scale=1.5] (1-tree) at(4,-6){tree d832};
+        \draw [->] (1-commit) -- (1-tree);
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-bak) at(7,1){bak};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-new) at(7,0){new.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (3-test) at(7,-1){test.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-test) at(7,-2.5){test.txt};
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (2-new) at(7,-3.5){new.txt};
+
+        \node[rectangle,rounded corners, draw=white, fill=white, scale=1.5] (1-test) at(7,-6){test.txt};
+
+        \draw (3-tree) -- (3-bak);
+        \draw (3-tree) -- (3-new);
+        \draw (3-tree) -- (3-test);
+
+        \draw (2-tree) -- (2-test);
+        \draw (2-tree) -- (2-new);
+
+        \draw (1-tree) -- (1-test);
+
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-2) at(10,-1.75){"version 2"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (new-file) at(10,-4){"new file"};
+        \node[rectangle,rounded corners, draw=white, fill=gray, scale=1.5] (version-1) at(10,-6){"version 1"};
+
+        \draw [->] (1-test) -- (version-1);
+        \draw [->] (2-new) -- (new-file);
+        \draw [->] (2-test) -- (version-2);
+        \draw [->] (3-test) -- (version-2);
+        \draw (3-new) to (11.7, 0);
+        \draw [->] (11.7, 0) |- (new-file);
+        \draw (3-bak) -| (12, -7);
+        \draw (12, -7) -- (7, -7);
+        \draw [->] (7, -7) -- (1-tree);
+
+      \end{tikzpicture}
+      }
+    \end{center}
     \label{fig:reference}
+    \caption{Git directory objects with branch head references included}
   \end{figure}
   When you run commands like \code{git branch <branch>},
   Git basically runs update-ref command to add the SHA-1
   of the last commit of the branch you're on into whatever
   new reference you want to create.
   So create branch is just create a reference to some commit.
-  And delete branch is only delete reference.
-  After branch deletion, all its objects will be available via their SHA.
-  The same is for other reference under .git/refs
-  \item[HEAD] Usually the HEAD file is a symbolic reference to the branch
+  And delete branch is only delete a reference.
+  After branch deletion, all its objects will be available via their SHAs.
+  However, unreachable objects could be deleted via other git operations.
+  \item[HEAD] -- Usually the HEAD file is a symbolic reference to the branch
   you're currently on.
   By symbolic reference, we mean that unlike a normal reference,
   it contains a pointer to another reference.\\
@@ -73,44 +212,22 @@
   When you do \code{git reset HEAD~1},
   it also only update refs/heads/<branch-name>.
   It takes SHA of parent commit of current head commit.
-  \item[Tag (lightweight)] It's like a branch reference, but it never moves - it always points to the same commit but gives it a friendlier name.\\
+  \item[Tag (lightweight)] -- It's like a branch reference, but it never moves - it always points to the same commit but gives it a friendlier name.\\
   You can create, update and delete such a tag, and no objects would be affected.
   It's only a reference.
-  \item[Tag (annotated)] - tag object, that points to commit or any other object amd contains metadata, and a reference to this tag object.
-
-  Use \code{git push --follow-tags} if you want to push your annotated tag to remote repo.
-  To delete a tag on your local repository, you can use \code{git tag -d <tagname>}.
-  To delete a remote tag: \code{git push origin --delete <tagname>}.
-
-  Both operation only delete a reference in .git/refs/tag.
-  Tag object wouldn't be removed.
+  \item[Tag (annotated)] -- tag object, that points to commit or any other object amd contains metadata, and a reference to this tag object.
 \end{description}
-
-\subsubsection{Objects update workflow}
-The most important updates of remote repo for us listed in the table below:
-
-\begin{table}[H]
-  \hskip-2.0cm\begin{tabular}{|l|l|l|}
-                \hline
-                action                                                               & git commands                                                                                                                                                                                                                                    & git server changes                                                                                                                                                                                                                                        \\ \hline
-                create branch                                                        & \begin{tabular}[c]{@{}l@{}}git push  \textless{}remote-name\textgreater \\  \textless{}branch-name\textgreater{}:\textless{}remote-branch-name\textgreater{}\end{tabular}                                                                       & \begin{tabular}[c]{@{}l@{}}A new reference \\ .git/refs/heads/\textless{}branch-name\textgreater \\ will be created.\end{tabular}                                                                                                                         \\ \hline
-                delete branch                                                        & \begin{tabular}[c]{@{}l@{}}git push  \textless{}remote-name\textgreater \\ :\textless{}remote-branch-name\textgreater\\ OR\\ git push \textless{}remote-name\textgreater  \\ --delete  \textless{}remote-branch-name\textgreater{}\end{tabular} & \begin{tabular}[c]{@{}l@{}}The existing reference \\ .git/refs/heads/\textless{}branch-name\textgreater \\ will be removed.\end{tabular}                                                                                                                  \\ \hline
-                create tag                                                           & \begin{tabular}[c]{@{}l@{}}git push \textless{}remote-name\textgreater \\ \textless{}tag-name\textgreater{}:\textless{}remote-tag-name\textgreater{}\end{tabular}                                                                               & \begin{tabular}[c]{@{}l@{}}A new reference \\ .git/refs/tags/\textless{}tag-name\textgreater \\ will be created.\\ For annotated tags only:\\ new tag-object also will be created\\ .git/objects/SHA{[}0,2{]}/SHA{[}2,40{]}\end{tabular}                  \\ \hline
-                delete tag                                                           & git push \textless{}remote-name\textgreater :\textless{}tag-name\textgreater{}                                                                                                                                                                  & \begin{tabular}[c]{@{}l@{}}The existing reference \\ .git/refs/tags/\textless{}tag-name\textgreater\\  will be removed.\\ For annotated tags:\\ tag-object won't be removed or updated\\ For lightweight tags:\\ tag-object doesn't exist\end{tabular}    \\ \hline
-                \begin{tabular}[c]{@{}l@{}}create ref\\ delete ref\end{tabular}      &                                                                                                                                                                                                                                                 & \begin{tabular}[c]{@{}l@{}}Reference is fully equal to branch,\\  it's just an alias.\end{tabular}                                                                                                                                                        \\ \hline
-                \begin{tabular}[c]{@{}l@{}}update branch\\ (new commit)\end{tabular} & git push                                                                                                                                                                                                                                        & \begin{tabular}[c]{@{}l@{}}New objects will be created \\ (commit, tree, etc.).\\ The existing reference \\ .git/refs/heads/\textless{}remote-branch-name\textgreater \\ will be updated.\\ It will start pointing \\ to to this new commit.\end{tabular} \\ \hline
-  \end{tabular}\label{tab:update-workflow}
-\end{table}
 
 \subsubsection{Git file storage internals}
 
 \textbullet\textbf{\large{ loose object storage}}\\
 
-As we metioned, a git repository take cares of several types of objects:
-\code{blob}, \code{tree}, \code{commit}, \code{tag}. Let's take a look at the details of object storage:\\
+As we mentioned, a git repository take cares of several types of objects:
+\code{blob}, \code{tree}, \code{commit}, \code{tag}.
+Let's take a look at the details of object storage:\\
 
-git default write the objects to directory \code{GIT\_DIR\footnote{the .git directory}/objects}.
-Each object is named by a sha1 value for example \emph{\code{b98191cf971f2418e42877410a6c40fc112a0a93}}\\
+git by default writes the objects to directory \code{GIT\_DIR\footnote{the .git directory}/objects}.
+Each object is named by a sha1 value, for example \emph{\code{b98191cf971f2418e42877410a6c40fc112a0a93}}\\
 it's storage path will be
 \begin{center}
 \emph{\code{GIT\_DIR/objects/b9/8191cf971f2418e42877410a6c40fc112a0a93}}
@@ -152,9 +269,11 @@ the compression level can be set by `\textbf{\code{core.compression}}' or `\text
 \textbullet\textbf{\large{ pack file storage}}\\
 
 When we do \emph{\code{git gc}} or \emph{\code{git repack}}, pack files with the suffix \code{.pack}
-maybe be created under directory \emph{\code{GIT\_DIR/objects/pack}}. A pack is a collection of objects,
+maybe be created under directory \emph{\code{GIT\_DIR/objects/pack}}.
+A pack is a collection of objects,
 individually compressed, with delta compression applied, stored in a single file, with an associated
-index file. Packs are used to reduce the load on mirror systems, backup engines, disk storage, etc.
+index file.
+Packs are used to reduce the load on mirror systems, backup engines, disk storage, etc.
 
 \begin{lstlisting}[basicstyle=\ttfamily]
 $ tree .git/objects/pack

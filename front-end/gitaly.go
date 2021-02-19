@@ -2,7 +2,7 @@
 // https://github.com/cqfn/degitx/blob/master/LICENSE
 
 // Package frontend provides a gitaly-like front-end server start point
-// and contains all all front-end specific code.
+// and contains all all front-end specific code
 package frontend
 
 import (

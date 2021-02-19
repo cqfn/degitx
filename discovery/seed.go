@@ -15,21 +15,24 @@ import (
 	"google.golang.org/grpc"
 )
 
-type grpcServer struct {
+// Seed host for discovery peers resolving
+type Seed interface {
+	Start(context.Context) error
+}
+
+type grpcSeed struct {
 	addr  net.Addr
 	peers *Peers
 }
 
-// NewGrpcServer for gRPC discovery protocol
-func NewGrpcServer(maddr ma.Multiaddr, node *locators.Node, peers *Peers) (Service, error) {
+// NewGrpcSeed for gRPC seed host
+func NewGrpcSeed(maddr ma.Multiaddr, node *locators.Node,
+	peers *Peers) (Seed, error) {
 	addr := new(MaNetworkAddr)
 	if err := addr.Parse(maddr); err != nil { //nolint:dupl // just parsing an address
 		return nil, err
 	}
-	srv := new(grpcServer)
-	srv.peers = peers
-	srv.addr = addr
-	return srv, nil
+	return &grpcSeed{addr, peers}, nil
 }
 
 type hostService struct {
@@ -61,10 +64,7 @@ func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingRe
 			return
 		}
 		updated := make(chan struct{})
-		if err := s.peers.Update(upd, updated); err != nil {
-			failure <- err
-			return
-		}
+		s.peers.update(upd, updated)
 		<-updated
 		rsp := new(pb.PingResponse)
 		rsp.Peers = make([]*pb.NodeCoord, len(s.peers.peers))
@@ -93,7 +93,7 @@ func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingRe
 	}
 }
 
-func (s *grpcServer) Start(ctx context.Context) error {
+func (s *grpcSeed) Start(ctx context.Context) error {
 	srv := grpc.NewServer()
 	svc := &hostService{ctx, s.peers}
 	pb.RegisterDiscoveryServiceServer(srv, svc)

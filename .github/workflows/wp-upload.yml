@@ -18,6 +18,11 @@ jobs:
         with:
           working_directory: ./white-paper
           root_file: wp.tex
+      - name: "Upload to temporary assetts"
+        uses: actions/upload-artifact@v2
+        with:
+          name: wp.pdf
+          path: "white-paper/wp.pdf"
       - name: Set env
         run: echo "SHA6=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
       - name: Upload to Artipie as latest

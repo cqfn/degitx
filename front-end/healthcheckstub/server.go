@@ -12,15 +12,16 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-/**
- * @todo #74 Implement health check
- * When all services will be ready, we shall remove this stub type & package
- * and implement real health check correctly: return SERVING only if checks passed.
+/*
+ * @todo #74:30min Implement health check
+ *  When all services will be ready, we shall remove this stub type & package
+ *  and implement real health check correctly: return SERVING only if checks passed.
  */
 type serverStub struct {
 	log *logging.Logger
 }
 
+// NewServer creates new HealthServer
 func NewServer(log *logging.Logger) healthpb.HealthServer {
 	return &serverStub{
 		log: log,
