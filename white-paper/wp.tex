@@ -388,10 +388,10 @@ administrator or used together:
     node private keys to be verified by the receiver using the CA public certificate.
     For optimization reasons, this protocol is reused by a metadata exchange protocol for
     repository hash table propagation (see~\ref{sec:metadata}). \todo{lookup for researches}.
-    There are two common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{bep 26}.~\cite{bittorrent}. todo:  Please, check this ref. (Check bittorent and zeroconf researches instead of URL links here)!!!!!
-    Bep 14 is SSDP-like style and Bep 26 is zeroconf style LDP. To implement Bep 26 each host is required to run a zeroconf service discovery daemon.
+    There are two common ways to implement LDP: \href{http://bittorrent.org/beps/bep_0014.html}{Bep 14} and \href{http://bittorrent.org/beps/bep_0026.html}{Bep 26} ~\cite{bittorrent}, ~\cite{carlsson2012longitudinal}. todo:  Please, check this ref. (Check bittorent and zeroconf researches instead of URL links here)!!!!!
+    Bep 14 is SSDP-like style and Bep 26 is zeroconf style LDP ~\cite{siddiqui2012zero}. To implement Bep 26 each host is required to run a zeroconf service discovery daemon.
     There is a popular \href{https://github.com/grandcat/zeroconf}{go zeroconf implementation} that could be used.
-    BitTorrent uses following multicast groups: A) \code{239.192.152.143:6771} (\href{https://tools.ietf.org/html/rfc2365#section-6.2}{org-local}) and B) \code{[ff15::efc0:988f]:6771} (\href{https://tools.ietf.org/html/rfc4291#section-2.5.7}{site-local}) for Bep 14 implementation.
+    BitTorrent uses the following multicast groups: A) \code{239.192.152.143:6771} (\href{https://tools.ietf.org/html/rfc2365#section-6.2}{org-local}) and B) \code{[ff15::efc0:988f]:6771} (\href{https://tools.ietf.org/html/rfc4291#section-2.5.7}{site-local}) for Bep 14 implementation.
     \begin{itemize}
       \item Site-Local scope is intended to span a single site.
       \item Organization-Local scope is intended to span multiple sites
@@ -605,7 +605,7 @@ There are two ways:
 Degitx is not an open peer-to-peer system
 where resource pooling without preexisting trusted relationships is possible.
 
-nodes aren't allowed to join,
+It means that untrusted nodes aren't allowed to join,
 and all network members are trusted not to cheat.
 
 To be sure that the node is trusted, its nodeId certificates should be signed by trusted CAs.
