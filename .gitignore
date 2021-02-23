@@ -20,3 +20,5 @@
 dist/**/*
 degitx
 degitx-gitaly
+/simulator/target/maven-status/maven-compiler-plugin/compile/default-cli/inputFiles.lst
+/simulator/simulator.iml
