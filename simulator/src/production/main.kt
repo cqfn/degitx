@@ -1,23 +1,26 @@
 package production
 
-import dgitx.Frontend
-import dgitx.RandomLoadBalancer
+import dgitx.Dgitx
 import git.PktLine
+import kotlinx.coroutines.runBlocking
+import wtf.g4s8.examples.configuration.Config
+import java.lang.Thread.sleep
 
 fun main() {
-    Frontend(
-            1,
-            RandomLoadBalancer(1)
-    )
-        .push(
-            "stepan/degitx",
-            setOf(
-                PktLine(
-                    "master",
-                    24,
-                    73
+    Config.cfg = Config.initConfig("simulator/resource/default_cfg.yml")
+    runBlocking {
+        Dgitx
+                .push(
+                        "stepan/degitx",
+                        setOf(
+                                PktLine(
+                                        "master",
+                                        0,
+                                        73
+                                )
+                        )
                 )
-            )
-        )
+    }
+    sleep(Long.MAX_VALUE)
 }
 

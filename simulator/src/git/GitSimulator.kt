@@ -11,7 +11,7 @@ class GitSimulator(private var hook: RefTxHook? = null): Git {
     private val storage = Repositories()
 
     override fun commit(repoId: RepositoryId, pktLines: Set<PktLine>, env: Scope) {
-        CoroutineScope(Dispatchers.Main.immediate).launch{
+        CoroutineScope(Dispatchers.Default).launch{
             Command(repoId, pktLines, env).apply()
         }
     }

@@ -49,7 +49,7 @@ class Backend(private  val serverId: Int, private val git: Git): Git by git, Res
                        synchronized(txs) {
                            txs[transactionId] = Tx(transactionId, State.ABORTED, channel)
                        }
-                       CoroutineScope(Dispatchers.Main.immediate).launch {
+                       CoroutineScope(Dispatchers.Default).launch {
                            propose(State.ABORTED, transactionId, env)
                        }
                    }
@@ -78,6 +78,7 @@ class Backend(private  val serverId: Int, private val git: Git): Git by git, Res
                 }
     }
 
+    //TODO avoid filter over map, for ex: map key could be a single value: "txId-serverid"
     private fun collectVotes(transactionId: TxID, env: Scope): Votes {
         return Votes(
                 serverId,

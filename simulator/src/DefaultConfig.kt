@@ -11,7 +11,3 @@ data class MetadataStorage(val fronts: FrontendNodes, val backs: BackendNodes)
 typealias FrontendNodes = Map<String, Frontend>
 typealias BackendNodes = Map<String, Frontend>
 
-fun dgitxInitScript() {
-    //IntStream.generate(nBackendNodes).mapToObj { e -> Node(e)  }
-}
-

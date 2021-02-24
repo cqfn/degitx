@@ -14,6 +14,6 @@ interface Resource {
 }
 data class Transaction(val ID: String, val scope: Scope)
 data class Scope(val acceptors: Set<Backend>, val TMs: List<Frontend>)
-data class Votes(val serverId: Int, val Table: Map<Backend, State>)
+data class Votes(val serverId: Int, val votes: Map<Backend, State>)
 typealias TxID = String
 

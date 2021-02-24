@@ -72,7 +72,7 @@
         <dependency>
             <groupId>com.github.stepanvalyavskiy</groupId>
             <artifactId>paxos-simulator</artifactId>
-            <version>5eb4372</version>
+            <version>3e43b27</version>
         </dependency>
     </dependencies>
 </project>
