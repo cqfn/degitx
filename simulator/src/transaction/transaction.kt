@@ -13,7 +13,11 @@ interface Resource {
     fun abort(id: TxID)
 }
 data class Transaction(val ID: String, val scope: Scope)
-data class Scope(val acceptors: Set<Backend>, val TMs: List<Frontend>)
+data class Scope(val acceptors: Set<Backend>, val tms: List<Frontend>) {
+    override fun toString(): String {
+        return "acceptors: {${acceptors.joinToString()}}\ntransaction managers: {${tms.joinToString()}}"
+    }
+}
 data class Votes(val serverId: Int, val votes: Map<Backend, State>)
 typealias TxID = String
 

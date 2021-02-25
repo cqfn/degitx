@@ -6,8 +6,8 @@ import transaction.TxID
 import java.util.concurrent.ConcurrentHashMap
 
 interface Git {
-    fun commit(repoId: RepositoryId, pktLines: Set<PktLine>, env: Scope)
-    fun setRefTxHook(hook: RefTxHook)
+    fun commit(repoId: RepositoryId, pktLines: PktLines, env: Scope)
+    fun withRefTxHook(hook: RefTxHook)
 }
 
 /**
@@ -21,29 +21,22 @@ interface RefTxHook {
     suspend fun invoke(status: TxStatus, transactionId: TxID, env: Scope) : Boolean
 }
 
-data class PktLine(val refName: GitRef, val compare: Blob, val swap: Blob) {
-    private val hashCode = StringBuilder()
-            .append(compare)
-            .append(swap)
-            .append(refName)
-            .toString()
-            .hashCode()
-
-    override fun hashCode() = hashCode
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as PktLine
-
-        if (refName != other.refName) return false
-        if (compare != other.compare) return false
-        if (swap != other.swap) return false
-
-        return true
+data class PktLine(val refName: GitRef, val oldValue: Blob, val newValue: Blob) {
+    override fun toString(): String {
+        return String.format("PKT-LINE (%05x %05x $refName)", oldValue, newValue)
     }
 }
+class PktLines(private val lines: Set<PktLine>) : Set<PktLine> by lines {
+    constructor(vararg l: PktLine) : this(setOf(*l))
+    override fun toString(): String {
+        return """
+            |----------------PKT-LINES---------------
+            |${this.joinToString(separator = "\n")}
+            |----------------FLUSH-PKT---------------
+            """.trimMargin()
+    }
+}
+enum class TxStatus() {PREPARED, ABORTED, COMMITTED}
 typealias GitRef = String
 typealias Blob = Int
 typealias Repository = ConcurrentHashMap<GitRef, Reference>
@@ -57,5 +50,3 @@ data class Reference(
         var tmpValue: Blob?,
         var isTemporal: Boolean = true
 )
-
-enum class TxStatus() {PREPARED, ABORTED, COMMITTED}

@@ -7,54 +7,56 @@ import kotlinx.coroutines.launch
 import transaction.Scope
 import transaction.TxID
 
-class GitSimulator(private var hook: RefTxHook? = null): Git {
+class GitSimulator(private val id: Int) : Git {
+    private var hook: RefTxHook? = null
     private val storage = Repositories()
 
-    override fun commit(repoId: RepositoryId, pktLines: Set<PktLine>, env: Scope) {
+    override fun commit(repoId: RepositoryId, pktLines: PktLines, env: Scope) {
         CoroutineScope(Dispatchers.Default).launch{
-            Command(repoId, pktLines, env).apply()
+            Command(repoId, pktLines, env)()
         }
     }
 
-    override fun setRefTxHook(hook: RefTxHook) {
+    override fun withRefTxHook(hook: RefTxHook) {
         this.hook = hook
     }
 
-    private inner class Command(val repoId: RepositoryId, val pktLines: Set<PktLine>, val env: Scope) {
+    private inner class Command(val repoId: RepositoryId, val pktLines: PktLines, val env: Scope) {
         private val newRefs = HashSet<GitRef>()
-        private val transactionId: TxID =
-                pktLines.sortedBy { it.refName }
-                        .map { it.hashCode().toString() }
-                        .joinToString(
-                                separator = "",
-                                prefix = "",
-                                postfix = repoId.hashCode().toString(),
-                                transform = {it}
-                        )
+        private val transactionId: TxID = txID()
+        private val logger = log.of(this)
 
-        suspend fun apply() {
-            if (pktLines.any { it.compare == it.swap }) return abort()
+        suspend operator fun invoke() {
+            //TODO remove this check after implementing uniqueness of the blob id
+            if (pktLines.any { it.oldValue == it.newValue }) return abort()
             if (storage[repoId] == null) {
+                logger.log("init new repository")
                 createNewRepo()
             } else {
+                logger.log("update existing repository")
                 update()
             }
         }
 
+        override fun toString(): String {
+            return "git-(txn:$transactionId, s:$id)"
+        }
+
         private suspend fun createNewRepo() {
-            if (pktLines.all { it.compare == 0 }) {
+            if (pktLines.all { it.oldValue == 0 }) {
                 val refs = pktLines.map {
                     Reference(
                             repoId = repoId,
                             name = it.refName,
                             lockedBy = transactionId,
-                            tmpValue = it.swap,
+                            tmpValue = it.newValue,
                     )
                 }.associateByTo(Repository()) { it.name }
 
                 val ok = synchronized(storage) {
                     val repo = storage[repoId]
                     if (repo != null) {
+                        logger.log("*concurrent* failed to init new repository `$repoId`. Already exist")
                         return@synchronized false
                     } else {
                         newRefs.addAll(refs.keys)
@@ -65,27 +67,32 @@ class GitSimulator(private var hook: RefTxHook? = null): Git {
                 if (!ok) return abort()
                 return update()
             } else {
+                logger.log("pkt-lines has not-null old-value, invalid for new repository:\n$pktLines")
                 return abort()
             }
         }
 
         private suspend fun update() {
-            val repo = storage[repoId]?: return abort()
+            val repo = storage[repoId]?: run {
+                logger.log("repository not found: $repoId")
+                return abort()
+            }
             pktLines.forEach {
-                if (it.compare  == 0) {
+                if (it.oldValue  == 0) {
                     val ok = synchronized(repo) {
                         val ref = repo[it.refName]?: run {
                             val tmp = Reference(
                                     repoId = repoId,
                                     name = it.refName,
                                     lockedBy = transactionId,
-                                    tmpValue = it.swap,
+                                    tmpValue = it.newValue,
                             )
                             newRefs.add(it.refName)
                             repo[it.refName] = tmp
                             return@run tmp
                         }
                         if (ref.lockedBy != transactionId) {
+                            logger.log("reference: ${ref.name} is already locked by ${ref.lockedBy}")
                             return@synchronized false
                         }
                         return@synchronized true
@@ -93,10 +100,20 @@ class GitSimulator(private var hook: RefTxHook? = null): Git {
                     if (!ok) return abort()
                 } else {
                     val ok = synchronized(repo) {
-                        val ref = repo[it.refName]?: return@synchronized false
-                        if (ref.value != it.compare || ref.lockedBy != "") return@synchronized false
+                        val ref = repo[it.refName]?: run {
+                            logger.log("reference ${it.refName} with not null old-value: ${it.oldValue} not found in repository: $repoId")
+                            return@synchronized false
+                        }
+                        if (ref.value != it.oldValue) {
+                            logger.log("comparison failed: expected old-value{${it.oldValue}} actual{${ref.value}}")
+                            return@synchronized false
+                        }
+                        if (ref.lockedBy != "") {
+                            logger.log("reference: ${ref.name} is already locked by ${ref.lockedBy}")
+                            return@synchronized false
+                        }
                         ref.lockedBy = transactionId
-                        ref.tmpValue = it.swap
+                        ref.tmpValue = it.newValue
                         return@synchronized  true
                     }
                     if (!ok) return abort()
@@ -146,5 +163,21 @@ class GitSimulator(private var hook: RefTxHook? = null): Git {
                     }
             hook?.invoke(TxStatus.COMMITTED, transactionId, env)
         }
+
+        /**
+         * A set of pkt-lines compose an unique txID
+         * while two different pushes can never contain
+         * a pkt-line with the same newValue (@todo not yet implemented in simulator)
+         * new value is a blob id and it can't be same for multiple commiters
+         */
+        //TODO better hashCode & remove postfix
+        private fun txID() = pktLines.sortedBy { it.refName }
+                .map { it.hashCode().toString() }
+                .joinToString(
+                        separator = "",
+                        prefix = "",
+                        postfix = repoId.hashCode().toString(),
+                        transform = { it }
+                )
     }
 }

@@ -1,22 +1,22 @@
 package dgitx
 
-import git.PktLine
-import nFrontendNodes
+import git.PktLines
+import log.Log
 import java.util.*
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.function.Function
 import java.util.stream.Collectors
 import java.util.stream.IntStream
 import kotlin.collections.HashMap
 
 
 interface LoadBalancer {
-    fun push(repo: RepositoryId, data: Set<PktLine>)
+    fun push(repo: RepositoryId, data: PktLines)
 }
 
 typealias RepositoryId = String
 typealias NodeId = Int
-val exec = Executors.newCachedThreadPool()
+val exec: ExecutorService = Executors.newCachedThreadPool()
 
 
 object Dgitx : LoadBalancer {
@@ -39,9 +39,19 @@ object Dgitx : LoadBalancer {
                     )
     val repositoryToNodes = HashMap<RepositoryId, Set<Backend>>()
 
-    override fun push(repo: RepositoryId, data: Set<PktLine>) {
-        transactionManagers[random.nextInt(transactionManagers.size)]!!
-                .push(repo, data)
+    override fun push(repo: RepositoryId, data: PktLines) {
+        val redirectTmId = random.nextInt(transactionManagers.size)
+        val lb = transactionManagers[redirectTmId]
+        logRequest(repo, data, lb!!)
+        lb.push(repo, data)
+    }
+
+    private fun logRequest(repo: RepositoryId, data: PktLines, lb: Frontend) {
+        Log.logf(""" 
+                |Degitx: push request to `$repo` received
+                |$data
+                |redirecting to $lb
+                """.trimMargin())
     }
 }
 

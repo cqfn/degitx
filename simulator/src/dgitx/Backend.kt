@@ -18,45 +18,58 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 class Backend(private  val serverId: Int, private val git: Git): Git by git, Resource, PxAcceptor {
+    private val logger = log.of(this)
     private val txs = HashMap<TxID, Tx>()
     private data class AcceptorId(val txId: TxID, val serverId: Int)
     private val acceptors = ConcurrentHashMap<AcceptorId, Acceptor<State>>()
 
-    constructor(serverId: Int) : this(serverId, GitSimulator())
+    constructor(serverId: Int) : this(serverId, GitSimulator(serverId))
 
     init {
-        git.setRefTxHook(MeatHook())
+        git.withRefTxHook(MeatHook())
     }
 
     override fun commit(id: TxID) {
-        runBlocking {txs[id]!!.chan.send(true)}
+        logger.log("commit-msg for txn:$id received")
+        runBlocking { txs[id]!!.chan?.send(true) }
+        synchronized(txs) { txs.remove(id) }
     }
 
     override fun abort(id: TxID) {
-        runBlocking {txs[id]!!.chan.send(false)}
+        logger.log("abort-msg for txn:$id received")
+        runBlocking { txs[id]!!.chan?.send(false) }
+        synchronized(txs) { txs.remove(id) }
+    }
+
+    override fun toString(): String {
+        return "Backend Node-$serverId"
     }
 
     private inner class MeatHook: RefTxHook {
+        private val logger = log.of(this)
         override suspend fun invoke(status: TxStatus, transactionId: TxID, env: Scope): Boolean {
-            val channel = Channel<Boolean>()
             when(status) {
                 TxStatus.COMMITTED -> {
-                    env.TMs[0].finish(transactionId, this@Backend)
+                    logger.log("TRANSACTION $transactionId COMMITTED \n Notify ${env.tms[0]}")
+                    env.tms[0].finish(transactionId, this@Backend)
                     return true
                 }
                 TxStatus.ABORTED -> {
+                    logger.log("TRANSACTION $transactionId ABORTED")
                    if (!txs.contains(transactionId)) {
                        synchronized(txs) {
-                           txs[transactionId] = Tx(transactionId, State.ABORTED, channel)
+                           txs[transactionId] = Tx(transactionId, State.ABORTED, null)
                        }
                        CoroutineScope(Dispatchers.Default).launch {
                            propose(State.ABORTED, transactionId, env)
                        }
                    }
-                    env.TMs[0].finish(transactionId, this@Backend)
+                    env.tms[0].finish(transactionId, this@Backend)
                    return true
                 }
                 TxStatus.PREPARED -> {
+                    logger.log("TRANSACTION $transactionId PREPARED\n ALL REFERENCE ARE LOCKED")
+                    val channel = Channel<Boolean>()
                     synchronized(txs) {
                         txs[transactionId] = Tx(transactionId, State.PREPARED, channel)
                     }
@@ -65,20 +78,32 @@ class Backend(private  val serverId: Int, private val git: Git): Git by git, Res
                 }
             }
         }
+
+        override fun toString(): String {
+            return "refTxHook-(s:$serverId)"
+        }
     }
 
-    private class Tx(val id: TxID, val descision: State, val chan: Channel<Boolean>)
+    private class Tx(val id: TxID, val decision: State, val chan: Channel<Boolean>?)
 
     private fun propose(state: State, transactionId: TxID, env: Scope) {
         Proposer(serverId, transactionId, env.acceptors.toList()).propose(state)
                 .thenApplyAsync {
-                    env.TMs[0].begin(
-                            Transaction(transactionId, env), collectVotes(transactionId, env)
+                    val votes = collectVotes(transactionId, env)
+                    logger.log("""
+                        |send votes for $transactionId 
+                        |{
+                        |${votes.votes.map { "acc:$serverId for paxos instance on:${it.key} vote: ${it.value}" }
+                            .joinToString(separator = "\n")}
+                        |}
+                        """.trimMargin())
+                    env.tms[0].begin(
+                            Transaction(transactionId, env), votes
                     )
                 }
     }
 
-    //TODO avoid filter over map, for ex: map key could be a single value: "txId-serverid"
+    //TODO avoid filter over map, for ex: map key could be a single value: "txId-serverId"
     private fun collectVotes(transactionId: TxID, env: Scope): Votes {
         return Votes(
                 serverId,

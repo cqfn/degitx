@@ -1,6 +1,6 @@
 package dgitx
 
-import git.PktLine
+import git.PktLines
 import nReplicas
 import transaction.Scope
 import java.util.*
@@ -12,11 +12,13 @@ private val rmBound = Dgitx.resourceManagers.size
 private val tmBound = Dgitx.transactionManagers.size
 
 class RandomLoadBalancer(private val id: NodeId) : LoadBalancer {
+    private val logger = log.of(this)
 
-    override fun push(repo: RepositoryId, data: Set<PktLine>) {
+    override fun push(repo: RepositoryId, data: PktLines) {
         val tms = primaryWithRandomSecondaryTm()
         val replicas = Dgitx.repositoryToNodes[repo]?: randomBackendNodes()
         val scope = Scope(replicas, tms)
+        logger.log("transaction scope prepared:\n$scope\nredirect to backend nodes")
         replicas.forEach {
             it.commit(repo, data, scope)
         }
@@ -40,4 +42,8 @@ class RandomLoadBalancer(private val id: NodeId) : LoadBalancer {
                 .limit(nReplicas)
                 .mapToObj { Dgitx.resourceManagers[it]!! }
                 .collect(Collectors.toUnmodifiableSet())
+
+    override fun toString(): String {
+        return "Load Balancer on Node-$id"
+    }
 }
