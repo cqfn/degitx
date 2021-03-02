@@ -18,7 +18,7 @@ interface Git {
  * so to not compute it twice, i pass already computed id here.
  */
 interface RefTxHook {
-    suspend fun invoke(status: TxStatus, transactionId: TxID, env: Scope) : Boolean
+    suspend fun invoke(status: TxStatus, transactionId: TxID, env: Scope): Boolean
 }
 
 data class PktLine(val refName: GitRef, val oldValue: Blob, val newValue: Blob) {
@@ -26,8 +26,10 @@ data class PktLine(val refName: GitRef, val oldValue: Blob, val newValue: Blob) 
         return String.format("PKT-LINE (%05x %05x $refName)", oldValue, newValue)
     }
 }
+
 class PktLines(private val lines: Set<PktLine>) : Set<PktLine> by lines {
     constructor(vararg l: PktLine) : this(setOf(*l))
+
     override fun toString(): String {
         return """
             |----------------PKT-LINES---------------
@@ -36,17 +38,18 @@ class PktLines(private val lines: Set<PktLine>) : Set<PktLine> by lines {
             """.trimMargin()
     }
 }
-enum class TxStatus() {PREPARED, ABORTED, COMMITTED}
+
+enum class TxStatus { PREPARED, ABORTED, COMMITTED }
 typealias GitRef = String
 typealias Blob = Int
 typealias Repository = ConcurrentHashMap<GitRef, Reference>
 typealias Repositories = ConcurrentHashMap<RepositoryId, Repository>
 
 data class Reference(
-        val repoId: RepositoryId,
-        val name: GitRef,
-        var lockedBy: TxID,
-        var value: Blob = 0,
-        var tmpValue: Blob?,
-        var isTemporal: Boolean = true
+    val repoId: RepositoryId,
+    val name: GitRef,
+    var lockedBy: TxID,
+    var value: Blob = 0,
+    var tmpValue: Blob?,
+    var isTemporal: Boolean = true
 )

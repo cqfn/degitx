@@ -15,22 +15,22 @@ fun main() {
     val rand = Random()
     runBlocking {
         Dgitx
-                .push(
-                        "stepan/degitx",
-                        PktLines(
-                                PktLine(
-                                        "master",
-                                        0,
-                                        rand.nextInt(0x100000)
-                                ),
-                                PktLine(
-                                        "experimental",
-                                        0,
-                                        rand.nextInt(0x100000)
-                                )
+            .push(
+                "stepan/degitx",
+                PktLines(
+                    PktLine(
+                        "master",
+                        0,
+                        rand.nextInt(0x100000)
+                    ),
+                    PktLine(
+                        "experimental",
+                        0,
+                        rand.nextInt(0x100000)
+                    )
 
-                        )
                 )
+            )
     }
     sleep(Long.MAX_VALUE)
 }

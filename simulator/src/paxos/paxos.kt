@@ -20,6 +20,7 @@ interface Proposal : Comparable<Proposal> {
     fun update(bal: Ballot)
 }
 
+typealias PaxosId = Int
 typealias Ballot = Int
 data class Px1A(val proposal: Proposal)
 data class Px1B(val accepted: Proposal, val vote: State) //val max: Ballot,

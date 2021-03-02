@@ -1,6 +1,7 @@
 package transaction
 
 import dgitx.*
+import dgitx.frontend.Frontend
 import paxos.State
 
 interface Manager {

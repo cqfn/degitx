@@ -12,7 +12,7 @@ class GitSimulator(private val id: Int) : Git {
     private val storage = Repositories()
 
     override fun commit(repoId: RepositoryId, pktLines: PktLines, env: Scope) {
-        CoroutineScope(Dispatchers.Default).launch{
+        CoroutineScope(Dispatchers.Default).launch {
             Command(repoId, pktLines, env)()
         }
     }
@@ -34,22 +34,18 @@ class GitSimulator(private val id: Int) : Git {
                 createNewRepo()
             } else {
                 logger.log("update existing repository")
-                update()
+                updateRepo()
             }
-        }
-
-        override fun toString(): String {
-            return "git-(txn:$transactionId, s:$id)"
         }
 
         private suspend fun createNewRepo() {
             if (pktLines.all { it.oldValue == 0 }) {
                 val refs = pktLines.map {
                     Reference(
-                            repoId = repoId,
-                            name = it.refName,
-                            lockedBy = transactionId,
-                            tmpValue = it.newValue,
+                        repoId = repoId,
+                        name = it.refName,
+                        lockedBy = transactionId,
+                        tmpValue = it.newValue,
                     )
                 }.associateByTo(Repository()) { it.name }
 
@@ -65,27 +61,27 @@ class GitSimulator(private val id: Int) : Git {
                     }
                 }
                 if (!ok) return abort()
-                return update()
+                return updateRepo()
             } else {
                 logger.log("pkt-lines has not-null old-value, invalid for new repository:\n$pktLines")
                 return abort()
             }
         }
 
-        private suspend fun update() {
-            val repo = storage[repoId]?: run {
+        private suspend fun updateRepo() {
+            val repo = storage[repoId] ?: run {
                 logger.log("repository not found: $repoId")
                 return abort()
             }
             pktLines.forEach {
-                if (it.oldValue  == 0) {
+                if (it.oldValue == 0) {
                     val ok = synchronized(repo) {
-                        val ref = repo[it.refName]?: run {
+                        val ref = repo[it.refName] ?: run {
                             val tmp = Reference(
-                                    repoId = repoId,
-                                    name = it.refName,
-                                    lockedBy = transactionId,
-                                    tmpValue = it.newValue,
+                                repoId = repoId,
+                                name = it.refName,
+                                lockedBy = transactionId,
+                                tmpValue = it.newValue,
                             )
                             newRefs.add(it.refName)
                             repo[it.refName] = tmp
@@ -100,7 +96,7 @@ class GitSimulator(private val id: Int) : Git {
                     if (!ok) return abort()
                 } else {
                     val ok = synchronized(repo) {
-                        val ref = repo[it.refName]?: run {
+                        val ref = repo[it.refName] ?: run {
                             logger.log("reference ${it.refName} with not null old-value: ${it.oldValue} not found in repository: $repoId")
                             return@synchronized false
                         }
@@ -114,7 +110,7 @@ class GitSimulator(private val id: Int) : Git {
                         }
                         ref.lockedBy = transactionId
                         ref.tmpValue = it.newValue
-                        return@synchronized  true
+                        return@synchronized true
                     }
                     if (!ok) return abort()
                 }
@@ -134,19 +130,19 @@ class GitSimulator(private val id: Int) : Git {
 
         private suspend fun abort() {
             storage[repoId]?.let { repo ->
-                newRefs.forEach{
+                newRefs.forEach {
                     repo.remove(it)
                 }
                 repo.values.filter { it.lockedBy == transactionId }
-                        .forEach {
-                            it.tmpValue = null
-                            it.lockedBy = ""
-                        }
+                    .forEach {
+                        it.tmpValue = null
+                        it.lockedBy = ""
+                    }
             }
             synchronized(storage) {
                 storage[repoId]?.let { repo ->
                     synchronized(repo) {
-                        if (repo.isEmpty() ) storage.remove(repoId)
+                        if (repo.isEmpty()) storage.remove(repoId)
                     }
                 }
             }
@@ -155,12 +151,12 @@ class GitSimulator(private val id: Int) : Git {
 
         private suspend fun commit() {
             storage[repoId]!!.values
-                    .filter { it.lockedBy == transactionId }
-                    .forEach {
-                        it.value = it.tmpValue!!
-                        it.isTemporal = false
-                        it.lockedBy = ""
-                    }
+                .filter { it.lockedBy == transactionId }
+                .forEach {
+                    it.value = it.tmpValue!!
+                    it.isTemporal = false
+                    it.lockedBy = ""
+                }
             hook?.invoke(TxStatus.COMMITTED, transactionId, env)
         }
 
@@ -172,12 +168,16 @@ class GitSimulator(private val id: Int) : Git {
          */
         //TODO better hashCode & remove postfix
         private fun txID() = pktLines.sortedBy { it.refName }
-                .map { it.hashCode().toString() }
-                .joinToString(
-                        separator = "",
-                        prefix = "",
-                        postfix = repoId.hashCode().toString(),
-                        transform = { it }
-                )
+            .map { it.hashCode().toString() }
+            .joinToString(
+                separator = "",
+                prefix = "",
+                postfix = repoId.hashCode().toString(),
+                transform = { it }
+            )
+
+        override fun toString(): String {
+            return "git-(txn:$transactionId, s:$id)"
+        }
     }
 }

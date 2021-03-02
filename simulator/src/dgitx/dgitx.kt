@@ -1,10 +1,11 @@
 package dgitx
 
+import dgitx.frontend.Frontend
+import dgitx.frontend.RandomLoadBalancer
 import git.PktLines
+import kotlinx.coroutines.Job
 import log.Log
 import java.util.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.stream.Collectors
 import java.util.stream.IntStream
 import kotlin.collections.HashMap
@@ -16,27 +17,31 @@ interface LoadBalancer {
 
 typealias RepositoryId = String
 typealias NodeId = Int
-val exec: ExecutorService = Executors.newCachedThreadPool()
-
 
 object Dgitx : LoadBalancer {
     private val random: Random = Random()
     val transactionManagers: Map<NodeId, Frontend> =
-            IntStream.rangeClosed(0, 2)
-                    .boxed()
-                    .collect(
-                            Collectors.toMap(
-                                    { id -> id },
-                                    {Frontend(it, RandomLoadBalancer(it))})
-                    )
+        IntStream.rangeClosed(0, 2)
+            .boxed()
+            .collect(
+                Collectors.toMap(
+                    { id -> id },
+                    {
+                        Frontend(
+                            it,
+                            RandomLoadBalancer(it),
+                            Job()
+                        )
+                    })
+            )
     val resourceManagers: Map<NodeId, Backend> =
-            IntStream.rangeClosed(0, 2)
-                    .boxed()
-                    .collect(
-                            Collectors.toMap(
-                                    { id -> id },
-                                    {Backend(it)})
-                    )
+        IntStream.rangeClosed(0, 2)
+            .boxed()
+            .collect(
+                Collectors.toMap(
+                    { id -> id },
+                    { Backend(it, Job()) })
+            )
     val repositoryToNodes = HashMap<RepositoryId, Set<Backend>>()
 
     override fun push(repo: RepositoryId, data: PktLines) {
@@ -47,11 +52,13 @@ object Dgitx : LoadBalancer {
     }
 
     private fun logRequest(repo: RepositoryId, data: PktLines, lb: Frontend) {
-        Log.logf(""" 
+        Log.logf(
+            """ 
                 |Degitx: push request to `$repo` received
                 |$data
                 |redirecting to $lb
-                """.trimMargin())
+                """.trimMargin()
+        )
     }
 }
 
