@@ -23,6 +23,7 @@ class RandomLoadBalancer(private val id: NodeId) : LoadBalancer {
         val scope = Scope(replicas, tms)
         logger.log("transaction scope prepared:\n$scope\nredirect to backend nodes")
         replicas.forEach {
+            logger.message("CompareAndSwap", it)
             it.commit(repo, data, scope)
         }
     }
@@ -47,6 +48,6 @@ class RandomLoadBalancer(private val id: NodeId) : LoadBalancer {
             .collect(Collectors.toUnmodifiableSet())
 
     override fun toString(): String {
-        return "Load Balancer on Node-$id"
+        return "LB-$id"
     }
 }

@@ -1,5 +1,6 @@
 package dgitx.backend
 
+import dgitx.BNode
 import git.Git
 import git.RefTxHook
 import git.TxStatus
@@ -17,8 +18,10 @@ class Backend(
     private val git: Git,
     private val txs: MutableMap<TxID, Tx>,
     private val runningAcceptors: ConcurrentHashMap<AcceptorId, Acceptor<State>>,
-    private val resourceManager: ResourceManager
+    private val resourceManager: ResourceManager,
+    private val cancel: CompletableJob
 ) :
+    BNode,
     Git by git,
     Resource by resourceManager,
     PxAcceptor by acceptor {
@@ -33,6 +36,7 @@ class Backend(
             when (status) {
                 TxStatus.COMMITTED -> {
                     logger.log("TRANSACTION $transactionId COMMITTED \n Notify ${env.tms[0]}")
+                    logger.message("TxFinish", env.tms[0])
                     env.tms[0].finish(transactionId, this@Backend)
                     return true
                 }
@@ -42,10 +46,11 @@ class Backend(
                         synchronized(txs) {
                             txs[transactionId] = Tx(transactionId, State.ABORTED, null)
                         }
-                        CoroutineScope(Dispatchers.Default).launch {
+                        CoroutineScope(Dispatchers.Default).launch(cancel) {
                             propose(State.ABORTED, transactionId, env)
                         }
                     }
+                    logger.message("TxFinish", env.tms[0])
                     env.tms[0].finish(transactionId, this@Backend)
                     return true
                 }
@@ -84,6 +89,7 @@ class Backend(
                 }
                         |}
                         """.trimMargin())
+                logger.message("TxBegin", env.tms[0])
                 env.tms[0].begin(
                     Transaction(transactionId, env), votes
                 )
@@ -106,5 +112,9 @@ class Backend(
 
     override fun toString(): String {
         return "Backend Node-$serverId"
+    }
+
+    override fun disaster() {
+        logger.log("is crashproof")
     }
 }

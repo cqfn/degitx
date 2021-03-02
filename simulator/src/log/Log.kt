@@ -2,16 +2,16 @@ package log
 
 import java.util.concurrent.atomic.AtomicInteger
 
-enum class Level{MESSAGE, ALL}
+enum class Level { PAXOS, OVER_NETWORK, ALL }
 
 interface Logger {
     fun log(msg: String)
-    fun logf(fmt: String, vararg args: Any)
-    fun message(msg: String)
-    fun messagef(fmt: String, vararg args: Any)
+    fun message(msg: String, to: Any)
+    fun paxos(msg: String)
 }
 
-val nMsg: AtomicInteger = AtomicInteger(1)
+val nMsg: AtomicInteger = AtomicInteger(0)
+val nPaxos: AtomicInteger = AtomicInteger(0)
 
 object Log : Logger {
     override fun log(msg: String) {
@@ -20,48 +20,43 @@ object Log : Logger {
         }
     }
 
-    override fun logf(fmt: String, vararg args: Any) {
-        if (Config.logLevel == Level.ALL) {
-            System.out.printf("$fmt\n", *args)
+    override fun message(msg: String, to: Any) {
+        if (Config.logLevel == Level.OVER_NETWORK) {
+            nMsg.incrementAndGet()
+            println("$msg   To::[$to])")
         }
     }
 
-    override fun message(msg: String) {
-        nMsg.incrementAndGet()
+    override fun paxos(msg: String) {
+        nPaxos.incrementAndGet()
         println(msg)
-    }
-
-    override fun messagef(fmt: String, vararg args: Any) {
-        nMsg.incrementAndGet()
-        System.out.printf("$fmt\n", *args)
     }
 
 }
 
 class Prefixed(private val prefix: String) : Logger {
     override fun log(msg: String) {
-        if (Config.logLevel == Level.ALL) {
-            println("$prefix: $msg")
-        }
+        Log.log("$prefix: $msg")
     }
 
-    override fun logf(fmt: String, vararg args: Any) {
-        if (Config.logLevel == Level.ALL) {
-            System.out.printf("$prefix: $fmt\n", *args)
-        }
+    override fun message(msg: String, to: Any) {
+        Log.message("$msg   (From::$prefix", to)
     }
 
-    override fun message(msg: String) {
-        nMsg.incrementAndGet()
-        println("$prefix: $msg")
+    override fun paxos(msg: String) {
+        Log.paxos("$prefix: $msg")
     }
 
-    override fun messagef(fmt: String, vararg args: Any) {
-        nMsg.incrementAndGet()
-        System.out.printf("$prefix: $fmt\n", *args)
-    }
 }
 
 fun of(source: Any): Logger {
     return Prefixed(source.toString())
+}
+
+fun count(type: Level) {
+    when(type) {
+        Level.OVER_NETWORK -> println("Total messages sent over network by Degitx: ${nMsg.get()}")
+        Level.PAXOS -> println("Total messages sent over network by Paxos: ${nPaxos.get()}")
+        Level.ALL -> {}
+    }
 }

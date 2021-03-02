@@ -1,9 +1,10 @@
 package dgitx.frontend
 
-import dgitx.backend.Backend
+import dgitx.BNode
+import dgitx.FNode
 import dgitx.LoadBalancer
 import dgitx.NodeId
-import kotlinx.coroutines.CompletableJob
+import log.Level
 import transaction.Manager
 import transaction.Transaction
 import transaction.TxID
@@ -11,7 +12,8 @@ import transaction.VotesFromNode
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.system.exitProcess
 
-class Frontend(val id: NodeId, private val lb: LoadBalancer, val job: CompletableJob) : Manager, LoadBalancer by lb {
+class Frontend(val id: NodeId, private val lb: LoadBalancer) : FNode, Manager, LoadBalancer by lb {
+    private val logger = log.of(this)
     private val activeTxs = ConcurrentHashMap<TxID, TransactionManager>()
 
     override fun begin(txn: Transaction, votes: VotesFromNode) {
@@ -25,11 +27,13 @@ class Frontend(val id: NodeId, private val lb: LoadBalancer, val job: Completabl
         tm.collect(votes)
     }
 
-    override fun finish(txID: TxID, resourceManager: Backend) {
+    override fun finish(txID: TxID, resourceManager: BNode) {
         activeTxs[txID]?.finish(resourceManager)
     }
 
-    internal fun transactionReady(txID: TxID) {
+    override fun transactionReady(txID: TxID) {
+        logger.message("NotifyClient", "Client")
+        log.count(Level.OVER_NETWORK)
         synchronized(activeTxs) {
             activeTxs.remove(txID)
             exitProcess(0)
@@ -38,5 +42,9 @@ class Frontend(val id: NodeId, private val lb: LoadBalancer, val job: Completabl
 
     override fun toString(): String {
         return "Frontend node-$id"
+    }
+
+    override fun disaster() {
+        logger.log("is crashproof")
     }
 }

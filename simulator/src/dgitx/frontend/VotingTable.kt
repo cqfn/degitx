@@ -1,6 +1,6 @@
 package dgitx.frontend
 
-import dgitx.backend.Backend
+import dgitx.BNode
 import paxos.PaxosId
 import paxos.State
 
@@ -10,7 +10,7 @@ import paxos.State
  * Every RM sends only its votes for all PaxosInstances, so by every beginTx message,
  * at most one vote for every PaxosInstance would be filled.
  */
-class VotingTable(voters: Set<Backend>) {
+class VotingTable(voters: Set<BNode>) {
     private val table = voters
         .groupBy { it.id() }
         .mapValues { (k, _) -> PaxosInstanceVotes(k, voters) }

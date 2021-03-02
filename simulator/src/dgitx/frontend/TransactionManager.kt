@@ -1,13 +1,14 @@
 package dgitx.frontend
 
-import dgitx.backend.Backend
+import dgitx.BNode
+import dgitx.FNode
 import paxos.State
 import transaction.Transaction
 import transaction.VotesFromNode
 import java.util.concurrent.atomic.AtomicInteger
 
 //TODO check for duplicate messages
-class TransactionManager(private val txn: Transaction, private val frontend: Frontend) {
+class TransactionManager(private val txn: Transaction, private val frontend: FNode) {
     private val logger = log.of(this)
     private val ready = AtomicInteger()
     private val voted = AtomicInteger()
@@ -25,7 +26,7 @@ class TransactionManager(private val txn: Transaction, private val frontend: Fro
     }
 
     //TODO check for duplicate messages
-    fun finish(resourceManager: Backend) {
+    fun finish(resourceManager: BNode) {
         if (ready.incrementAndGet().also {
                 logger.log("[$it]finish-msg txn:${txn.ID} from $resourceManager received")
             } == 3) {
@@ -39,11 +40,17 @@ class TransactionManager(private val txn: Transaction, private val frontend: Fro
         when (table.toState()) {
             State.PREPARED -> {
                 logger.log("decided to COMMIT txn:${txn.ID}")
-                txn.scope.acceptors.forEach { it.commit(txn.ID) }
+                txn.scope.acceptors.forEach {
+                    logger.message("TxCommit", it)
+                    it.commit(txn.ID)
+                }
             }
             State.ABORTED -> {
                 logger.log("decided to ABORT txn:${txn.ID}")
-                txn.scope.acceptors.forEach { it.abort(txn.ID) }
+                txn.scope.acceptors.forEach {
+                    logger.message("TxAbort", it)
+                    it.abort(txn.ID)
+                }
             }
             State.UNKNOWN -> {
             }

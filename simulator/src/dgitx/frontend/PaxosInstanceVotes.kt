@@ -1,6 +1,6 @@
 package dgitx.frontend
 
-import dgitx.backend.Backend
+import dgitx.BNode
 import dgitx.NodeId
 import paxos.PaxosId
 import paxos.State
@@ -8,7 +8,7 @@ import paxos.State
 /**
  * PaxosInstance represents all votes for single paxos instance mapped to voter's id.
  */
-class PaxosInstanceVotes(private val id: PaxosId, acceptors: Set<Backend>) {
+class PaxosInstanceVotes(private val id: PaxosId, acceptors: Set<BNode>) {
     private val votes: MutableMap<NodeId, State> = acceptors
         .groupBy { it.id() }
         .mapValuesTo(HashMap(), { (_, _) -> State.UNKNOWN })

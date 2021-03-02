@@ -1,18 +1,19 @@
 package git
 
 import dgitx.RepositoryId
+import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import transaction.Scope
 import transaction.TxID
 
-class GitSimulator(private val id: Int) : Git {
+class GitSimulator(private val id: Int, private val cancel: CompletableJob) : Git {
     private var hook: RefTxHook? = null
     private val storage = Repositories()
 
     override fun commit(repoId: RepositoryId, pktLines: PktLines, env: Scope) {
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.Default).launch(cancel) {
             Command(repoId, pktLines, env)()
         }
     }
