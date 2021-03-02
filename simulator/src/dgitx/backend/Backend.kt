@@ -91,8 +91,8 @@ class Backend(
     }
 
     //TODO avoid filter over map, for ex: map key could be a single value: "txId-serverId"
-    private fun collectVotes(transactionId: TxID, env: Scope): Votes {
-        return Votes(
+    private fun collectVotes(transactionId: TxID, env: Scope): VotesFromNode {
+        return VotesFromNode(
             serverId,
             runningAcceptors.filter { it.key.txId == transactionId }
                 .map {

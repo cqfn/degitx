@@ -3,7 +3,7 @@ package dgitx.frontend
 import dgitx.backend.Backend
 import paxos.State
 import transaction.Transaction
-import transaction.Votes
+import transaction.VotesFromNode
 import java.util.concurrent.atomic.AtomicInteger
 
 //TODO check for duplicate messages
@@ -13,7 +13,7 @@ class TransactionManager(private val txn: Transaction, private val frontend: Fro
     private val voted = AtomicInteger()
     private val table: VotingTable = VotingTable(txn.scope.acceptors)
 
-    fun collect(votes: Votes) {
+    fun collect(votes: VotesFromNode) {
         votes.votes.forEach {
             table[it.key.id()][votes.serverId] = it.value
         }

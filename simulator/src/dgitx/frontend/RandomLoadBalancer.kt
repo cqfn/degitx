@@ -42,7 +42,7 @@ class RandomLoadBalancer(private val id: NodeId) : LoadBalancer {
     private fun randomBackendNodes() =
         random.ints(0, Dgitx.resourceManagers.size)
             .distinct()
-            .limit(Config.nReplicas)
+            .limit(Config.nReplicas.toLong())
             .mapToObj { Dgitx.resourceManagers[it]!! }
             .collect(Collectors.toUnmodifiableSet())
 

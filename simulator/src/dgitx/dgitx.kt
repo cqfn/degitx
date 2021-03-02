@@ -29,7 +29,7 @@ typealias NodeId = Int
 object Dgitx : LoadBalancer {
     private val random: Random = Random()
     val transactionManagers: Map<NodeId, Frontend> =
-        IntStream.rangeClosed(0, 2)
+        IntStream.range(0, Config.nFrontendNodes)
             .boxed()
             .collect(
                 Collectors.toMap(
@@ -43,7 +43,7 @@ object Dgitx : LoadBalancer {
                     })
             )
     val resourceManagers: Map<NodeId, Backend> =
-        IntStream.rangeClosed(0, 2)
+        IntStream.range(0, Config.nBackendNodes)
             .boxed()
             .collect(
                 Collectors.toMap(

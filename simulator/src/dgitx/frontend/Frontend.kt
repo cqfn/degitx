@@ -7,14 +7,14 @@ import kotlinx.coroutines.CompletableJob
 import transaction.Manager
 import transaction.Transaction
 import transaction.TxID
-import transaction.Votes
+import transaction.VotesFromNode
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.system.exitProcess
 
 class Frontend(val id: NodeId, private val lb: LoadBalancer, val job: CompletableJob) : Manager, LoadBalancer by lb {
     private val activeTxs = ConcurrentHashMap<TxID, TransactionManager>()
 
-    override fun begin(txn: Transaction, votes: Votes) {
+    override fun begin(txn: Transaction, votes: VotesFromNode) {
         val tm = activeTxs[txn.ID] ?: synchronized(activeTxs) {
             val empty = activeTxs[txn.ID]
             if (empty != null) return@synchronized empty

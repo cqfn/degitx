@@ -5,7 +5,7 @@ import dgitx.frontend.Frontend
 import paxos.State
 
 interface Manager {
-    fun begin(txn: Transaction, votes: Votes)
+    fun begin(txn: Transaction, votes: VotesFromNode)
     fun finish(txID: TxID, resourceManager: Backend)
 }
 
@@ -19,6 +19,6 @@ data class Scope(val acceptors: Set<Backend>, val tms: List<Frontend>) {
         return "acceptors: {${acceptors.joinToString()}}\ntransaction managers: {${tms.joinToString()}}"
     }
 }
-data class Votes(val serverId: Int, val votes: Map<Backend, State>)
+data class VotesFromNode(val serverId: Int, val votes: Map<Backend, State>)
 typealias TxID = String
 
