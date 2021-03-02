@@ -1,6 +1,6 @@
 package dgitx.frontend
 
-import dgitx.Backend
+import dgitx.backend.Backend
 import paxos.PaxosId
 import paxos.State
 
@@ -13,7 +13,7 @@ import paxos.State
 class VotingTable(voters: Set<Backend>) {
     private val table = voters
         .groupBy { it.id() }
-        .mapValues { (k, _) -> PaxosInstance(k, voters) }
+        .mapValues { (k, _) -> PaxosInstanceVotes(k, voters) }
 
     fun toState(): State {
         val states = table.values
@@ -30,7 +30,7 @@ class VotingTable(voters: Set<Backend>) {
     private fun atLeastOneAborted(states: Map<State, Int>) = states.containsKey(State.ABORTED)
     private fun allPrepared(states: Map<State, Int>) = states[State.PREPARED] == table.size
 
-    operator fun get(id: PaxosId): PaxosInstance {
+    operator fun get(id: PaxosId): PaxosInstanceVotes {
         return table[id]!!
     }
 

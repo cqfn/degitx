@@ -1,7 +1,6 @@
-package dgitx
+package dgitx.backend
 
 import git.Git
-import git.GitSimulator
 import git.RefTxHook
 import git.TxStatus
 import kotlinx.coroutines.*
@@ -9,42 +8,23 @@ import kotlinx.coroutines.channels.Channel
 import paxos.PxAcceptor
 import paxos.State
 import transaction.*
-import wtf.g4s8.examples.configuration.Config
 import wtf.g4s8.examples.spaxos.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicReference
 
-class Backend(private val serverId: Int, val job: CompletableJob, private val git: Git) : Git by git, Resource,
-    PxAcceptor {
-    private val logger = log.of(this)
-    private val txs = HashMap<TxID, Tx>()
-    private val exec = Executors.newCachedThreadPool()
-
-    private data class AcceptorId(val txId: TxID, val serverId: Int)
-
-    private val acceptors = ConcurrentHashMap<AcceptorId, Acceptor<State>>()
-
-    constructor(serverId: Int, job: CompletableJob) : this(serverId, job, GitSimulator(serverId))
+class Backend(
+    private val acceptor: AcceptorManager,
+    private val serverId: Int,
+    private val git: Git,
+    private val txs: MutableMap<TxID, Tx>,
+    private val runningAcceptors: ConcurrentHashMap<AcceptorId, Acceptor<State>>,
+    private val resourceManager: ResourceManager
+) :
+    Git by git,
+    Resource by resourceManager,
+    PxAcceptor by acceptor {
 
     init {
         git.withRefTxHook(MeatHook())
-    }
-
-    override fun commit(id: TxID) {
-        logger.log("commit-msg for txn:$id received")
-        runBlocking { txs[id]!!.chan?.send(true) }
-        synchronized(txs) { txs.remove(id) }
-    }
-
-    override fun abort(id: TxID) {
-        logger.log("abort-msg for txn:$id received")
-        runBlocking { txs[id]!!.chan?.send(false) }
-        synchronized(txs) { txs.remove(id) }
-    }
-
-    override fun toString(): String {
-        return "Backend Node-$serverId"
     }
 
     private inner class MeatHook : RefTxHook {
@@ -86,7 +66,10 @@ class Backend(private val serverId: Int, val job: CompletableJob, private val gi
         }
     }
 
-    private class Tx(val id: TxID, val decision: State, val chan: Channel<Boolean>?)
+    data class AcceptorId(val txId: TxID, val serverId: Int)
+    class Tx(val id: TxID, val decision: State, val channel: Channel<Boolean>?)
+
+    private val logger = log.of(this)
 
     private fun propose(state: State, transactionId: TxID, env: Scope) {
         Proposer(serverId, transactionId, env.acceptors.toList()).propose(state)
@@ -111,7 +94,7 @@ class Backend(private val serverId: Int, val job: CompletableJob, private val gi
     private fun collectVotes(transactionId: TxID, env: Scope): Votes {
         return Votes(
             serverId,
-            acceptors.filter { it.key.txId == transactionId }
+            runningAcceptors.filter { it.key.txId == transactionId }
                 .map {
                     Pair(
                         env.acceptors.first { acc -> acc.id() == it.key.serverId },
@@ -121,45 +104,7 @@ class Backend(private val serverId: Int, val job: CompletableJob, private val gi
         )
     }
 
-    override fun id(): Int {
-        return serverId
-    }
-
-
-    override fun prepare(txId: String?, prop: Proposal?, callback: Acceptor.PrepareCallback<State>?) {
-        val acc = acceptor(txId, prop)
-        acc.prepare(prop, callback)
-    }
-
-    override fun accept(txId: String?, prop: Proposal?, value: State?, callback: Acceptor.AcceptCallback<State>?) {
-        val acc = acceptor(txId, prop)
-        acc.accept(prop, value, callback)
-    }
-
-    private fun acceptor(txId: String?, prop: Proposal?): Acceptor<State> {
-        val id = AcceptorId(txId!!, prop!!.server)
-        return acceptors[id] ?: run {
-            val tmp = startNewAcc(txId)
-            acceptors[id] = tmp
-            return@run tmp
-        }
-    }
-
-    private fun startNewAcc(txId: String): Acceptor<State> {
-        var acc: Acceptor<State> = InMemoryAcceptor(
-            AtomicReference(State.UNKNOWN),
-            serverId,
-            txId
-        )
-        if (Config.cfg.withDrops) {
-            acc = DropAcceptor(Config.cfg.dropRate, acc)
-        }
-        if (Config.cfg.withTimeout) {
-            acc = TimeoutAcceptor(Config.cfg.timeoutMilliseconds, acc)
-        }
-        if (Config.cfg.async) {
-            acc = AsyncAcceptor(exec, acc)
-        }
-        return acc
+    override fun toString(): String {
+        return "Backend Node-$serverId"
     }
 }

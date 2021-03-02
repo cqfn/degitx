@@ -1,6 +1,6 @@
 package transaction
 
-import dgitx.*
+import dgitx.backend.Backend
 import dgitx.frontend.Frontend
 import paxos.State
 

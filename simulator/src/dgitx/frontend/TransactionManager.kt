@@ -1,6 +1,6 @@
 package dgitx.frontend
 
-import dgitx.Backend
+import dgitx.backend.Backend
 import paxos.State
 import transaction.Transaction
 import transaction.Votes

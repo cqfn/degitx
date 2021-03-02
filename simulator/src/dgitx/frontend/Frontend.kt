@@ -1,6 +1,6 @@
 package dgitx.frontend
 
-import dgitx.Backend
+import dgitx.backend.Backend
 import dgitx.LoadBalancer
 import dgitx.NodeId
 import kotlinx.coroutines.CompletableJob
@@ -13,7 +13,6 @@ import kotlin.system.exitProcess
 
 class Frontend(val id: NodeId, private val lb: LoadBalancer, val job: CompletableJob) : Manager, LoadBalancer by lb {
     private val activeTxs = ConcurrentHashMap<TxID, TransactionManager>()
-    private val logger = log.of(this)
 
     override fun begin(txn: Transaction, votes: Votes) {
         val tm = activeTxs[txn.ID] ?: synchronized(activeTxs) {
@@ -30,7 +29,7 @@ class Frontend(val id: NodeId, private val lb: LoadBalancer, val job: Completabl
         activeTxs[txID]?.finish(resourceManager)
     }
 
-    fun transactionReady(txID: TxID) {
+    internal fun transactionReady(txID: TxID) {
         synchronized(activeTxs) {
             activeTxs.remove(txID)
             exitProcess(0)

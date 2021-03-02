@@ -10,7 +10,6 @@ import java.lang.Thread.sleep
 import java.util.*
 
 fun main() {
-//    sleep(Long.MAX_VALUE)
     Config.cfg = Config.initConfig("simulator/resource/default_cfg.yml")
     val rand = Random()
     runBlocking {
