@@ -40,8 +40,8 @@
   (todo: add references  J. Gray and L. Lamport, “Consensus on transaction commit).
   Three phase commit (3PC) claims to be more fault-tolerant comparing to 2PC but it still have a path to become
   inconsistent. On the other hand, it's much faster comparing to Paxos commit and uses fewer messages to perform a
-  transaction. We need to evaluate this path and estimate how critical it could be for managing distributed
-  git repository and what's the probability of this case in real life.
+  transaction (todo: add numbers of messages for each protocol) We need to evaluate this path and estimate how critical
+  it could be for managing distributed git repository and what's the probability of this case in real life.
 \end{abstract}
 
 \maketitle
