@@ -58,6 +58,48 @@ The 3PC protocol fixes this problem by introducing new kind of message: ``prepar
 this message, the secondary TM will abort the transaction if at least one RM is not in ``prepared to commit'' state
 (todo: describe more verbosly).
 
+Let's define a metrics to compare these two algorithms:
+\begin{enumerate}
+  \item Message delays - the number of total messages round-trips between nodes
+  \item Message count - the number of messages sent in the system to commit the transacion
+  \item Message model - what kind of message model does the algorithm support: synchronous, partially
+    synchronous or asynchronous
+  \item Fault tolerance - the number of nodes that may fail and keep the system working
+  \item Complexity - the number of modules on deployments requires for transaction management
+\end{enumerate}
+
+Paxos commit protocol with co-located acceptor nodes (acceptors are deployed to same node as a RM),
+has two versions: just a ``Paxos commit'' and ``Faster Paxos commit''; the difference between them
+is in balance between message delays and message count: faster version has fewer message delays
+but requires more messages to be sent. The formulas for Paxos commit were taken from the
+consensus-on-transaction-commit (todo: add cite) paper. Paxos commit requires 5 message delays,
+and $N(N+3)-3$ messages to commit the transaction; faster version requires 4 delays, and
+$(N-1)(2F+3)$ messages; both versions works in partially-synchronous (P-S) network model,
+can tolerate $F$ number of failures, this number should be less than $(N/2)+1$ and it affects
+messages count; and it requires 4 components for deployment: RM, TM, and one Paxos instance per
+RM deployment (co-located version), where each deployment consists of one proposer and $N$ acceptors.
+
+The comparison of these three protocols
+are presented at~figure~\ref{fig:compare-3pc-pc-fpc}, where $N$ is a number of nodes, and $F$ is a number of
+failures that system can tolerate.
+
+\begin{figure}
+  \begin{tabular}{r | l | l | l | l | l}
+    Protocol & Delays & Count & Model & Fault tolerance & Complexity \\
+    \hline
+    PC  & 5 & $N(F+3)-3$    & P-S & $F>N/2+1$ & 4   \\
+    \hline
+    FPC & 4 & $(N-1)(2F+3)$ & --- & --- & --- \\
+    \hline
+    3PC & todo & todo & todo & todo & todo \\
+    \hline
+  \end{tabular}
+  \caption{
+    Comparing 3PC with Paxos-commit and Faster Paxos-commit
+  }\label{fig:compare-3pc-pc-fpc}
+\end{figure}
+
+
 \section{Related works}
 
 (todo: describe 3PC papers, paxos-commit about 3PC).
