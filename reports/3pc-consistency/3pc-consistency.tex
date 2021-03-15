@@ -1,0 +1,92 @@
+\documentclass[acmlarge, screen, nonacm]{acmart}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+  \hypersetup{colorlinks=true,allcolors=blue!40!black}
+\setlength{\topskip}{6pt}
+\setlength{\parindent}{0pt} % indent first line
+\setlength{\parskip}{6pt} % before par
+
+\title{Three phase commit consistency evaluation for git repository replication}
+
+\author{Ilya Moskvitin}
+\email{TODO: put your email address here}
+
+\author{Kirill Chernyavskiy}
+\email{g4s8.public@gmail.com}
+
+\acmBooktitle{none}
+\acmConference{none}
+\editor{none}
+
+\begin{document}
+
+\begin{abstract}
+  For git repository replication distributed system we need to use atomic
+  commit implementation based on git reference transaction hooks (todo: add reference to previous report).
+  There are three most popular implementations: two-phase commit (2PC), three-phase commit (3PC),
+  and Paxos commit protocols. 2PC protocol is not really fault tolerant, since it may turn storage
+  replicas into inconsistent state in case of transaction manager (TM) failure. Paxos-commit is a fault-tolerant
+  version of transaction commit protocol. But it pays for fault-tolerance by sending much more messages via network
+  for distributing the resource manager (RM) votes: \texttt{3N - 3} messages for 2PC vs
+  \texttt{(N - 1)(2F + 3)} messages for Paxos commit co-located faster version (where N is number of nodes,
+  and F is a number of tolerated faults)
+  (todo: add references  J. Gray and L. Lamport, “Consensus on transaction commit).
+  Three phase commit (3PC) claims to be more fault-tolerant comparing to 2PC but it still have a path to become
+  inconsistent. On the other hand, it's much faster comparing to Paxos commit and uses fewer messages to perform a
+  transaction (todo: add numbers of messages for each protocol) We need to evaluate this path and estimate how critical
+  it could be for managing distributed git repository and what's the probability of this case in real life.
+\end{abstract}
+
+\maketitle
+
+\section{Problem}
+
+3PC was introduced by (todo: add authors and initial publication). The motivation of creating 3PC was to fix
+a problem with 2PC, which can not recover from some kind of failures. For instance, if a TM receives a ``prepared''
+message from all RMs, decides to commit, and sends a ``commit'' message to one of the RM (let's say RM1),
+and the crashes, the secondary TM can be started in another network region which can't access RM1 to continue the transaction,
+and this secondary TM will not be able to access RM1 and decides to abort the transaction by sending ``abort'' message
+to RMs except RM1, then RMs will have different state after the transaction.
+The 3PC protocol fixes this problem by introducing new kind of message: ``prepared to commit''. If TM fails before sending
+this message, the secondary TM will abort the transaction if at least one RM is not in ``prepared to commit'' state
+(todo: describe more verbosly).
+
+\section{Related works}
+
+(todo: describe 3PC papers, paxos-commit about 3PC).
+
+\section{Solution}
+
+3PC could be used as a distributed commit protocol for git transactions. (todo: add diagrams).
+\begin{itemize}
+  \item Client pushes new changes to coordinator node
+  \item Coordinator sends these changes to all RMs
+  \item Each RM starts applying these changes and calls reference-transaction hook process with the result (prepared
+    in case if transaction was validated and can be applied; aborted otherwise).
+  \item Hook calls RM process with a decicion and waits for the signal from RM.
+  \item (todo: explain 3PC here)
+  \item RM notifies the hook process to continue with decided by TM status
+  \item Hook exits with specified status: 0 - for success, 1 - for abort
+  \item Git finish transaction if the hook exited with 0 status, or cancel it on abort; after that it
+    calls hook again to notify completion
+  \item Hook notify RM process about transaction finish
+  \item RM notifies TM coordinator about finish transaction
+\end{itemize}
+
+To evaluate the 3PC protocol in this workflow, we've created a $TLA_{+}$ model and checker
+(todo: create the model, add to appendix).
+
+It shows that 3PC in git repository transaction could be broken by these paths: (todo: describe paths).
+
+\section{Conclusion}
+
+(todo: analyze the result of paths and show the risks how it affects git repository consistency.)
+
+\end{document}
