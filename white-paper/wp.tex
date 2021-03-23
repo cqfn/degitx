@@ -28,7 +28,7 @@
 \date{\small\today}
 \title[DeGit white paper]{[DRAFT] White-paper: DeGit - distributed git repository manager}
 \definecolor{tikz-block}{HTML}{232527}
-\tikzset{node distance=1.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
+\tikzset{node distance=0.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
 \tikzstyle{block} = [draw=tikz-block, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
 \tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
 \tikzstyle{O} = [circle, draw, every text node part/.style={align=center, font={\sffamily\small}}]
@@ -638,29 +638,252 @@ There was no such place to cover all write operation, and new
 \emph{\href{https://github.com/git/git/commit/675415976704459edaf8fb39a176be2be0f403d8}{reference transaction hook}}
 was introduced by the Gitaly team.
 
-It was designed to implement a voting mechanism,
-so two-phase commit protocol (2PC)~\cite{two-phase_commit_protocol},
-three-phase commit protocol (3PC)~\cite{three-phase_commit_protocol}
-much better than Raft or Paxos here.
-Git itself is also a system for which Raft or Paxos doesn't fit well.
-It's unclear how to implement log and local state machine over git.
-In these algorithms, replicas should apply any value proposed by a leader, but git could deny some updates.
-Atomic commit algorithms care precisely about this problem, and it includes voting, which allows git servers to check if they can apply the proposed value.
+The git itself has an internal transaction mechanism and hooks to manage it, the workflow for git transaction is:
+\begin{enumerate}
+  \item Git receives a pack to apply
+  \item Git begins a new transaction and locks references for new update by writing to a lock-file
+  \item Git performs checks that the pack could be applied by validatin it and comparing locked references ---
+    new reference-update should fit well into git tree
+  \item In case if validation passed successfully, git calls reference-transaction hook with \code{prepared}
+    message and passes references hash-sums as parameters; if the pack could not be applied, then git
+    calls this hook with \code{aborted} message.
+  \item If hook exited successfully after prepare (with \code{0} exit code), then git commit the transaction,
+    calls reference transaction hook with \code{commited} message unlock references by removing lock-file; in other case,
+    if the hook decided to exit with error (using non-zero exit code), then git aborts the transaction,
+    removes prepared changes, calls hook with \code{aborted} message and unlock the reference.
+\end{enumerate}
 
-So this hook couldn't be integrated with Raft or Paxos but can provide strong consistency via
-atomic commit algorithm such as 2PC\@.
+This workflow allows to control the transaction flow by introducing transaction manager (TM):
+we can handle \code{prepared} ad \code{aborted} states and send it to the TM, then wait for response with a
+decision, if the TM decides to commit the prepared transaction, the we continue prepared transaction hook
+and exit it with zero status, otherwise, if the TM decides to abort the transaction, we exit from prepared state
+with error code making the local git transaction aborted.
 
-The hook also provides a lock mechanism on set of refs tha should be updated in current transaction,
-so it is possible to handle multiple updates to different independent sets of refs inside one repo simultaneously.
-It means that several branches could be updated parallel without locking each other.
+This scenario fits into districuted atomic commit protocol, where we run git transaction hook on each replica back-ends
+and collect votes (prepared or aborted messages) on the front-end: the front-end node acts as a transaction manager (TM)
+in this scheme and back-end replicas as a resource managers (RM). The workflow of the distributed transaction will be:
+\begin{enumerate}
+    \item The front-end sends a git-pack to all back-end storages
+    \item The git repository on each back-end node calls reference-transaction hook, sends the vote to the RM
+      of the node, and waits until a signal from the RM
+    \item The RM module on each back-end node broadcasts the vote from the hook to the TM
+    \item If all RMs are prepared (TM receives prepared votes from each RM), then the TM decides to commit,
+      and sends commit message to each RM. Otherwise, if any of the RM aborted (TM receives at least one aborted vote),
+      then it decides to abort the transaction and sends abort message to each RM
+    \item Each RM receives the decision from TM. If the decision is \code{commit}, then RM signals to reference-transaction
+      hook to continue; if the decision is \code{abort}, then the RM signals to transaction hook to exit with error code.
+    \item If hook continued with zero-code, then git applies the transaction and makes it visible to git repository;
+      If it exited with error code, then git revert this transaction. In any case, git unlock the reference
+\end{enumerate}
 
-The transaction starts right before a user attempts to write new refs.
-It means that it doesn't block all writes while someone is pushing a payload.
-Objects are uploaded asynchronously, and only reference updates are synchronised and
-locked. Git uses content-addressable
-data storage~\todo{REF add link to the patent ``Content-addressable data storage'' number US009830345B1---Patent with this number is not found!!!!! I found another patent: https://patents.google.com/patent/US8560503B1/en , Please check!!!!}
-it means that data update in such kind of storage can't modify old data, only append new data, so we can safely
-upload blob objects asynchronously to all replicas without conflicts.
+\emph{NOTE: git repository may contain other git hooks, such as \code{pre-receive}, \code{post-receive}, etc.
+These hooks may contains some code which should be performed only once, e.g. sending a email. It means that
+only one replica node should execute this hook, so the front-end node should send a flag to one random node
+to make it hooks-executable. The hooks-executable node runs all git hooks in proper order, these hooks
+may affect reference transaction status, e.g. if \code{pre-receive} hook fails, then the transaction will be aborted,
+so hooks status affects the whole transaction, since if hooks-executable node fails, then the TM decides to abort.}
+
+To make the system fault-tolerant, we need to have secondary TMs and distributed voting system for RMs.
+Paxos-commit~\cite{consensus-on-transaction-commit} solves this problem by introducing Paxos-simple
+consensus algorithm for RMs voting: each RM has a ``proposer'' module to broadcast the vote to ``acceptors'',
+making the vote available after the crash of RM or TM. For optimization reasons, the ``acceptor''s could be
+deployed to the same back-end nodes as RMs.
+
+The successfully transaction flow could be described in 14 steps, see~\ref{fig:transaction-flow-diagram}
+and~\ref{fig:transaction-seq-diagram} for visualisation. These diagrams includes one actor (e.g. Gitlab
+workhorse or shell) --- somebody who's sending git pack to the DeGitX front-end; two deployments:
+DeGitX front-end and back-end nodes, the transaction may be performed on different deployment's scale,
+but it's recommended to have one primary front-end for actor communication, one secondary to perform
+transaction management in case of primary failure, and three back-ends for resource management.
+The front-end deployment consist of two primary modules:
+\begin{itemize}
+  \item[LB] Load balancer redirects the traffic for git pack uploading to back-end nodes' endpoints,
+    chooses hooks executable node.
+  \item[TM] Transaction manager resonsible for managing the transaction state, collect votes from
+    resource managers and make decision when to commit or abort the transaction.
+\end{itemize}
+Back-end deployment has five primary components related to transaction handling:
+\begin{itemize}
+  \item[git] git processor, it could be separate git executable process or gitlib library.
+  \item[hook] git reference transaction hook trigered at reference transaction state changes,
+    responsible for communication with RM and waiting for signals from RM to continue or abort the
+    transaction.
+  \item[RM] Resource manager receives transaction notification updates from hook, uses
+    Paxos-commit protocol to broadcast git transaction changes to acceptors, begin the transaction
+    using TM, handle transaction commands from TM to commit or abort the transaction,
+    notify TM on finish.
+  \item[Proposer] part of Paxos-commit protocol, propose RM votes to all acceptors
+    in transaction scope, broadcasts the vote to acceptors on other nodes. Each RM has
+    it's own Paxos-instance embedded into transaction scope. Proposer on each back-end node
+    propagates votes only for associated RM.
+  \item[Acceptor] each back-end node manages a set of acceptors for each Paxos instance in
+    scope of current transaction. E.g. if a transaction has 3 Paxos instances (3 RM with associated
+    proposers), then each back-end node has 3 acceptors for each instance.
+\end{itemize}
+
+The flow steps are:
+\begin{enumerate}
+    %1
+    \item Actor sends git pack to the front-end, the request is handled by load balancer.
+    %2
+    \item Load balancer gets back-end nodes for git repository in the request, chooses
+      hooks executable node, and sends the request to each node. The front-end attaches the metadata
+      related to the transaction scope, such as acceptor addresses and secondary TM nodes.
+    %3
+    \item Back end node receives git pack and pass it to git component to process it.
+      Git applies changes and starts a new transaction, if references could be updated,
+      then git changing the transaction state into \code{prepared}, locks references using lock-file,
+      and calls transaction-hook with \code{prepared} message and references to be updated.
+    %4
+    \item Hook uses reference hash-sums as transaction ID, send it to RM as a vote, and blocks
+      git execution until the signal from the RM.
+    %5
+    \item RM uses the vote from hook to broadcast it to all Paxos instances in this transaction.
+      It asks a proposer to distribute a vote value to all acceptors.
+    %6
+    \item Proposer connects to all acceptors and perform Paxos-simple flow starting with 2A message
+      to accept a vote as value (first stage is not needed at the beginning, since we always have
+      the only proposer for Paxos instance).
+    %7
+    \item When the value successfully proposed, the proposer notifies the RM.
+    %8
+    \item RM sync votes state with the acceptors for each Paxos instance located at the same node,
+      and gets the voting table for transaction voting (with RM id as rows and acceptor id as columns).
+    %9
+    \item RM begins a transaction on TM, since it can't be sure that transaction for this particular
+      transaction ID was started alreay --- TM doesn't know the transaction ID prior to first \code{begin}
+      call from RM. RM attaches voting table into the begin-transaction message to update transaction state
+      on TM. If the front attaches a secondary TM node, then RM duplicates this message to each secondary TM.
+    %10
+    \item TM receives a begin call. If it's a first message received for this transaction ID, it starts a transaction
+      and saves voting table received from RM as initial transaction state. It waits for other RMs to send the
+      begin call, unti the table will be full enough: if TM has a quorum of ``prepared'' votes for each RM,
+      then TM sends a ``commit'' message to each RM; If TM finds in table that at least one RM has a quorum
+      of ``abort'' votes, then it sends an ``abort'' message to each RM.
+    %11
+    \item RM receives the TM decision: either ``commit'' or ``abort'' and notifies git reference-transaction
+      hook with ``continue'' or ``error'' signals repspectively.
+    %12
+    \item If hook receives ``continue'' signal from RM, it continue execution and exit from prepare state
+      with success zero status, then git commit the reference-transaction;
+      in case of ``error'' signal, hook exits with error code and git aborts the transaction.
+    %13
+    \item Git commits or abort the reference transaction locally and call the hook on complete with
+      \code{commited} or \code{aborted} repspectively.
+    %14
+    \item Hook notifies RM that transaction finished and immediately exit
+    %15
+    \item RM notifies TM that the transaction was finished.
+    %16
+    \item TM waits for all RM to finish transaction, and sends the response to the actor with success or error
+      code based on final transaction decision (commited or aborted).
+\end{enumerate}
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}[
+        wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=4.7cm, minimum height=1.2cm},
+        half-wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1.2cm},
+        group-node/.style={rectangle, draw=gray, inner sep=0.6cm}
+      ]
+      %    FE            BE
+      % [  lb  ]    [git] [hook]
+      % [  tm  ]    [    rm    ]
+      %             [prop] [acc]
+
+      % fron-end node
+      \node[wide-block]         (lb)                            {Load balancer};
+      \node[wide-block]         (tm)    [below=of lb]           {Transaction manager};
+      % back-end node
+      \node[half-wide-block]    (git)   [right=of lb, xshift=1.5cm] {git};
+      \node[half-wide-block]    (hook)  [right=of git]          {hook};
+      \node[wide-block]         (rm)    [right=of tm, xshift=1.5cm] {Resource manager};
+      \node[half-wide-block]    (prop)  [below=of rm, xshift=-1.35cm] {Proposer};
+      \node[half-wide-block]    (acc)   [right=of prop]         {Acceptor};
+      \node[group-node]         (fe)    [fit=(lb)(tm), label={Front-ends}] {};
+      \node[group-node]         (be)    [fit=(git)(hook)(rm)(prop)(acc), label={Back-ends}] {};
+      % flow
+      \draw[->]         ($(lb.west)+(-1.6,0)$)          -- node[above] {1}      (lb.west);
+      \draw[->]         (lb)                            -- node {2}             (git);
+      % \draw[->]         ($(git.east)+(0,0.2)$)          -- node[above] {3}      ($(hook.west)+(0,0.2)$);
+      \draw[->]         ($(git.north)+(0,0)$)          ..
+            controls ($(git.north)+(0.7,0.7)$) and ($(hook.north)+(-0.7,0.7)$)
+                                                        .. node[below] {3}      ($(hook.north)+(0,0)$);
+      \draw[->]         ($(hook.south)+(-0.7,0)$)       -- node[right] {4}      ++(0,-0.6);
+      \draw[->]         ($(rm.south)+(-1.5,0)$)         -- node[left] {5}       ++(0,-0.6);
+      \draw[<->]        (prop.east)                     -- node[above] {6}      (acc.west);
+      \draw[->]         ($(rm.south)+(-1.1,-0.6)$)      -- node[right] {7}      ($(rm.south)+(-1.1,0)$);
+      \draw[<->]        ($(rm.south)+(1.3,0)$)          -- node[right] {8}      ++(0,-0.6);
+      \draw[->]         ($(rm.west)+(0,-0.3)$)          ..
+            controls ($(rm.west)+(-0.7,-0.7)$) and ($(tm.east)+(0.7,-0.7)$)
+                                                        .. node[above] {9}      ($(tm.east)+(0,-0.3)$);
+      \draw[->]         (tm.east)                       -- node[above] {10}     (rm.west);
+      \draw[->]         ($(hook.south)+(0,-0.6)$)       -- node[right] {11}     ($(hook.south)+(0,0)$);
+      \draw[->]         ($(hook.west)+(0,0.2)$)         -- node[above] {12}     ($(git.east)+(0,0.2)$);
+      \draw[->]         ($(git.east)+(0,-0.2)$)         -- node[below] {13}     ($(hook.west)+(0,-0.2)$);
+      \draw[->]         ($(hook.south)+(0.7,0)$)        -- node[right] {14}     ++(0,-0.6);
+      \draw[->]         ($(rm.west)+(0,0.3)$)           ..
+            controls ($(rm.west)+(-0.7,0.7)$) and ($(tm.east)+(0.7,0.7)$)
+                                                        .. node[above] {15}     ($(tm.east)+(0,0.3)$);
+      \draw[->]         (tm.west)                       -- node[above] {16}     ($(tm.west)+(-1.6,0)$);
+    \end{tikzpicture}
+  \end{center}
+  \caption{
+  }\label{fig:transaction-flow-diagram}
+\end{figure}
+
+
+\begin{figure}
+  \begin{center}
+    \adjustbox{scale=1,center}{%
+      \begin{tikzpicture}
+        \begin{umlseqdiag}
+          \umlactor[no ddots]{CLI}
+          \umlobject[no ddots, x=2]{LB}
+          \umlobject[no ddots, x=4]{TM}
+          \umlobject[no ddots, x=6]{git}
+          \umlobject[no ddots, x=8]{hook}
+          \umlobject[no ddots, x=10]{RM}
+          \umlobject[no ddots, x=12]{Proposer}
+          \umlobject[no ddots, x=14]{Acceptor}
+          \begin{umlcall}[type=asynchron, op=1]{CLI}{LB}
+            \begin{umlcall}[op=2, return={2'}]{LB}{git}
+            \end{umlcall}
+            \begin{umlcall}[op=3, return=12]{git}{hook}
+              \begin{umlcall}[op=4, type=asynchron]{hook}{RM}
+                \begin{umlcall}[op=5, type=asynchron]{RM}{Proposer}
+                  \begin{umlcall}[op=6]{Proposer}{Acceptor}
+                  \end{umlcall}
+                  \begin{umlcall}[op=7, type=asynchron]{Proposer}{RM}
+                  \end{umlcall}
+                \end{umlcall}
+                \begin{umlcall}[op=8, dt=5, return={8'}]{RM}{Acceptor}
+                \end{umlcall}
+                \begin{umlcall}[op=9, type=asynchron]{RM}{TM}
+                \end{umlcall}
+                \begin{umlcall}[op=10, type=asynchron]{TM}{RM}
+                \end{umlcall}
+                \begin{umlcall}[op=11, type=asynchron]{RM}{hook}
+                \end{umlcall}
+              \end{umlcall}
+            \end{umlcall}
+            \begin{umlcall}[op=13, return={13'}]{git}{hook}
+              \begin{umlcall}[op=14, type=asynchron]{hook}{RM}
+              \end{umlcall}
+            \end{umlcall}
+            \begin{umlcall}[op=15, type=asynchron, dt=7]{RM}{TM}
+            \end{umlcall}
+            \begin{umlcall}[op=16, type=asynchron]{TM}{CLI}
+            \end{umlcall}
+          \end{umlcall}
+        \end{umlseqdiag}
+      \end{tikzpicture}
+    }
+  \end{center}
+  \caption{
+    Transaction commit sequence diagram
+  }\label{fig:transaction-seq-diagram}
+\end{figure}
 
 \include{explanation}
 
