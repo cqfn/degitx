@@ -3,7 +3,7 @@ package dgitx.frontend
 import dgitx.BNode
 import dgitx.FNode
 import dgitx.RepositoryId
-import git.PktLines
+import git.PktFile
 import kotlinx.coroutines.CompletableJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +29,7 @@ class AsyncFrontend(private val origin: FNode, private val cancel: CompletableJo
         }
     }
 
-    override fun push(repo: RepositoryId, data: PktLines) {
+    override fun push(repo: RepositoryId, data: PktFile) {
         CoroutineScope(Dispatchers.Default).launch(cancel) {
             origin.push(repo, data)
         }

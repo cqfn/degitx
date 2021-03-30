@@ -1,6 +1,7 @@
 package dgitx.backend
 
 import dgitx.NodeId
+import dgitx.frontend.TransactionManager
 import paxos.PxAcceptor
 import paxos.State
 import wtf.g4s8.examples.configuration.Config
@@ -9,8 +10,14 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicReference
 
+/**
+ * AcceptorsManager launch new [Acceptor] for every [transaction.Transaction].
+ * It stores working [Acceptor] for all actives [transaction.Transaction].
+ * It redirects [TxAcceptor.prepare] and [TxAcceptor.accept] to corresponding [Acceptor]
+ * that doesnt know transaction related information.
+ */
 //TODO rewrite java code
-class AcceptorManager(
+class AcceptorsManager(
     private val serverId: NodeId,
     private val runningAcceptors: ConcurrentHashMap<Backend.AcceptorId, Acceptor<State>>,
     private val exec: ExecutorService

@@ -2,7 +2,7 @@ package dgitx.backend
 
 import dgitx.BNode
 import dgitx.RepositoryId
-import git.PktLines
+import git.PktFile
 import git.RefTxHook
 import kotlinx.coroutines.*
 import paxos.State
@@ -16,7 +16,7 @@ class AsyncBackend(private val origin: BNode, private val cancel: CompletableJob
         cancel.cancel()
     }
 
-    override fun commit(repoId: RepositoryId, pktLines: PktLines, env: Scope) {
+    override fun commit(repoId: RepositoryId, pktLines: PktFile, env: Scope) {
         CoroutineScope(Dispatchers.Default).launch(cancel) {
             origin.commit(repoId, pktLines, env)
         }

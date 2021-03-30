@@ -12,8 +12,11 @@ import transaction.*
 import wtf.g4s8.examples.spaxos.*
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * see[BNode]
+ */
 class Backend(
-    private val acceptor: AcceptorManager,
+    private val acceptors: AcceptorsManager,
     private val serverId: Int,
     private val git: Git,
     private val txs: MutableMap<TxID, Tx>,
@@ -24,7 +27,7 @@ class Backend(
     BNode,
     Git by git,
     Resource by resourceManager,
-    PxAcceptor by acceptor {
+    PxAcceptor by acceptors {
 
     init {
         git.withRefTxHook(MeatHook())
@@ -76,6 +79,9 @@ class Backend(
 
     private val logger = log.of(this)
 
+    /**
+     * see[paxos.PxProposer]
+     */
     private fun propose(state: State, transactionId: TxID, env: Scope) {
         Proposer(serverId, transactionId, env.acceptors.toList()).propose(state)
             .thenApplyAsync {

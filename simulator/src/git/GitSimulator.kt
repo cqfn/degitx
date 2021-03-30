@@ -8,11 +8,22 @@ import kotlinx.coroutines.launch
 import transaction.Scope
 import transaction.TxID
 
+/**
+ * GitSimulator simulates git.
+ * GitSimulator stores [Repositories] in its [storage].
+ * It could create a new [Repository] or update existing one,
+ * but it doesn't delete existing one if all references are set to 0. @see[PktLine]
+ * It also invoke [RefTxHook] as original git does.
+ * Each transaction eventually aborted or committed via git:
+ *   - "prepared" with [Command.prepare]: All reference updates have been queued to the transaction and references were locked on disk.
+ *   - "aborted" with [Command.abort]: The reference transaction was aborted, no changes were performed and the locks have been released.
+ *   - "committed" with [Command.commit]: The reference transaction was committed and all references now have their respective new value.
+ */
 class GitSimulator(private val id: Int, private val cancel: CompletableJob) : Git {
     private var hook: RefTxHook? = null
     private val storage = Repositories()
 
-    override fun commit(repoId: RepositoryId, pktLines: PktLines, env: Scope) {
+    override fun commit(repoId: RepositoryId, pktLines: PktFile, env: Scope) {
         CoroutineScope(Dispatchers.Default).launch(cancel) {
             Command(repoId, pktLines, env)()
         }
@@ -22,8 +33,8 @@ class GitSimulator(private val id: Int, private val cancel: CompletableJob) : Gi
         this.hook = hook
     }
 
-    private inner class Command(val repoId: RepositoryId, val pktLines: PktLines, val env: Scope) {
-        private val newRefs = HashSet<GitRef>()
+    private inner class Command(val repoId: RepositoryId, val pktLines: PktFile, val env: Scope) {
+        private val newRefs = HashSet<GitRefName>()
         private val transactionId: TxID = txID()
         private val logger = log.of(this)
 
@@ -155,14 +166,13 @@ class GitSimulator(private val id: Int, private val cancel: CompletableJob) : Gi
                 .filter { it.lockedBy == transactionId }
                 .forEach {
                     it.value = it.tmpValue!!
-                    it.isTemporal = false
                     it.lockedBy = ""
                 }
             hook?.invoke(TxStatus.COMMITTED, transactionId, env)
         }
 
         /**
-         * A set of pkt-lines compose an unique txID
+         * A set of [PktLine] compose an unique txID
          * while two different pushes can never contain
          * a pkt-line with the same newValue (@todo not yet implemented in simulator)
          * new value is a blob id and it can't be same for multiple commiters

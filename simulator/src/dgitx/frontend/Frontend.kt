@@ -12,6 +12,9 @@ import transaction.VotesFromNode
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.system.exitProcess
 
+/**
+ * see[FNode]
+ */
 class Frontend(val id: NodeId, private val lb: LoadBalancer) : FNode, Manager, LoadBalancer by lb {
     private val logger = log.of(this)
     private val activeTxs = ConcurrentHashMap<TxID, TransactionManager>()
@@ -31,6 +34,7 @@ class Frontend(val id: NodeId, private val lb: LoadBalancer) : FNode, Manager, L
         activeTxs[txID]?.finish(resourceManager)
     }
 
+    //TODO make private and pass as callback to TM constructor
     override fun transactionReady(txID: TxID) {
         logger.message("NotifyClient", "Client")
         log.count(Level.OVER_NETWORK)

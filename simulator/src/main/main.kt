@@ -2,9 +2,8 @@ package main
 
 import dgitx.Dgitx
 import git.PktLine
-import git.PktLines
+import git.PktFile
 import kotlinx.coroutines.runBlocking
-import log.Log
 import wtf.g4s8.examples.configuration.Config
 import java.lang.Thread.sleep
 import java.util.*
@@ -16,7 +15,7 @@ fun main() {
         Dgitx
             .push(
                 "stepan/degitx",
-                PktLines(
+                PktFile(
                     PktLine(
                         "master",
                         0,

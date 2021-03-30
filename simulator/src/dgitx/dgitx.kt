@@ -1,6 +1,6 @@
 package dgitx
 
-import dgitx.backend.AcceptorManager
+import dgitx.backend.AcceptorsManager
 import dgitx.backend.AsyncBackend
 import dgitx.backend.Backend
 import dgitx.backend.ResourceManager
@@ -9,7 +9,7 @@ import dgitx.frontend.Frontend
 import dgitx.frontend.RandomLoadBalancer
 import git.Git
 import git.GitSimulator
-import git.PktLines
+import git.PktFile
 import kotlinx.coroutines.Job
 import log.Log
 import paxos.PxAcceptor
@@ -25,15 +25,30 @@ import java.util.stream.Collectors
 import java.util.stream.IntStream
 import kotlin.collections.HashMap
 
+/**
+ * LoadBalancer is a software component
+ * that accepts an update request [PktFile] for [git.Repository]
+ * and redirects the traffic for git pack uploading towards back-end nodes’ endpoints.
+ */
 interface LoadBalancer {
-    fun push(repo: RepositoryId, data: PktLines)
+    fun push(repo: RepositoryId, data: PktFile)
 }
 
+/**
+ * FNode is a hardware component
+ * with all software components: [Manager] and [LoadBalancer],
+ * that should be deployed on Frontend node.
+ */
 interface FNode : Manager, LoadBalancer {
     fun disaster()
     fun transactionReady(txID: TxID)
-
 }
+
+/**
+ * BNode is a hardware component
+ * with all software components: [Git], [Resource] and [PxAcceptor],
+ * that should be deployed on Backend node.
+ */
 interface BNode : Git, Resource, PxAcceptor {
     fun disaster()
 }
@@ -41,6 +56,13 @@ interface BNode : Git, Resource, PxAcceptor {
 typealias RepositoryId = String
 typealias NodeId = Int
 
+/**
+ * Dgitx is a dgitx system instance.
+ * @property[transactionManagers] all [FNode] that is in the system.
+ * @property[resourceManagers] all [BNode] that is in the system.
+ * @property[repositoryToNodes] storage.
+ *
+ */
 object Dgitx : LoadBalancer {
     private val random: Random = Random()
     val transactionManagers: Map<NodeId, FNode> =
@@ -54,7 +76,8 @@ object Dgitx : LoadBalancer {
                             Frontend(
                                 it,
                                 RandomLoadBalancer(it)
-                            ), Job()
+                            ),
+                            Job()
                         )
                     })
             )
@@ -70,7 +93,7 @@ object Dgitx : LoadBalancer {
                         val job = Job()
                         AsyncBackend(
                             Backend(
-                                AcceptorManager(
+                                AcceptorsManager(
                                     it,
                                     acc,
                                     Executors.newCachedThreadPool()
@@ -88,14 +111,14 @@ object Dgitx : LoadBalancer {
             )
     val repositoryToNodes = HashMap<RepositoryId, Set<BNode>>()
 
-    override fun push(repo: RepositoryId, data: PktLines) {
+    override fun push(repo: RepositoryId, data: PktFile) {
         val redirectTmId = random.nextInt(transactionManagers.size)
         val lb = transactionManagers[redirectTmId]
         logRequest(repo, data, lb!!)
         lb.push(repo, data)
     }
 
-    private fun logRequest(repo: RepositoryId, data: PktLines, lb: FNode) {
+    private fun logRequest(repo: RepositoryId, data: PktFile, lb: FNode) {
         Log.log(
             """ 
                 |Degitx: push request to `$repo` received

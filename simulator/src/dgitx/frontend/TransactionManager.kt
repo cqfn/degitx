@@ -7,6 +7,12 @@ import transaction.Transaction
 import transaction.VotesFromNode
 import java.util.concurrent.atomic.AtomicInteger
 
+/**
+ * TransactionManager is a part of [transaction.Manager]'s internal realization.
+ * When [transaction.Manager] receive [transaction.Manager.begin] first time for given [transaction.Transaction],
+ * it creates new [TransactionManager] that will handle
+ * all [transaction.Manager.begin] and [transaction.Manager.finish] messages for that [transaction.Transaction].
+ */
 //TODO check for duplicate messages
 class TransactionManager(private val txn: Transaction, private val frontend: FNode) {
     private val logger = log.of(this)

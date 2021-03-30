@@ -5,7 +5,7 @@ import paxos.PaxosId
 import paxos.State
 
 /**
- * Voting Table contains all PaxosInstance that participate in transaction.
+ * VotingTable contains all PaxosInstance that participate in transaction.
  * Voting Table is filled incrementally by TM every time it receives beginTx message from RM.
  * Every RM sends only its votes for all PaxosInstances, so by every beginTx message,
  * at most one vote for every PaxosInstance would be filled.

@@ -4,7 +4,7 @@ import dgitx.Dgitx
 import dgitx.LoadBalancer
 import dgitx.NodeId
 import dgitx.RepositoryId
-import git.PktLines
+import git.PktFile
 import transaction.Scope
 import java.util.*
 import java.util.stream.Collectors
@@ -17,7 +17,7 @@ class RandomLoadBalancer(private val id: NodeId) : LoadBalancer {
 
     private val logger = log.of(this)
 
-    override fun push(repo: RepositoryId, data: PktLines) {
+    override fun push(repo: RepositoryId, data: PktFile) {
         val tms = primaryWithRandomSecondaryTm()
         val replicas = Dgitx.repositoryToNodes[repo] ?: randomBackendNodes()
         val scope = Scope(replicas, tms)

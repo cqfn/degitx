@@ -4,6 +4,9 @@ import kotlinx.coroutines.runBlocking
 import transaction.Resource
 import transaction.TxID
 
+/**
+ * see[Resource]
+ */
 class ResourceManager(private val txs: MutableMap<TxID, Backend.Tx>) : Resource {
     private val logger = log.of(this)
 
