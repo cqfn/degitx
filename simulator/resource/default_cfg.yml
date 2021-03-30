@@ -1,0 +1,31 @@
+# Restart proposing, if decision wasn't made in given time.
+paxosProposerTimeOutMilliseconds : 300
+# Cluster size
+nReplicas : 3
+#  Amount of independent unsynchronized updaters, that tries to modify a value
+nUpdaters : 1
+# Total amount of write operations in test case
+nTransactions : 1
+# If proposer-acceptors & TM-RMs channels are unstable (messages between them could be lost)
+withDrops : false
+dropRate : 0.1
+# If proposers, acceptors, TMs and RMs need some time to respond.
+withTimeout : false
+# Upper bound for timeout.
+timeoutMilliseconds : 0
+# every call goes async
+async : true
+#  How frequent RM goes down.
+rmCrashRate : 0
+# How much time RM needs to restart.
+rmRestartTimeOutInSeconds : 2
+# How much TM should wait before sync up.
+syncDelayInSeconds : 5
+# How many times try to repeat transaction.
+nRetries : 1
+# Lower border how much to wait before retry update.
+retryUpdateMinTimeOutInSeconds : 0
+# Upper border.
+retryUpdateMaxTimeOutInSeconds : 20
+# Whether to show thread name in logs.
+traceThreads : false
