@@ -16,16 +16,16 @@ TCConsistent == \A r1, r2 \in RM : ~ /\ rmState[r1] = "aborted"
 
 TCInit == rmState = [r \in RM |-> "working"]
 
+\* Noone is broken at the moment
 canPreCommit == \A r \in RM : rmState[r] \in {"prepared", "pre-committed"}
 
 canCommit == \A r \in RM : rmState[r] \in {"pre-committed", "committed"}
 
 canAbort == \A r \in RM : rmState[r] \notin {"pre-committed", "committed"}
 
-Prepare(r) == /\ rmState[r] = "working"
-              /\ rmState' = [rmState EXCEPT ![r] = "prepared"]
-
-Decide(r) == \/ /\ rmState[r] = "prepared"
+Decide(r) == \/ /\ rmState[r] = "working"
+                /\ rmState' = [rmState EXCEPT ![r] = "prepared"]
+             \/ /\ rmState[r] = "prepared"
                 /\ canPreCommit
                 /\ rmState' = [rmState EXCEPT ![r] = "pre-committed"]
              \/ /\ rmState[r] = "pre-committed"
@@ -35,7 +35,7 @@ Decide(r) == \/ /\ rmState[r] = "prepared"
                 /\ canAbort
                 /\ rmState' = [rmState EXCEPT ![r] = "aborted"]
 
-TCNext == \A r \in RM : Prepare(r) \/ Decide(r)
+TCNext == \A r \in RM : Decide(r)
 \* -------------------------
 
 TCSpec == TCInit /\ [][TCNext]_rmState
