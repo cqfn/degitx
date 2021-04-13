@@ -53,7 +53,7 @@ optional description
 It's recommended to sign your commits with GPG key, but not mandatory yet.
 
 When submitting a pull request, make sure that you can say "YES" to each point in this short checklist:
- - You what problem is solving by PR in the title
+ - You say what problem is solving by PR in the title
  - You explain the proposed solution in PR description, and start it with solving ticket reference
  - You made a small amount of changes (can be reviewed by a stranger in 15 minutes)
  - You made changes related to only one bug (create separate PRs for separate problems)
