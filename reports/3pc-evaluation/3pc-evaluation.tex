@@ -30,18 +30,19 @@
 \begin{abstract}
   For git repository replication distributed system we need to use atomic
   commit implementation based on git reference transaction hooks (todo: add reference to previous report).
-  There are three most popular implementations: two-phase commit (2PC), three-phase commit (3PC),
-  and Paxos commit protocols. 2PC protocol is not really fault tolerant, since it may turn storage
+  There are three most popular protocols: two-phase commit (2PC), three-phase commit protocols (3PC) family,
+  and Paxos commit protocol. 2PC protocol is not really fault tolerant, since it may turn storage
   replicas into inconsistent state in case of transaction manager (TM) failure. Paxos-commit is a fault-tolerant
   version of transaction commit protocol. But it pays for fault-tolerance by sending much more messages via network
   for distributing the resource manager (RM) votes: \texttt{3N - 3} messages for 2PC vs
   \texttt{(N - 1)(2F + 3)} messages for Paxos commit co-located faster version (where N is number of nodes,
   and F is a number of tolerated faults)
   (todo: add references  J. Gray and L. Lamport, “Consensus on transaction commit).
-  Three phase commit (3PC) claims to be more fault-tolerant comparing to 2PC but it still have a path to become
-  inconsistent. On the other hand, it's much faster comparing to Paxos commit and uses fewer messages to perform a
-  transaction (todo: add numbers of messages for each protocol) We need to evaluate this path and estimate how critical
-  it could be for managing distributed git repository and what's the probability of this case in real life.
+  Different versions of 3PC protocols family claims to fix possible inconsistency by appending
+  a new state ``prepared-to-commit'', and by allowing the
+  quorum of replicas to not block on the transaction in case if some RM failure.
+  In this report we evaluate 3PC and compare it with Paxos-commit to analyze which one is better for
+  git repository replication system.
 \end{abstract}
 
 \maketitle
@@ -56,12 +57,12 @@ and this secondary TM will not be able to access RM1 and decides to abort the tr
 to RMs except RM1, then RMs will have different state after the transaction.
 The 3PC protocol fixes this problem by introducing new kind of message: ``prepared to commit''. If TM fails before sending
 this message, the secondary TM will abort the transaction if at least one RM is not in ``prepared to commit'' state
-(todo: describe more verbosly).
+(todo: describe more verbosely).
 
 Let's define a metrics to compare these two algorithms:
 \begin{enumerate}
   \item Message delays - the number of total messages round-trips between nodes
-  \item Message count - the number of messages sent in the system to commit the transacion
+  \item Message count - the number of messages sent in the system to commit the transaction
   \item Message model - what kind of message model does the algorithm support: synchronous, partially
     synchronous or asynchronous
   \item Fault tolerance - the number of nodes that may fail and keep the system working
@@ -99,6 +100,20 @@ failures that system can tolerate.
   }\label{fig:compare-3pc-pc-fpc}
 \end{figure}
 
+To calculate the message delays and count let's describe all steps required to complete transaction successfully in
+positive case scenario for generic 3PC protocol; Assuming we have $N$ resource managers (RM) and transaction is
+started when any received an initial data which can be applied to the RM, and the system has the only transaction
+manager (TM):
+\begin{enumerate}
+  \item RM initiates the transaction by sending ``prepared'' message to TM ($1$ message)
+  \item TM sends ``prepare'' command to other RMs ($N-1$ message)
+  \item RMs who received the command replies with ``prepared'' message to TM ($N-1$ messages)
+  \item TM sends ``prepare to commit'' command to all RMs ($N$ messages)
+  \item All RMs replies with ``prepared to commit'' message ($N$ messages)
+  \item TM sends a ``commit'' command ($N$ messages)
+\end{enumerate}
+
+So to commit the transaction 3PC requires 6 message delays and $5N-1$ messages.
 
 \section{Related works}
 
@@ -112,7 +127,7 @@ failures that system can tolerate.
   \item Coordinator sends these changes to all RMs
   \item Each RM starts applying these changes and calls reference-transaction hook process with the result (prepared
     in case if transaction was validated and can be applied; aborted otherwise).
-  \item Hook calls RM process with a decicion and waits for the signal from RM.
+  \item Hook calls RM process with a decision and waits for the signal from RM.
   \item (todo: explain 3PC here)
   \item RM notifies the hook process to continue with decided by TM status
   \item Hook exits with specified status: 0 - for success, 1 - for abort

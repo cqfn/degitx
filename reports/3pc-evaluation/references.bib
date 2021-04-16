@@ -1,0 +1,189 @@
+@article{consensus-on-transaction-commit,
+  author = {Gray, Jim and Lamport, Leslie},
+  title = {Consensus on Transaction Commit},
+  year = {2006},
+  issue_date = {March 2006},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {31},
+  number = {1},
+  issn = {0362-5915},
+  url = {https://doi.org/10.1145/1132863.1132867},
+  doi = {10.1145/1132863.1132867},
+  abstract = {
+    The distributed transaction commit problem requires reaching agreement
+    on whether a transaction is committed or aborted. The classic Two-Phase Commit protocol
+    blocks if the coordinator fails. Fault-tolerant consensus algorithms also reach agreement
+    but do not block whenever any majority of the processes are working. The Paxos Commit algorithm
+    runs a Paxos consensus algorithm on the commit/abort decision of each participant to obtain
+    a transaction commit protocol that uses 2F + 1 coordinators and makes progress if at least F + 1
+    of them are working properly. Paxos Commit has the same stable-storage write delay and can be
+    implemented to have the same message delay in the fault-free case as Two-Phase Commit,
+    but it uses more messages. The classic Two-Phase Commit algorithm is obtained as the special F = 0
+    case of the Paxos Commit algorithm.
+  },
+  journal = {ACM Trans. Database Syst.},
+  month = mar,
+  pages = {133–160},
+  numpages = {28},
+  keywords = {two-phase commit, Paxos, Consensus}
+}
+@article{Kademlia_and_Chord_algorithm,
+  title={A review of recent advancement in Kademlia and Chord algorithm},
+  author={Ariff, Mohammad Asyraff Mohamad and Mohamad, Suraya and Amran, Ahmad Roshidi},
+  booktitle={AIP Conference Proceedings},
+  volume={2129},
+  number={1},
+  pages={020131},
+  year={2019},
+  organization={AIP Publishing LLC}
+}
+  
+@article{scalability,
+author = {Bondi, Andr\'{e} B.},
+title = {Characteristics of Scalability and Their Impact on Performance},
+year = {2000},
+isbn = {158113195X},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/350391.350432},
+doi = {10.1145/350391.350432},
+booktitle = {Proceedings of the 2nd International Workshop on Software and Performance},
+pages = {195–203},
+numpages = {9},
+keywords = {structural and space scalability, load scalability, performance},
+location = {Ottawa, Ontario, Canada},
+series = {WOSP '00}
+}
+
+
+@article{Eventual_Consistency,
+author = {Bailis, Peter and Ghodsi, Ali},
+title = {Eventual Consistency Today: Limitations, Extensions, and Beyond: How Can Applications Be Built on Eventually Consistent Infrastructure given No Guarantee of Safety?},
+year = {2013},
+issue_date = {March 2013},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {11},
+number = {3},
+issn = {1542-7730},
+url = {https://doi.org/10.1145/2460276.2462076},
+doi = {10.1145/2460276.2462076},
+abstract = {In a July 2000 conference keynote, Eric Brewer, now VP of engineering at Google and a professor at the University of California, Berkeley, publicly postulated the CAP (consistency, availability, and partition tolerance) theorem, which would change the landscape of how distributed storage systems were architected. Brewer’s conjecture--based on his experiences building infrastructure for some of the first Internet search engines at Inktomi--states that distributed systems requiring always-on, highly available operation cannot guarantee the illusion of coherent, consistent single-system operation in the presence of network partitions, which cut communication between active servers. Brewer’s conjecture proved prescient: in the following decade, with the continued rise of large-scale Internet services, distributed-system architects frequently dropped "strong" guarantees in favor of weaker models--the most notable being eventual consistency.},
+journal = {Queue},
+month = mar,
+pages = {20–32},
+numpages = {13}
+}
+
+@article{two-phase_commit_protocol,
+  title={Rrency Control and Recovery in Database Systems},
+  author={Bernstein, Philip A and Hadzilacos, Vassos and Goodman, Nathan},
+  year={1987},
+  publisher={Addison-Wesley}
+}
+
+@techreport{3pc,
+  author = {Skeen, Dale},
+  title = {A Quorum-Based Commit Protocol},
+  year = {1982},
+  publisher = {Cornell University},
+  address = {USA},
+  abstract = {Herein, we propose a commit protocol and an associated recovery protocol that is resilient to site failures, lost messages, and network partitioning. The protocols do not require that a failure be correctly identified or even detected. The only potential effect of undetected failures is a degradation in performance. The protocols use a weighted voting scheme that supports an arbitrary degree of data replication (including none) and allows unilaterally aborts by any site. This last property facilitates the integration of these protocols with concurrency control protocols. Both protocols are centralized protocols with low message overhead.}
+}
+
+@inproceedings{nonblocking-commit-protocols,
+  author = {Skeen, Dale},
+  title = {Nonblocking Commit Protocols},
+  year = {1981},
+  isbn = {0897910400},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/582318.582339},
+  doi = {10.1145/582318.582339},
+  abstract = {Protocols that allow operational sites to continue transaction processing even though site failures have occurred are called nonblocking. Many applications require nonblocking protocols. This paper investigates the properties of nonblocking protocols. Necessary and sufficient conditions for a protocol to be nonblocking are presented and from these conditions a method for designing them is derived. Both a central site nonblocking protocol and a decentralized nonblocking protocol are presented.},
+  booktitle = {Proceedings of the 1981 ACM SIGMOD International Conference on Management of Data},
+  pages = {133–142},
+  numpages = {10},
+  location = {Ann Arbor, Michigan},
+  series = {SIGMOD '81}
+}
+
+@article{e3pc,
+  title={Increasing the resilience of distributed and replicated database systems},
+  author={Keidar, Idit and Dolev, Danny},
+  journal={Journal of Computer and System Sciences},
+  volume={57},
+  number={3},
+  pages={309--324},
+  year={1998},
+  publisher={Elsevier}
+}
+
+@article{consensus_transaction_commit,
+  title={Consensus on transaction commit},
+  author={Gray, Jim and Lamport, Leslie},
+  journal={ACM Transactions on Database Systems (TODS)},
+  volume={31},
+  number={1},
+  pages={133--160},
+  year={2006},
+  publisher={ACM New York, NY, USA}
+}
+
+@article{Replication_Management_State-Machine-Approach,
+  title={Replication management using the statemachine approach},
+  author={Schneider, F},
+  journal={Mullender [7]},
+  year={2005}
+}
+
+@article{Kademlia_Peer-to-peer,
+  title={Kademlia: A peer-to-peer information system based on the xor metric},
+  author={Maymounkov, Petar and Mazieres, David},
+  booktitle={International Workshop on Peer-to-Peer Systems},
+  pages={53--65},
+  year={2002},
+  organization={Springer}
+}
+
+@article{S_Kademlia_Secure_Key-Based_Routing,
+  title={S/kademlia: A practicable approach towards secure key-based routing},
+  author={Baumgart, Ingmar and Mies, Sebastian},
+  booktitle={2007 International Conference on Parallel and Distributed Systems},
+  pages={1--8},
+  year={2007},
+  organization={IEEE}
+}
+  
+@article{Content_Addressed_Versioned_P2P_File_System,
+  title={IPFS_research, versioned, P2P file system (DRAFT 3)},
+  author={Benet, Juan},
+  journal={arXiv preprint arXiv:1407.3561},
+  year={2014}
+}
+
+@article{distributed_key-value_database,
+  title={A universal nosql engine, using a tried and tested technology},
+  author={Tweed, Rob and James, George},
+  journal={White Paper, Creative Commons Attribution CC-BY},
+  year={2010}
+}
+
+@article{Secure_routing_peer-to-peer_overlay_networks,
+  title={Secure routing for structured peer-to-peer overlay networks},
+  author={Castro, Miguel and Druschel, Peter and Ganesh, Ayalvadi and Rowstron, Antony and Wallach, Dan S},
+  journal={ACM SIGOPS Operating Systems Review},
+  volume={36},
+  number={SI},
+  pages={299--314},
+  year={2002},
+  publisher={ACM New York, NY, USA}
+}
+
+@article{bittorrent,
+  title={BitTorrent protocol specification v 1.0},
+  author={Chokkalingam, Arun and Riyaz, Firasath},
+  journal={CSI 5321},
+  year={2004}
+}
