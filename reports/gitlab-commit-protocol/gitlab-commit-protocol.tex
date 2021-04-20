@@ -1,0 +1,66 @@
+\documentclass[acmlarge, screen, nonacm]{acmart}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+  \hypersetup{colorlinks=true,allcolors=blue!40!black}
+\setlength{\topskip}{6pt}
+\setlength{\parindent}{0pt} % indent first line
+\setlength{\parskip}{6pt} % before par
+
+\title{GitLab commit protocol implementation}
+
+\author{Ivan Bukhtiyarov}
+\email{TODO: put your email address here}
+
+\author{Kirill Chernyavskiy}
+\email{g4s8.public@gmail.com}
+
+\acmBooktitle{none}
+\acmConference{none}
+\editor{none}
+
+\begin{document}
+
+\begin{abstract}
+  GitLab claims it uses three-phase commit (3PC) protocol for managing atomic transactions.
+  (TODO: add references to GitLab tickets). But 3PC has many different implementations and
+  additional extensions (such as recovery and termination protocols): it means that 3PC could
+  be implemented differently depends on business requirements. In this report we analyze what
+  components of 3PC is used by GitLab and how it achieves strong consistency, by describing
+  the whole workflow of each git push command from client to replicas and investigating
+  extension protocols for dealing with node and network failures.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+TODO: add introduction, describe how GitLab achieves strong consistency (summary).
+
+\section{Workflow}
+
+TODO: the workflow of GitLab push: from client to Gitaly nodes.
+
+\section{3PC}
+
+TODO: what version of 3PC is used for GitLab. How GitLab achieves atomic commit protocol properties:
+stability, consistency, non-triviality, non-blocking described in
+``Consensus on transaction commit by J.Gray and L.Lamport''.
+
+\section{Recovery protocol}
+
+TODO: how the GitLab handles node failures both RMs and TMs.
+
+\section{Termination protocol}
+
+TODO: what is the termination strategy to finish the transaction.
+
+
+TODO: add references (see bibtex).
+\end{document}
