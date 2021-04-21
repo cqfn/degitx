@@ -12,11 +12,15 @@
 \setlength{\topskip}{6pt}
 \setlength{\parindent}{0pt} % indent first line
 \setlength{\parskip}{6pt} % before par
+% custom commands
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 
 \title{GitLab commit protocol implementation}
 
 \author{Ivan Bukhtiyarov}
-\email{TODO: put your email address here}
+\email{van4elotti@gmail.com}
 
 \author{Kirill Chernyavskiy}
 \email{g4s8.public@gmail.com}
@@ -28,26 +32,65 @@
 \begin{document}
 
 \begin{abstract}
-  GitLab claims it uses three-phase commit (3PC) protocol for managing atomic transactions.
-  (TODO: add references to GitLab tickets). But 3PC has many different implementations and
-  additional extensions (such as recovery and termination protocols): it means that 3PC could
+  Current Gitaly Cluster architecture requires preventing unexpected data loss and organizing strong consistency (
+  \emph{\href{https://gitlab.com/groups/gitlab-org/-/epics/1189}{Gitaly Cluster: strong consistency}}).
+  Due to experiments that are related to this problem
+  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{Implement 3PC for WriteRef RPC}},
+  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2529}{3PC git-update-ref experiment}} and
+  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2635}{2PC via pre-receive hook}}
+  it was suggested that GitLab probably uses three-phase commit (3PC) protocol for managing atomic transactions. 
+  But 3PC and any other commit protocols has many different implementations and
+  additional extensions (such as recovery and termination protocols): it means that protocols could
   be implemented differently depends on business requirements. In this report we analyze what
-  components of 3PC is used by GitLab and how it achieves strong consistency, by describing
-  the whole workflow of each git push command from client to replicas and investigating
-  extension protocols for dealing with node and network failures.
+  components of commit protocol is used by GitLab and how it achieves (or doesn't achieve) 
+  strong consistency, by describing the whole workflow of each git push command from 
+  client to replicas and investigating extension protocols for dealing with node and network failures.
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
+  Achieving strong consistency in gitaly is dedicated to an
+  \emph{\href{https://gitlab.com/groups/gitlab-org/-/epics/1189}{epic}}. 
+  that includes a set of issues. Some of tickets were successfully implemented and integrated,
+  some of them remained on POC stage or simply closed.
+  
+  Curent Gitaly Cluster allows Git repositories to be replicated on multiple Gitaly nodes. 
+  This improves fault tolerance by removing single points of failure. 
+  Reference transactions causes changes to be broadcast to all the Gitaly nodes in the cluster, 
+  but only the Gitaly nodes that vote in agreement with the primary node persist the changes to disk. 
+  If all the replica nodes dissented, only one copy of the change would be persisted to disk, 
+  creating a single point of failure until asynchronous replication completed.
 
-TODO: add introduction, describe how GitLab achieves strong consistency (summary).
+  Quorum-based voting improves fault tolerance by requiring a majority of nodes 
+  to agree before persisting changes to disk. Dissenting nodes are automatically brought in sync by
+   asynchronous replication from the nodes that formed the quorum.
 
+  As for \emph{\href{https://gitlab.com/groups/gitlab-org/-/epics/1189}{praefect}}, it can configured with one of two types of consistency:
+  \begin{description}
+    \item[Eventual concistency]
+    Praefect guarantees eventual consistency by replicating all writes 
+    to secondary nodes after the write to the primary Gitaly node has happened.
+    \item[Strong concistency]
+    Praefect can instead provide strong consistency by creating a transaction and writing
+     changes to all Gitaly nodes at once. If enabled, transactions are only available for a subset of RPCs. 
+  \end{description}
+
+  \todo{the introduction is too overloaded with versatile information need to refactor the report with sutable sections}
 \section{Workflow}
 
 TODO: the workflow of GitLab push: from client to Gitaly nodes.
 
 \section{3PC}
+
+Due to current status of code research and the facts from these 
+(\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{Implementation 3PC for WriteRef RPC}},
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2529}{3PC git-update-ref experiment}})
+POCs we can assume that the three-phase commit is not implemented in gitlab at all.
+
+3PC for WriteRef was suggested in this
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{MR}},
+but it was not merged to actual branches. (All the reasons are in the process of clarification)
 
 TODO: what version of 3PC is used for GitLab. How GitLab achieves atomic commit protocol properties:
 stability, consistency, non-triviality, non-blocking described in
@@ -61,6 +104,11 @@ TODO: how the GitLab handles node failures both RMs and TMs.
 
 TODO: what is the termination strategy to finish the transaction.
 
+\section{Misc}
+\todo{to avoid this section (move facts to another section if it is possible)}
+  Was noticed
+  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{Schedule replication jobs if no transactional vote happened}},
+  for clarification if it will be usefull.
 
 TODO: add references (see bibtex).
 \end{document}
