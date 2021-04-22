@@ -51,7 +51,7 @@ run:
   # If false (default) - golangci-lint acquires file lock on start.
   allow-parallel-runners: true
 
-  modules-download-mode: readonly
+  modules-download-mode: vendor
 
 linters-settings:
   dupl:
