@@ -1,69 +1,117 @@
-# Contributing guide
+This is the contributing guide for DeGitX project. It could be updated at any time,
+esepcially when some contributing style inconsistency occures.
 
-You can contribute in different ways to the project: reporting bugs, solving tasks, reviewing pull requests.
 
-## Bug reporting
+## How to contribute
 
-Make sure the title of the issue explains the problem you are having.
-Also, the description of the issue must clearly explain what is broken,
-not what you want us to implement.
-Go through this checklist and make sure you answer "YES" to all points:
- - You have all pre-requisites listed in README.md installed
- - You are sure that you are not reporting a duplicate (search all issues)
- - You say "is broken" or "doesn't work" in the title
- - You tell us what you are trying to do
- - You explain the results you are getting
- - You suggest an alternative result you would like to see
+Fork the repository, make changes, and send us a
+[pull request (PR)](#pull-request-style). We will review
+your changes and apply them to the `master` branch shortly, provided
+they don't violate our quality standards.
 
-This article will help you understand what we are looking for:
-http://www.yegor256.com/2014/11/24/principles-of-bug-tracking.html
+To avoid frustration, before
+sending us your pull request please run full build:
 
-## Task solving
-
-If you want to solve a task, please ask project architect to assing you a ticket first,
-and get the approve. The ticket can be approved by different ways:
- - Ticket has `scope` label
- - Ticket has milestone attached
-
-Different people can be involved in task solving workflow, sometimes one people may have different roles:
- - "Author" - the person who reported the ticket
- - "Performer" - the person who is solving the ticket
- - "Reviewer" - the person who reviews proposed solution
- - "Architect" - the person who is merging changes to `master`
-
-The workflow is:
- 1. Author reports a ticket
- 2. Architect adds ticket to scope and assigns the ticket to performer
- 3. Performer proposes a solution to solve the problem (one or more pull requests)
- 4. Reviewer reviews each pull requests, and approves it finally (optional if architect reviews PR)
- 5. Architect reviews each pull request, and merges it finally
- 6. Performer asks author to close the ticket (sometimes it's OK to close ticket via PR "linked issues" feature)
- 7. Author closes the ticket, it can be counted as done (until closed, the task has "in progress" status)
-
-The proposed solution for task should be presented as a pull request from
-some branch to `master` branch of repository. Please start branch name
-with ticket number, e.g. `66-contributing` branch for `#66` ticket.
-Start new branch from fresh `master` branch to avoid conflicts.
-Commit changes, use this format for commit messages:
 ```
-#<ticket-number> - short summary
-
-optional description
+make all lint
 ```
-It's recommended to sign your commits with GPG key, but not mandatory yet.
 
-When submitting a pull request, make sure that you can say "YES" to each point in this short checklist:
- - You say what problem is solving by PR in the title
- - You explain the proposed solution in PR description, and start it with solving ticket reference
- - You made a small amount of changes (can be reviewed by a stranger in 15 minutes)
- - You made changes related to only one bug (create separate PRs for separate problems)
- - You are ready to defend your changes (there will be a code review)
- - You don't touch what you don't understand
- - You ran the build locally and it passed
+Before submitting pull-request please rebase to latest `master` branch and refresh dependencies:
+```
+make tidy
+```
 
-Please try to avoid using "closing" GitHub keywords or "linked issues" with one exception:
-it OK to close a ticket by PR only if ticket's "author" is project's "architect"
-and PR **fully** solves a problem from the ticket (there are no next steps related to this ticket).
+After submitting pull-request check CI status checks. If any check with "required" label fails,
+pull-request will not be merged.
 
-This article will help you understand what we are looking for:
-http://www.yegor256.com/2015/02/09/serious-code-reviewer.html
+
+## Code style
+
+Code style is enforced by `golangci-lint` tool. To run it use `make lint`.
+
+## Pull request style
+
+Primary PR rule: it's the responsibility of PR author to bring the changes to the master branch.
+
+Other important mandatory rule - it should refer to some ticket. The only exception is a minor type fix in documentation.
+
+Pull request should consist of two mandatory parts:
+ - "Title" - says **what** is the change, it should be one small and full enough sentence with only necessary information
+ - "Description" - says **how** this pull request fixes a problem or implements a new feature
+
+### Title
+
+Title should be as small as possible but provide full enough information to understand what was done (not a process),
+and where from this sentence.
+It could be capitalized If needed, started from capital letter, and should not include links or references
+(including tickets numbers).
+
+Good PR titles examples:
+ - Fixed Maven artifact upload - describes what was done: fixed, the what was the fixed: artifact upload, and where: Maven
+ - Implemented GET blobs API for Docker - done: implemented, what: GET blobs API, where: Docker
+ - Added integration test for Maven deploy - done: added, what: integration test for deploy, where: Maven
+
+Bad PR titles:
+ - Fixed NPE - not clear WHAT was the problem, and where; good title could be: "Fixed NPE on Maven artifact download"
+ - Added more tests - too vague; good: "Added unit tests for Foo and Bar classes"
+ - Implementing Docker registry - the process, not the result; good: "Implemented cache layer for Docker proxy"
+
+### Description
+
+Description starts with a ticket number prefixed with one of these keywords: (Fixed, Closes, For, Part of),
+then a hyphen, and a description of the changes.
+Changes description provides information about **how** the problem from title was fixed.
+It should be a short summary of all changes to increase readability of changes before looking to code,
+and provide some context. The format is
+`(<keyword>For|Closes|Fixes|Part of) #(<ticket>\d+) - (<details>.+)`,
+e.g.: `For #123 - check if the file exists before accessing it and return 404 code if doesn't`.
+
+Good description describes the solution provided and may have technical details, it isn't just a copy of the title.
+Examples of good descriptions:
+ - Added a new class as storage implementation over S3 blob-storage, implemented `value()` method, throw exceptions on other methods, created unit test for value
+ - Fixed FileNotFoundException on reading blob content by checking if file exists before reading it. Return 404 code if doesn't exist
+
+### Merging
+
+We merge PR only if all required CI checks passed and after approval of repository maintainers.
+We merge using squash merge, where commit messages consists of two parts:
+```
+<PR title>
+
+<PR description>
+PR: <PR number>
+```
+GitHub automatically inserts title and description as commit messages, the only manual work is a PR number.
+
+### Review
+
+It's recommended to request review from `@artipie/contributors` if possible.
+When the reviewers starts the review it should assign the PR to themselves,
+when the review is completed and some changes are requested, then it should be assigned back to the author.
+On approve: if reviewer and repository maintainer are two different persons,
+then the PR should be assigned to maintainer, and maintainer can merge it or ask for more comments. 
+
+The workflow:
+```
+<required> (optional)
+        PR created |   Review   | Request changes | Fixed changes | Approves changes | Merge |
+assignee: <none>  -> <reviewer> ->    (author)    ->  (reviewer)  ->   <maintainer>  -> <none>
+```
+
+When addressing review changes, two possible strategies could be used:
+ - `git commit --ammend` + `git push --force` - in case of changes are minor or obvious, both sides agree
+ - new commit - in case if author wants to describe review changes and keep it for history,
+ e.g. if author doesn't agree with reviewer or maintainer, he|she may want to point that this changes was
+ asked by a reviewer. This commit is not going to the master branch, but it will be linked into PR history.
+
+### Commit style
+
+Commit styles are similar to PR, PR could be created from commit message: first line goes to the title,
+other lines to description:
+```
+Commit title - same as PR title
+
+For #123 - description of the commit goes
+to PR description. It could be multiline `and` include
+*markdown* formatting.
+```
