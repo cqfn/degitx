@@ -98,7 +98,34 @@ stability, consistency, non-triviality, non-blocking described in
 
 \section{Recovery protocol}
 
-TODO: how the GitLab handles node failures both RMs and TMs.
+
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/nodes/sql_elector.go}{sqlElector }}manages the primary election for one virtual storage (aka
+shard). It enables multiple, redundant Praefect processes to run,
+which is needed to eliminate a single point of failure in Gitaly High
+Avaiability.
+
+The sqlElector is responsible for:
+\begin{itemize}
+\item Monitoring and updating the status of all nodes within the shard.
+\item Electing a new primary of the shard based on the health.
+\end{itemize}
+Also very Praefect node periodically performs a health check RPC with a Gitaly node.  Once the health checks are complete, Praefect node does a \textit{SELECT} from \textit{node\_status} table to determine healthy nodes.
+
+The primary of each shard is listed in the
+\textit{shard\_primaries}. If the current primary is in the healthy
+node list, then \textit{sqlElector} updates its internal state to match.
+
+Otherwise, if there is no primary or it is unhealthy, any Praefect node
+can elect a new primary by choosing candidate from the healthy node
+list. If there are no candidate nodes, the primary is demoted by setting the \textit{demoted} flag in \textit{shard\_primaries}.
+
+In case of a failover, the virtual storage is marked as read-only until writes are manually enabled
+again. This status is stored in the \textit{shard\_primaries} table's \textit{read\_only }column. If it is set, mutator RPCs against the storage shard should be blocked in order to prevent new primary from
+diverging from the previous primary before data recovery attempts have been made.
+
+The different scenarios of node failures described \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/nodes/sql_elector.go\#L401}{in the code comments}}.
+
+\todo{figure out the process of prefect (TM) backup}
 
 \section{Termination protocol}
 
