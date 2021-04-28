@@ -109,7 +109,8 @@ The sqlElector is responsible for:
 \item Monitoring and updating the status of all nodes within the shard.
 \item Electing a new primary of the shard based on the health.
 \end{itemize}
-Also very Praefect node periodically performs a health check RPC with a Gitaly node.  Once the health checks are complete, Praefect node does a \textit{SELECT} from \textit{node\_status} table to determine healthy nodes.
+Also every Praefect node periodically performs a health check RPC with a Gitaly node.  Once the health checks are complete, 
+Praefect node does a \textit{SELECT} from \textit{node\_status} table to determine healthy nodes.
 
 The primary of each shard is listed in the
 \textit{shard\_primaries}. If the current primary is in the healthy
@@ -117,15 +118,20 @@ node list, then \textit{sqlElector} updates its internal state to match.
 
 Otherwise, if there is no primary or it is unhealthy, any Praefect node
 can elect a new primary by choosing candidate from the healthy node
-list. If there are no candidate nodes, the primary is demoted by setting the \textit{demoted} flag in \textit{shard\_primaries}.
+list. Gitaly uses repository generations to determine the best leader to elect.  
+We have generations for each repository we could use this info to determine a new primary node more efficiently and correctly. 
+The new primary is the one that has less generation delay in total for all repositories. If there is no data to determine the 
+primary in the database the \textbf{first} candidate in candidate list (healthy nodes) will be the new primary.
+If there are no candidate nodes, the primary is demoted by setting the \textit{demoted} flag in \textit{shard\_primaries}.
 
 In case of a failover, the virtual storage is marked as read-only until writes are manually enabled
-again. This status is stored in the \textit{shard\_primaries} table's \textit{read\_only }column. If it is set, mutator RPCs against the storage shard should be blocked in order to prevent new primary from
-diverging from the previous primary before data recovery attempts have been made.
+again. This status is stored in the \textit{shard\_primaries} table's \textit{read\_only }column. 
+If \textit{read\_only } is set, mutator RPCs against the storage shard should be blocked. This procedure is made 
+to prevent creating new primary node before data recovery attempts have been made.
 
 The different scenarios of node failures described \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/nodes/sql_elector.go\#L401}{in the code comments}}.
 
-\todo{figure out the process of prefect (TM) backup}
+\todo{figure out the process of praefect (TM) backup}
 
 \section{Termination protocol}
 
