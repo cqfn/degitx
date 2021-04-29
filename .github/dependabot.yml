@@ -1,0 +1,21 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: github.com/golang/protobuf
+    versions:
+    - 1.5.1
+  - dependency-name: google.golang.org/protobuf
+    versions:
+    - 1.26.0
+  - dependency-name: google.golang.org/grpc
+    versions:
+    - 1.33.2
+    - 1.35.0
+  - dependency-name: github.com/urfave/cli/v2
+    versions:
+    - 2.3.0
