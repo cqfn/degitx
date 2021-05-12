@@ -16,11 +16,11 @@ type MaNetworkAddr struct {
 }
 
 // Network name string, e.g. ipv4 or ipv6
-func (n *MaNetworkAddr) Network() string { //nolint:dupl // linter mistake
+func (n *MaNetworkAddr) Network() string {
 	return n.net
 }
 
-func (n *MaNetworkAddr) String() string { //nolint:dupl // linter mistake
+func (n *MaNetworkAddr) String() string {
 	return n.addr
 }
 

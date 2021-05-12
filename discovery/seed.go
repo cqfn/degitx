@@ -29,7 +29,7 @@ type grpcSeed struct {
 func NewGrpcSeed(maddr ma.Multiaddr, node *locators.Node,
 	peers *Peers) (Seed, error) {
 	addr := new(MaNetworkAddr)
-	if err := addr.Parse(maddr); err != nil { //nolint:dupl // just parsing an address
+	if err := addr.Parse(maddr); err != nil {
 		return nil, err
 	}
 	return &grpcSeed{addr, peers}, nil
