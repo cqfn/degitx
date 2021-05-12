@@ -45,9 +45,7 @@ RPC | map to Git | execution way | written in
 ----|---|---|---
 GetBlob | catfile | cmd | Go
 GetBlobs | catfile  | cmd | Go
-GetLFSPointers | https://git-lfs.github.com | rugged? | Ruby
-GetNewLFSPointers | https://git-lfs.github.com | rugged? | Ruby
-GetAllLFSPointers | https://git-lfs.github.com | rugged? | Ruby
+GetLFSPointers | https://git-lfs.github.com | rugged? | Go
 ApplyBfgObjectMapStream | catfile & for-each-ref --format &  update-ref -z --stdin & (After https://rtyley.github.io/bfg-repo-cleaner/ OR filter-repo) | cmd | Go
 CommitIsAncestor | merge-base --is-ancestor | cmd | Go
 TreeEntry | catfile | cmd | Go
