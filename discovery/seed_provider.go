@@ -87,7 +87,7 @@ func grpcClientCon(ctx context.Context, maddr ma.Multiaddr) (*grpc.ClientConn, e
 	ctx, cancel := context.WithTimeout(ctx, conTimeout)
 	defer cancel()
 	addr := new(MaNetworkAddr)
-	if err := addr.Parse(maddr); err != nil { //nolint:dupl // just parsing an address
+	if err := addr.Parse(maddr); err != nil {
 		return nil, err
 	}
 	return grpc.DialContext(ctx, addr.String(), grpc.WithInsecure())

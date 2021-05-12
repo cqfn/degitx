@@ -4,7 +4,6 @@
 package logging
 
 import (
-	"errors"
 	"sync"
 
 	"cqfn.org/degitx/locators"
@@ -13,8 +12,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var errLogAlreadyInitialized = errors.New("log already initialized") //nolint:misspell // initialized
-
 type logContext struct {
 	internalLogLevel map[string]zapcore.Level
 	nodeID           string
@@ -22,11 +19,10 @@ type logContext struct {
 	plain            *zapcore.Encoder
 	json             *zapcore.Encoder
 	registeredLevel  []zap.AtomicLevel
+	once             sync.Once
 }
 
-var logCtx *logContext //nolint:gochecknoglobals
-
-var mux sync.Mutex //nolint:gochecknoglobals
+var logCtx logContext //nolint:gochecknoglobals // it's a global logging context for process
 
 // Init inits zap logger context from config and predeclared settings.
 // Init also adds node ID to logger context
@@ -37,32 +33,26 @@ func Init(node *locators.Node, cfg *LogConfig) {
 
 // InitNodeless inits zap logger context from config and predeclared settings
 func InitNodeless(cfg *LogConfig) {
-	mux.Lock()
-	defer mux.Unlock()
-	if logCtx != nil {
-		panic(errLogAlreadyInitialized)
-	}
-	plainEncoder, jsonEncoder := encoders()
+	logCtx.once.Do(func() {
+		plainEncoder, jsonEncoder := encoders()
 
-	internalLogLevel := map[string]zapcore.Level{
-		"Debug": zapcore.DebugLevel,
-		"Info":  zapcore.InfoLevel,
-		"Warn":  zapcore.WarnLevel,
-		"Error": zapcore.ErrorLevel,
-	}
-	registeredLevel := []zap.AtomicLevel{}
-	for _, out := range cfg.Outputs {
-		atomicLevel := zap.NewAtomicLevelAt(internalLogLevel[out.Level])
-		registeredLevel = append(registeredLevel, atomicLevel)
-	}
-
-	logCtx = &logContext{
-		internalLogLevel: internalLogLevel,
-		cfg:              cfg,
-		plain:            plainEncoder,
-		json:             jsonEncoder,
-		registeredLevel:  registeredLevel,
-	}
+		internalLogLevel := map[string]zapcore.Level{
+			"Debug": zapcore.DebugLevel,
+			"Info":  zapcore.InfoLevel,
+			"Warn":  zapcore.WarnLevel,
+			"Error": zapcore.ErrorLevel,
+		}
+		registeredLevel := []zap.AtomicLevel{}
+		for _, out := range cfg.Outputs {
+			atomicLevel := zap.NewAtomicLevelAt(internalLogLevel[out.Level])
+			registeredLevel = append(registeredLevel, atomicLevel)
+		}
+		logCtx.internalLogLevel = internalLogLevel
+		logCtx.cfg = cfg
+		logCtx.plain = plainEncoder
+		logCtx.json = jsonEncoder
+		logCtx.registeredLevel = registeredLevel
+	})
 }
 
 func encoders() (*zapcore.Encoder, *zapcore.Encoder) {

@@ -80,7 +80,7 @@ func cmdRun(ctx *cli.Context) error {
 	dps := make([]discovery.Provider, 0)
 	peer := ctx.String("peer-host")
 	seed := ctx.String("peer-seed")
-	if peer != "" { //nolint:nestif,gocritic // consider refactoring later
+	if peer != "" { //nolint:nestif // TODO: refactor it later
 		addr, err := ma.NewMultiaddr(peer)
 		if err != nil {
 			return err

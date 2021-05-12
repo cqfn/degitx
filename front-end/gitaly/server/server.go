@@ -52,7 +52,7 @@ type grpcServer struct {
 // NewGrpcServer for Gitaly gRPC
 func NewGrpcServer(maddr ma.Multiaddr) (Server, error) {
 	addr := new(discovery.MaNetworkAddr)
-	if err := addr.Parse(maddr); err != nil { //nolint:dupl // just parsing an address
+	if err := addr.Parse(maddr); err != nil {
 		return nil, err
 	}
 	srv := new(grpcServer)
