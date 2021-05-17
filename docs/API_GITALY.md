@@ -68,8 +68,8 @@ ListCommitsByRefName | catfile | cmd | Go
 FilterShasWithSignatures | catfile | cmd | Go
 GetCommitSignatures | catfile | cmd | Go
 GetCommitMessages | catfile | cmd | Go
-ListConflictFiles | ? | rugged? | Ruby
-ResolveConflicts | ? | rugged? | Ruby
+ListConflictFiles | ? | rugged? | Go
+ResolveConflicts | ? | rugged? | Go
 CommitDiff | diff --patch --raw --abbrev=40 --full-index --find-renames=30% -c diff.noprefix=false | cmd | Go
 CommitDelta | diff --raw --abbrev=40 --full-index --find-renames -c diff.noprefix=false | cmd | Go
 RawDiff | diff --full-index | cmd | Go
@@ -92,21 +92,21 @@ ReduplicateRepository | repack --quiet -a | cmd | Go
 DisconnectGitAlternates | fsck --connectivity-only | cmd | Go
 FetchIntoObjectPool | remote & remote (set-url or add) & fetch --quiet & pack-refs --all & count-objects --verbose | cmd | Go
 GetObjectPool | doesn't call git | - | -
-UserCreateBranch | | | Ruby
-UserUpdateBranch | | | Ruby
-UserDeleteBranch | | | Ruby
-UserCreateTag | | | Ruby
-UserDeleteTag | | | Ruby
-UserMergeToRef | | | Ruby
-UserMergeBranch | | | Ruby
-UserFFBranch | | | Ruby
-UserCherryPick | | | Ruby
-UserCommitFiles | | | Ruby
-UserRebaseConfirmable | | | Ruby
-UserRevert | | | Ruby
-UserSquash | | | Ruby
-UserApplyPatch | | | Ruby
-UserUpdateSubmodule | | | Ruby
+UserCreateBranch | | | Go
+UserUpdateBranch | | | Go (with Feature flag)
+UserDeleteBranch | | | Go
+UserCreateTag | | | Go
+UserDeleteTag | | | Go
+UserMergeToRef | | | Go
+UserMergeBranch | | | Go (Ruby is not removed)
+UserFFBranch | | | Go (Ruby is not removed)
+UserCherryPick | | | Go (Ruby is not removed)
+UserCommitFiles | | | Go
+UserRebaseConfirmable | | | Go (with Feature flag)
+UserRevert | | | Go
+UserSquash | | | Go
+UserApplyPatch | | | Ruby (Go version is implemented)
+UserUpdateSubmodule | | | Go
 RepositoryReplicas | doesn't call git | - | -
 ConsistencyCheck | doesn't call git | - | -
 DatalossCheck | doesn't call git | - | -
@@ -129,10 +129,10 @@ GetTagMessages | catfile | cmd | Go
 ListNewCommits | rev-list --not --all & catfile | cmd | Go
 ListNewBlobs | catfile & rev-list --objects --all --not | cmd | Go
 PackRefs | pack-refs --all | cmd | Go
-AddRemote | | | Ruby
+AddRemote | | | Go
 FetchInternalRemote | fetch --prune (upload-pack?) --git-dir repoPath | cmd | Go
 RemoveRemote | remote remove | cmd | Go
-UpdateRemoteMirror | | | Ruby
+UpdateRemoteMirror | | | Ruby (Go version is implemented)
 FindRemoteRepository | ls-remote "HEAD" | cmd | Go
 FindRemoteRootRef | remote show | cmd | Go
 ListRemotes | remote -v | cmd | Go
@@ -161,7 +161,7 @@ GarbageCollect | worktree remove --force & worktree prune & update-ref & gc & co
 WriteCommitGraph | commit-graph write --reachable | cmd | Go
 RepositorySize | du -sk | cmd | Go
 ApplyGitattributes | catfile | cmd | Go
-FetchRemote | | | Ruby
+FetchRemote | | | Go
 CreateRepository | init --bare --quiet / cmd / Go
 GetArchive | archive | cmd | Go
 HasLocalBranches | for-each-ref --count=1 refs/heads | cmd | Go
@@ -177,7 +177,7 @@ CreateBundle | worktree remove --force & worktree prune | cmd | Go
 CreateRepositoryFromBundle | clone --bare --quiet & fetch --quiet refs/*:refs/* & init --bare --quiet | cmd | Go
 SetConfig | | | Ruby
 DeleteConfig / config --unset-all | cmd | Go
-FindLicense | | | Ruby
+FindLicense | | | Ruby (Go version is implemented)
 GetInfoAttributes | doesn't call git | - | -
 CalculateChecksum | show-ref --head | cmd | Go
 Cleanup | worktree remove --force & worktree prune | cmd | Go
@@ -197,7 +197,33 @@ RenameRepository | doesn't call git | - | -
 ReplicateRepository | init --bare --quiet & tar -C -xvf - | cmd | Go
 OptimizeRepository | repack -A --pack-kept-objects -l -d | cmd | Go
 
+## Related issues for under development ruby/go RPCs
 
+gRPC | Feature Flag | Go | Ruby | related issue/MR
+----|---|---|---|---
+ListConflictFiles | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/326
+ResolveConflicts | going to be removed | + | + (going to be removed) | https://gitlab.com/gitlab-org/gitaly/-/issues/3289
+UserCreateBranch | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3412
+UserUpdateBranch | going to be removed | + | + (going to be removed) | https://gitlab.com/gitlab-org/gitaly/-/issues/3472
+UserDeleteBranch | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3370
+UserCreateTag | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3413
+UserDeleteTag | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3371
+UserMergeToRef | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3270
+UserMergeBranch | removed (go vers is used) | + | + | https://gitlab.com/gitlab-org/gitaly/-/issues/3217
+UserFFBranch | removed (go vers is used) | + |  + (going to be removed) | https://gitlab.com/gitlab-org/gitaly/-/issues/3267
+UserCherryPick | removed (go vers is used) | + |  + (going to be removed) | https://gitlab.com/gitlab-org/gitaly/-/issues/3281
+UserCommitFiles | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3458
+UserRebaseConfirmable | + (go vers by default) | + | + | https://gitlab.com/gitlab-org/gitaly/-/issues/3575
+UserRevert | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3347
+UserSquash | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3258
+UserApplyPatch | not added | + (going to be merged in master) | + | https://gitlab.com/gitlab-org/gitaly/-/issues/3076
+UserUpdateSubmodule | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3290
+AddRemote | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/1465
+UpdateRemoteMirror | + (ruby default) | + | + | https://gitlab.com/gitlab-org/gitaly/-/issues/3522
+FetchRemote | removed (ported on go) | + | - | https://gitlab.com/gitlab-org/gitaly/-/issues/3307
+**SetConfig** | - | - | + | https://gitlab.com/gitlab-org/gitaly/-/issues/3029
+FindLicense | going be added to master | + (going be added to master) | + | https://gitlab.com/gitlab-org/gitaly/-/issues/3078
 
+Also Wiki service RPCs are currently on Ruby.
 
 
