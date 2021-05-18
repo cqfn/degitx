@@ -1,0 +1,7 @@
+Geo must be required for widely distributed development teams for any big enterprise and it also provides a disaster recovery strategy.  It will reduce the time taken for developers to clone and fetch large repositories and projects.  One of the requirements is to support up to 5GB repository. 
+
+The proposal is to establish one primary node and multiple secondary nodes for any repository created in the system. When the repository is first created, it will be stored in the primary node. 
+* The backend nodes store repositories, wiki, etc.  However, Object Storage is used to store other large files such as attachments, artifacts used for CI/CD, LFC objects which is a Git extension developed by Atlassian, GitHub, and a few other open-source contributors, that reduces the impact of large files in your repository by downloading the relevant versions of them lazily.
+* The second nodes can be added and removed by the admin 
+* Write will always go to the primary node, and the secondary nodes always redirect the write to the primary one. 
+* The metadata will be saved in the database such as PostgreSQL and the writes always happen in the primary node.  There is an advanced setting to change the DB to active-active so that writes can happen to more than one region. 
