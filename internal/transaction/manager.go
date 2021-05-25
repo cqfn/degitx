@@ -16,7 +16,7 @@ package transaction
 import (
 	"context"
 
-	"cqfn.org/degitx/locators"
+	"cqfn.org/degitx/internal/locators"
 )
 
 // Manager of the transaction (TM).
