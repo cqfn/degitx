@@ -8,9 +8,9 @@ import (
 	"log"
 	"os"
 
-	"cqfn.org/degitx/discovery"
 	"cqfn.org/degitx/internal/config"
-	"cqfn.org/degitx/logging"
+	"cqfn.org/degitx/internal/discovery"
+	"cqfn.org/degitx/internal/logging"
 
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/urfave/cli/v2"

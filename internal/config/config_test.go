@@ -6,7 +6,7 @@ package config
 import (
 	"testing"
 
-	"cqfn.org/degitx/logging"
+	"cqfn.org/degitx/internal/logging"
 
 	m "github.com/g4s8/go-matchers"
 )
