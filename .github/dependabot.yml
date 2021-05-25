@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/"
+    labels:
+      - "dependencies"
+      - "bot"
+    commit-message:
+      prefix: "[deps]"
+    assignees:
+      - "g4s8"
+    schedule:
+      interval: "daily"

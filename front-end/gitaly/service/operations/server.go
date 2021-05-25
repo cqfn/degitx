@@ -27,8 +27,8 @@ func NewServer(log *logging.Logger) gitalypb.OperationServiceServer {
 
 func (server *server) UserRebase(
 	context.Context,
-	*gitalypb.UserRebaseRequest, //nolint:staticcheck
-) (*gitalypb.UserRebaseResponse, error) { //nolint:staticcheck
+	*gitalypb.UserRebaseRequest, //nolint:staticcheck // backward compatibility
+) (*gitalypb.UserRebaseResponse, error) { //nolint:staticcheck // backward compatibility
 	server.log.Info("UserRebase RPC was called")
 	return nil, status.Errorf(codes.Unimplemented, "method UserRebase not implemented & deprecated")
 }

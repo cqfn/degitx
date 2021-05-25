@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"cqfn.org/degitx/locators"
@@ -63,7 +64,7 @@ func (config *DegitxConfig) FromFiles(paths ...string) error {
 
 // FromFile parses yaml file.
 func (config *DegitxConfig) FromFile(fileName string) error {
-	source, err := ioutil.ReadFile(fileName) //nolint:gosec // no user input for filename
+	source, err := ioutil.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		return err
 	}
@@ -94,11 +95,11 @@ func (config *DegitxConfig) validate() error {
 
 // Node identity properties
 func (config *DegitxConfig) Node() (*locators.Node, error) {
-	kpub, err := ioutil.ReadFile(config.Keys.PathToPublic) //nolint:gosec // no user input for filename
+	kpub, err := ioutil.ReadFile(filepath.Clean(config.Keys.PathToPublic))
 	if err != nil {
 		return nil, err
 	}
-	kpriv, err := ioutil.ReadFile(config.Keys.PathToPrivate) //nolint:gosec // no user input for filename
+	kpriv, err := ioutil.ReadFile(filepath.Clean(config.Keys.PathToPrivate))
 	if err != nil {
 		return nil, err
 	}
