@@ -7,8 +7,8 @@ import (
 	"context"
 	"log"
 
-	"cqfn.org/degitx/discovery"
-	"cqfn.org/degitx/locators"
+	"cqfn.org/degitx/internal/discovery"
+	"cqfn.org/degitx/internal/locators"
 )
 
 // Start DeGitX node or return error
