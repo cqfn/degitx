@@ -57,8 +57,7 @@ func (d *Discovery) Resolve(ctx context.Context,
 
 // Update local peers table and registry with new peer
 func (d *Discovery) Update(ctx context.Context, p *Peer) error {
-	done := make(chan struct{})
-	err := make(chan error)
+	done := make(chan struct{}); 	err := make(chan error)
 	d.peers.update(p, done)
 	go func() {
 		select {

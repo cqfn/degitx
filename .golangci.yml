@@ -249,6 +249,6 @@ severity:
   # golangci.com configuration
   # https://github.com/golangci/golangci/wiki/Configuration
   service:
-    golangci-lint-version: 1.31.x # use the fixed version to not introduce new linters unexpectedly
+    golangci-lint-version: 1.36.x # use the fixed version to not introduce new linters unexpectedly
     prepare:
       - echo "lintners configured"
