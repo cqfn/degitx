@@ -23,7 +23,8 @@ run:
   # "/" will be replaced by current OS file path separator to properly work
   # on Windows.
   skip-dirs:
-    - proto/*
+    - proto
+    - target
 
   # default is true. Enables skipping of directories:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
@@ -249,6 +250,6 @@ severity:
   # golangci.com configuration
   # https://github.com/golangci/golangci/wiki/Configuration
   service:
-    golangci-lint-version: 1.31.x # use the fixed version to not introduce new linters unexpectedly
+    golangci-lint-version: 1.36.x # use the fixed version to not introduce new linters unexpectedly
     prepare:
       - echo "lintners configured"
