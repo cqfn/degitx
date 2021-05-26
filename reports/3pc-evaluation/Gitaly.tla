@@ -10,125 +10,133 @@ EXTENDS TLC, Naturals, FiniteSets, Sequences
 
 variables 
 
-    Master;
-    RM = <<"r0", "r1", "r2">>; \* , "r3", "r4", "r5">>;
+    RM = << "r0", "r1", "r2", "r3", "r4", "r5" >>;
 
-    masterNode = Head(RM);
-    Nodes = Tail(RM);
+    Nodes = Tail(RM); \* Assumed r0 is the master node.
  
-    \* Possible values: "working", "prepared", "committed", "aborted".
-    rmState =  {} \union [n \in DOMAIN RM |-> "working"];
+    (*
+     * Set os states of Resourse Managers. Transaction we interesting in start
+     * at Master Node and switch it to "prepared" state. 
+     * If it is no possible - it will not go further and out of the scope of this task.
+     * Possible RM states: "working", "prepared", "committed", "aborted".    
+     *)
+    rmState = <<"prepared">> \o [n \in DOMAIN Nodes |-> "working"];
 
+    \* Sets of nodes to make algorithm easier.
     preparedNodes = {};
     committedNodes = {};
     abortedNodes = {};
 
-     
-    \* LET TypeInvariant = ~\E r1, r2 \in RM : rmState[r1] = "committed" /\ rmState[r2] = "aborted";
-
-process node \in 2..Len(RM)
-begin
-RunMe:
-    while (rmState[1] \notin {"aborted", "committed"}) do   
-        Suggest:
-            \* The first step is Main Node suggest to prepare for writing Trx.
-            rmState[1] := "prepared";
-        Prep:
-            await rmState[1] = "prepared";
+process atomicCommit = 1
+begin 
+    mainLoop:
+    \* Loop till consensus is reached.
+    while Cardinality(committedNodes) * 2 < Len(RM) /\ Cardinality(abortedNodes) * 2 < Len(RM) do
+        prepareNodes:
+            \* Every node can eiter process the Trx or fail.
+            with node \in 2..Len(RM) do
+                either
+                    rmState[node] := "prepared";
+                    preparedNodes := preparedNodes \union {RM[node]};
+                or
+                    rmState[node] := "aborted";
+                    abortedNodes := abortedNodes \union {RM[node]};
+                end either;
+            end with;
+        nextStep:
+            \* Nodes iterator
+            if \E n \in DOMAIN RM : rmState[n] = "working" then
+                goto prepareNodes;
+            else
+                goto masterDecide;
+            end if;                        
+        masterDecide:
+            \* All nodes are voted, Master Node calculates the magority
             either
-                rmState[self] := "prepared";
-                preparedNodes := preparedNodes \union {RM[self]};
+                await Cardinality(preparedNodes) * 2 >= Len(Nodes) /\ rmState[1] = "prepared";
+                rmState[1] := "committed";            
             or
-                rmState[self] := "aborted";
-                abortedNodes := abortedNodes \union {RM[self]};
-            end either;
-        Decide:
-            either
-                await Len(preparedNodes) * 2 > Len(RM) /\ rmState[1] = "prepared"
-                rmState[1] := "committed";
-            or
-                await Len(abortedNodes) * 2 > Len(RM)
+                await Cardinality(abortedNodes) * 2 > Len(Nodes);
                 rmState[1] := "aborted";
             end either;
-        Write:
-            await rmState[1] \in {"committed", "aborted"} /\ rmState[self] \notin {"committed", "aborted"};
-            rmState[self] := rmState[1];
-    end while;
-    print << "FINAL STATE:", rmState >>;
+        nodesWrite:
+            \* Trx write down order (from Master Node)
+            with node \in 2..Len(RM) do
+                await rmState[1] \in {"committed", "aborted"} /\ rmState[node] \notin {"committed", "aborted"};
+                rmState[node] := rmState[1];
+            end with;        
+    end while;    
 end process;
 
 end algorithm;*)
 
-\* BEGIN TRANSLATION (chksum(pcal) = "44e2d299" /\ chksum(tla) = "ac2fab31")
-CONSTANT defaultInitValue
-VARIABLES Master, RM, masterNode, Nodes, rmState, preparedNodes, 
-          committedNodes, abortedNodes, pc
+\* BEGIN TRANSLATION (chksum(pcal) = "597a09ec" /\ chksum(tla) = "f3734466")
+VARIABLES RM, Nodes, rmState, preparedNodes, committedNodes, abortedNodes, pc
 
-vars == << Master, RM, masterNode, Nodes, rmState, preparedNodes, 
-           committedNodes, abortedNodes, pc >>
+vars == << RM, Nodes, rmState, preparedNodes, committedNodes, abortedNodes, 
+           pc >>
 
-ProcSet == (2..Len(RM))
+ProcSet == {1}
 
 Init == (* Global variables *)
-        /\ Master = defaultInitValue
-        /\ RM = <<"r0", "r1", "r2" , "r3", "r4", "r5">>
-        /\ masterNode = Head(RM)
+        /\ RM = << "r0", "r1", "r2", "r3", "r4", "r5" >>
         /\ Nodes = Tail(RM)
-        /\ rmState = ({} \union [n \in DOMAIN RM |-> "working"])
+        /\ rmState = <<"prepared">> \o [n \in DOMAIN Nodes |-> "working"]
         /\ preparedNodes = {}
         /\ committedNodes = {}
         /\ abortedNodes = {}
-        /\ pc = [self \in ProcSet |-> "RunMe"]
+        /\ pc = [self \in ProcSet |-> "mainLoop"]
 
-RunMe(self) == /\ pc[self] = "RunMe"
-               /\ IF (rmState[1] \notin {"aborted", "committed"})
-                     THEN /\ pc' = [pc EXCEPT ![self] = "Suggest"]
-                     ELSE /\ PrintT(<< "FINAL STATE:", rmState >>)
-                          /\ pc' = [pc EXCEPT ![self] = "Done"]
-               /\ UNCHANGED << Master, RM, masterNode, Nodes, rmState, 
-                               preparedNodes, committedNodes, abortedNodes >>
+mainLoop == /\ pc[1] = "mainLoop"
+            /\ IF Cardinality(committedNodes) * 2 < Len(RM) /\ Cardinality(abortedNodes) * 2 < Len(RM)
+                  THEN /\ pc' = [pc EXCEPT ![1] = "prepareNodes"]
+                  ELSE /\ pc' = [pc EXCEPT ![1] = "Done"]
+            /\ UNCHANGED << RM, Nodes, rmState, preparedNodes, committedNodes, 
+                            abortedNodes >>
 
-Suggest(self) == /\ pc[self] = "Suggest"
-                 /\ rmState' = [rmState EXCEPT ![1] = "prepared"]
-                 /\ pc' = [pc EXCEPT ![self] = "Prep"]
-                 /\ UNCHANGED << Master, RM, masterNode, Nodes, preparedNodes, 
-                                 committedNodes, abortedNodes >>
+prepareNodes == /\ pc[1] = "prepareNodes"
+                /\ \E node \in 2..Len(RM):
+                     \/ /\ rmState' = [rmState EXCEPT ![node] = "prepared"]
+                        /\ preparedNodes' = (preparedNodes \union {RM[node]})
+                        /\ UNCHANGED abortedNodes
+                     \/ /\ rmState' = [rmState EXCEPT ![node] = "aborted"]
+                        /\ abortedNodes' = (abortedNodes \union {RM[node]})
+                        /\ UNCHANGED preparedNodes
+                /\ pc' = [pc EXCEPT ![1] = "nextStep"]
+                /\ UNCHANGED << RM, Nodes, committedNodes >>
 
-Prep(self) == /\ pc[self] = "Prep"
-              /\ rmState[1] /= "working"
-              /\ \/ /\ rmState' = [rmState EXCEPT ![self] = "prepared"]
-                    /\ preparedNodes' = (preparedNodes \union {RM[self]})
-                    /\ UNCHANGED abortedNodes
-                 \/ /\ rmState' = [rmState EXCEPT ![self] = "aborted"]
-                    /\ abortedNodes' = (abortedNodes \union {RM[self]})
-                    /\ UNCHANGED preparedNodes
-              /\ pc' = [pc EXCEPT ![self] = "Decide"]
-              /\ UNCHANGED << Master, RM, masterNode, Nodes, committedNodes >>
+nextStep == /\ pc[1] = "nextStep"
+            /\ IF \E n \in DOMAIN RM : rmState[n] = "working"
+                  THEN /\ pc' = [pc EXCEPT ![1] = "prepareNodes"]
+                  ELSE /\ pc' = [pc EXCEPT ![1] = "masterDecide"]
+            /\ UNCHANGED << RM, Nodes, rmState, preparedNodes, committedNodes, 
+                            abortedNodes >>
 
-Decide(self) == /\ pc[self] = "Decide"
-                /\ \A r \in 1..Len(RM) : rmState[r] \notin {"working"}
-                /\ IF abortedNodes /= {}
-                      THEN /\ rmState' = [rmState EXCEPT ![1] = "aborted"]
-                      ELSE /\ rmState' = [rmState EXCEPT ![1] = "committed"]
-                /\ pc' = [pc EXCEPT ![self] = "Write"]
-                /\ UNCHANGED << Master, RM, masterNode, Nodes, preparedNodes, 
-                                committedNodes, abortedNodes >>
+masterDecide == /\ pc[1] = "masterDecide"
+                /\ \/ /\ Cardinality(preparedNodes) * 2 >= Len(Nodes) /\ rmState[1] = "prepared"
+                      /\ rmState' = [rmState EXCEPT ![1] = "committed"]
+                   \/ /\ Cardinality(abortedNodes) * 2 > Len(Nodes)
+                      /\ rmState' = [rmState EXCEPT ![1] = "aborted"]
+                /\ pc' = [pc EXCEPT ![1] = "nodesWrite"]
+                /\ UNCHANGED << RM, Nodes, preparedNodes, committedNodes, 
+                                abortedNodes >>
 
-Write(self) == /\ pc[self] = "Write"
-               /\ rmState[1] \in {"committed", "aborted"}
-               /\ rmState' = [rmState EXCEPT ![self+1] = rmState[1]]
-               /\ pc' = [pc EXCEPT ![self] = "RunMe"]
-               /\ UNCHANGED << Master, RM, masterNode, Nodes, preparedNodes, 
-                               committedNodes, abortedNodes >>
+nodesWrite == /\ pc[1] = "nodesWrite"
+              /\ \E node \in 2..Len(RM):
+                   /\ rmState[1] \in {"committed", "aborted"} /\ rmState[node] \notin {"committed", "aborted"}
+                   /\ rmState' = [rmState EXCEPT ![node] = rmState[1]]
+              /\ pc' = [pc EXCEPT ![1] = "mainLoop"]
+              /\ UNCHANGED << RM, Nodes, preparedNodes, committedNodes, 
+                              abortedNodes >>
 
-node(self) == RunMe(self) \/ Suggest(self) \/ Prep(self) \/ Decide(self)
-                 \/ Write(self)
+atomicCommit == mainLoop \/ prepareNodes \/ nextStep \/ masterDecide
+                   \/ nodesWrite
 
 (* Allow infinite stuttering to prevent deadlock on termination. *)
 Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
                /\ UNCHANGED vars
 
-Next == (\E self \in 2..Len(RM): node(self))
+Next == atomicCommit
            \/ Terminating
 
 Spec == Init /\ [][Next]_vars
