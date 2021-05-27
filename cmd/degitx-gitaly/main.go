@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
-	frontend "cqfn.org/degitx/front-end"
-	"cqfn.org/degitx/front-end/gitaly/server"
 	"cqfn.org/degitx/internal/config"
-	"cqfn.org/degitx/logging"
+	frontend "cqfn.org/degitx/internal/front-end"
+	"cqfn.org/degitx/internal/front-end/gitaly/server"
+	"cqfn.org/degitx/internal/logging"
 
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/urfave/cli/v2"
