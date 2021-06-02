@@ -45,7 +45,7 @@ build: proto
 .PHONY: test
 test: proto
 	$(call _run_tests_dir,internal)
-	# $(call _run_tests_dir,pkg)
+	$(call _run_tests_dir,pkg)
 
 # race detector
 .PHONY: test-race
