@@ -131,7 +131,32 @@ to prevent creating new primary node before data recovery attempts have been mad
 
 The different scenarios of node failures described \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/nodes/sql_elector.go\#L401}{in the code comments}}.
 
-\todo{figure out the process of praefect (TM) backup}
+Currently Praefect (TM) don't support the failover on other Praefect node in case of its failure during the transaction.
+
+\section{Distributed fetches}
+Gitaly provides RPC access to Git repositories. It is used by GitLab to read and write Git data from repositories.
+Gitaly clients (Gitlab Rails, shell or Workhorse) make requests of the Gitaly server.  Praefect \textbf{ensures} 
+that all gRPC calls from clients, that were mentioned before, are forwarded to the correct shard by consulting the
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/coordinator.go}{coordinator}}.
+
+Gitaly RPCs are divided on groups:
+\begin{itemize}
+\item Accessor - read-only RPC, that does not modify the git repository.
+\item Mutator - an RPC that modifies the data in the git repository.
+\end{itemize}
+
+Moreover some acessor RPCs like \textit{GetObjectDirectorySize} or \textit{RepositorySize} have \textbf{\textit{forcePrimary}} flag. 
+Coordinator server router handle accessor RPCs with  
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/coordinator.go\#L356}{ RouteRepositoryAccessor}}. 
+It returns the node that should serve the repository accessor request. If \textbf{\textit{forcePrimary }} is set to `true`, it returns the primary node. 
+If it set to `false`: 
+\begin{enumerate}
+\item Finds all UpToDate storages (according the generation number that is written in the database).
+\item Choose only healthy ones.
+\item Return some random node from this set.
+\end{enumerate}
+
+TODO: To unite this section with Mutator RPC handling strategy.
 
 \section{Termination protocol}
 
