@@ -159,8 +159,29 @@ If it set to `false`:
 TODO: To unite this section with Mutator RPC handling strategy.
 
 \section{Termination protocol}
+\subsection{Transaction timeout}
+In \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/tags/v14.0.0-rc1}{ current}} 
+Gitaly version there is 5 minutes transaction timeout that is set on transaction 
+context when voting client on gitaly node votes on transaction (the voting client 
+communicates with Praefect node).
+The timeout used for all transactional actions like voting and stopping of transactions.
+ The reasons of setting of this long timeout you can find 
+In \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/gitaly/transaction/manager.go\#L21}{ source code comments}}. 
+In other words It shouldn't normally be hit, but if it is hit then it indicates a real problem. 
+For gitaly clients it means that it can be waiting around for up to 5 minutes while the transaction 
+is completing if in case votes are missing to reach the quorum.
 
-TODO: what is the termination strategy to finish the transaction.
+There no any other timeouts on Praefect node or reference transaction hook side. 
+Hook will be waiting the any end scenario of transaction. They are :
+
+\begin{itemize}
+\item Transaction commited.
+\item Transaction stopped indicates a transaction was gracefully stopped. 
+This only happens in case the transaction was terminated because of an external condition, e.g. access checks or hooks rejected a change.
+\item Transaction aborted indicates a transaction was aborted, either because it timed out or because the vote failed to reach quorum.
+\item Invalid transaction state.
+\end{itemize}
+
 
 \section{Misc}
 \todo{to avoid this section (move facts to another section if it is possible)}
