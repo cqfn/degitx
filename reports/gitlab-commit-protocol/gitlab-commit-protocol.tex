@@ -167,7 +167,13 @@ communicates with Praefect node).
 The timeout used for all transactional actions like voting and stopping of transactions.
  The reasons of setting of this long timeout you can find 
 In \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/gitaly/transaction/manager.go\#L21}{ source code comments}}. 
-In other words It shouldn't normally be hit, but if it is hit then it indicates a real problem. 
+In other words It shouldn't normally be hit, but if it is hit then it indicates that Praefect still waiting to the quorum reaching. 
+
+We assumed that there might be inconsistency in the situation with concurrent transaction when the Praefect 
+increments the generation of the primary node in the database. But due to the timeout on voting client, 
+the primary node did not receive a response from the Praefect and did not update its state. 
+Up to date secondaries are updated according this scenario, and have a latest generation in database table. 
+
 For gitaly clients it means that it can be waiting around for up to 5 minutes while the transaction 
 is completing if in case votes are missing to reach the quorum.
 
