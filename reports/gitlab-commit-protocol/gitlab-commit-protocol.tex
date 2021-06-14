@@ -292,6 +292,7 @@ increments the generation of the primary node in the database. But due to the ti
 the primary node did not receive a response from the Praefect and did not update its state. 
 Up to date secondaries are updated according this scenario, and have a latest generation in database table. 
 
+
 TODO: prove the possibility of previous scenario, describe the whole scenario of concurrent transaction.
 
 For gitaly clients it means that it can be waiting around for up to 5 minutes while the transaction 
