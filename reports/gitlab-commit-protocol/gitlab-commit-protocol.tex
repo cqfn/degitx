@@ -7,6 +7,21 @@
 \usepackage{fancyvrb}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tikz}
+  \usetikzlibrary{shapes}
+  \usetikzlibrary{arrows.meta}
+  \usetikzlibrary{arrows}
+  \usetikzlibrary{shadows}
+  \usetikzlibrary{trees}
+  \usetikzlibrary{fit}
+  \usetikzlibrary{calc}
+  \usetikzlibrary{positioning}
+  \usetikzlibrary{decorations.pathmorphing}
+\definecolor{tikz-block}{HTML}{232527}
+\tikzset{node distance=0.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
+\tikzstyle{block} = [draw=tikz-block, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
+\tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
+\tikzstyle{O} = [circle, draw, every text node part/.style={align=center, font={\sffamily\small}}]
 \usepackage{hyperref}
   \hypersetup{colorlinks=true,allcolors=blue!40!black}
 \setlength{\topskip}{6pt}
@@ -77,7 +92,96 @@
   \end{description}
 
   \todo{the introduction is too overloaded with versatile information need to refactor the report with sutable sections}
+
 \section{Workflow}
+
+There are multiple components involved into git replication protocol workflow:
+\begin{enumerate}
+    \item Client --- git client who performce push and fetch operations
+    \item Workhorse --- component exposes HTTP endpoint to accept
+      git client requests and translate to internal RPC protocol
+    \item Shell --- component exposes SSH port and accept client
+      SSH git commands, then translate to internal RPC protocol
+    \item Rails --- main GitLab application, it provides web user-interface
+      and exposes internal API. Workhorse and Shell uses Rails
+      for discovery: when git client performs some operation,
+      they uses Rails to find proper RPC node to talk.
+    \item Gitaly --- git repository resource manager (RM): it provides RPC
+      for all git operations and calls git or libgit to manage
+      the repository. There are many Gitaly nodes in GitLab cluster,
+      each repository is replicated to multiple nodes for availability
+      and fault-tolerance.
+    \item Praefect --- A proxy and transaction manager (TM) for Gitaly. It handles
+      incoming RPC requests to Gitaly and redirect it to correct one.
+      Also, it works as a TM in two phase commit transaction by exposing
+      \code{vote} methods for RMs.
+    \item Git --- a git process performing repository updates, it's started by
+      Gitaly on RPC calls and trigger some hooks which helps with transaction
+      management. It's located on same node as Gitaly process.
+    \item Hook --- git reference transaction hook, it's triggers by Git,
+      notify transaction status to Gitaly, and blocking wait to signal from
+      Gitaly to exit and unlock the Git process on transaction.
+\end{enumerate}
+
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}[
+        wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1.2cm},
+        half-wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1.2cm},
+        group-node/.style={rectangle, draw=gray, inner sep=0.3cm}
+      ]
+      \node[wide-block]        (cli)                           {Client};
+      \node[wide-block]        (shell)[right=of cli]           {Shell};
+      \node[wide-block]        (rails)[right=of shell]         {Rails};
+      \node[wide-block]        (pkt)[below=of rails]           {Praefect};
+      \node[wide-block]        (pg)[right=of pkt]              {Postgres};
+      \node[wide-block]        (gly)[below=of pkt]             {Gitaly};
+      \node[wide-block]        (git)[right=of gly]             {Git};
+      \node[wide-block]        (hook)[below=of git]            {Hook};
+      \node[group-node]        (rm)    [fit=(gly)(git)(hook), label={}] {};
+      \draw[->]                ($(cli.east)+(0,0.2)$)            -- node[above] {1}     ($(shell.west)+(0,0.2)$);
+      \draw[->]                ($(shell.east)+(0,0.2)$)            -- node[below] {2}     ($(rails.west)+(0,0.2)$);
+      \draw[->]                ($(shell.south)+(0.5,0)$)            -- node[above] {3}     ($(pkt.west)+(0,0.2)$);
+      \draw[->]                ($(pkt.east)+(0,0.2)$)            -- node[above] {4}     ($(pg.west)+(0,0.2)$);
+      \draw[->]                ($(pkt.south)+(-0.6,0)$)            -- node[left] {5}     ($(gly.north)+(-0.6,0)$);
+      \draw[->]                ($(gly.east)+(0,0.2)$)            -- node[above] {6}     ($(git.west)+(0,0.2)$);
+      \draw[->]                ($(git.south)+(-0.6,0)$)            -- node[left] {7}     ($(hook.north)+(-0.6,0)$);
+      \draw[->]                ($(hook.west)+(0,0.4)$)            -- node[above] {8}     ($(gly.south)+(0.5,0)$);
+      \draw[->]                ($(gly.north)+(-0.2,0)$)            -- node[left] {9}     ($(pkt.south)+(-0.2,0)$);
+      \draw[->]                ($(pkt.south)+(0.2,0)$)            -- node[right] {10}     ($(gly.north)+(0.2,0)$);
+      \draw[->]                ($(gly.south)+(0,0)$)            -- node[below] {11}     ($(hook.west)+(0,0)$);
+      \draw[->]                ($(hook.north)+(0,0)$)            -- node[left] {12}     ($(git.south)+(0,0)$);
+      \draw[->]                ($(git.south)+(0.6,0)$)            -- node[left] {13}     ($(hook.north)+(0.6,0)$);
+      \draw[->]                ($(hook.west)+(0,-0.4)$)            -- node[below] {14}     ($(gly.south)+(-0.5,0)$);
+      \draw[->]                ($(gly.north)+(0.6,0)$)            -- node[right] {15}     ($(pkt.south)+(0.6,0)$);
+      \draw[->]                ($(pkt.east)+(0,-0.2)$)            -- node[below] {16}     ($(pg.west)+(0,-0.2)$);
+      \draw[->]                ($(pkt.west)+(0,-0.3)$)            -- node[below] {17}     ($(shell.south)+(-0.1,0)$);
+      \draw[->]                ($(shell.west)+(0,-0.2)$)            -- node[below] {18}     ($(cli.east)+(0,-0.2)$);
+    \end{tikzpicture}
+  \end{center}
+  \caption[GitLab repository push workflow]{
+    1. Git client calls shell (or workhorse); 2. Shell find Gitaly shard in Rails; 3. Shell calls Praefect
+    to accept git pack; 4. Praefect search database for valid Gitaly nodes for repository;
+    5. Praefect calls all Gitaly RPC to accept git pack; 6. Each Gitaly node starts git process
+    to apply pack; 7. Git apply pack and exec reference transaction hook with metadata;
+    8. Hook notify Gitaly that pack could be applied with ``prepared'' message,
+    and start waiting for the response;
+    9. Each Gitaly notify Praefect by voting on transaction;
+    10. Praefect waits for quorum of Gitaly nodes with prepared vote and
+    send ``commit'' command to each of them;
+    11. Gitaly respond to Hook with commit response;
+    12. Hook exits with zero status and unlock Git, which can apply the transaction;
+    13. Git apply transaction and unlock references, notify Hook with ``commited'' message,
+    and finish the process (exit);
+    14. Hook notyfy Gitaly that transaction was commited.
+    15. Gitaly notify Praefect that transaction was commited;
+    16. Praefect increment Gitaly version in database on commit finished;
+    17. When all Gitaly nodes send ``commited'', Praefect respond to Shell with success status;
+    18. Shell respond to Git client that push was successful;
+  }\label{fig:push-workflow}
+\end{figure}
+
 
 TODO: the workflow of GitLab push: from client to Gitaly nodes.
 
