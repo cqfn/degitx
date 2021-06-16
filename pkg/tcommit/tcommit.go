@@ -9,3 +9,22 @@
 // either prepared or aborted. RM also may know votes of other RMs
 // but it's not required.
 package tcommit
+
+// Vote of RM
+//go:generate stringer -type=Vote
+type Vote uint8
+
+const (
+	// VotePrepared means that RM was prepared to commit
+	VotePrepared Vote = iota
+	// VoteAborted means that RM failed to prepare
+	VoteAborted
+	// VoteUnkown means that RM was not decided yet
+	VoteUnkown
+)
+
+// TxID is unique identifier of the transacion
+type TxID string
+
+// NodeID unique identifier of the RM
+type NodeID string
