@@ -7,6 +7,21 @@
 \usepackage{fancyvrb}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tikz}
+  \usetikzlibrary{shapes}
+  \usetikzlibrary{arrows.meta}
+  \usetikzlibrary{arrows}
+  \usetikzlibrary{shadows}
+  \usetikzlibrary{trees}
+  \usetikzlibrary{fit}
+  \usetikzlibrary{calc}
+  \usetikzlibrary{positioning}
+  \usetikzlibrary{decorations.pathmorphing}
+\definecolor{tikz-block}{HTML}{232527}
+\tikzset{node distance=0.6cm, auto, every text node part/.style={align=center, font={\sffamily\small}}}
+\tikzstyle{block} = [draw=tikz-block, fill=white, inner sep=0.3cm, outer sep=0.1cm, thick]
+\tikzstyle{ln} = [draw, ->, very thick, arrows={-triangle 90}, every text node part/.append style={font={\sffamily\scriptsize}}]
+\tikzstyle{O} = [circle, draw, every text node part/.style={align=center, font={\sffamily\small}}]
 \usepackage{hyperref}
   \hypersetup{colorlinks=true,allcolors=blue!40!black}
 \setlength{\topskip}{6pt}
@@ -77,7 +92,96 @@
   \end{description}
 
   \todo{the introduction is too overloaded with versatile information need to refactor the report with sutable sections}
+
 \section{Workflow}
+
+There are multiple components involved into git replication protocol workflow:
+\begin{enumerate}
+    \item Client --- git client who performce push and fetch operations
+    \item Workhorse --- component exposes HTTP endpoint to accept
+      git client requests and translate to internal RPC protocol
+    \item Shell --- component exposes SSH port and accept client
+      SSH git commands, then translate to internal RPC protocol
+    \item Rails --- main GitLab application, it provides web user-interface
+      and exposes internal API. Workhorse and Shell uses Rails
+      for discovery: when git client performs some operation,
+      they uses Rails to find proper RPC node to talk.
+    \item Gitaly --- git repository resource manager (RM): it provides RPC
+      for all git operations and calls git or libgit to manage
+      the repository. There are many Gitaly nodes in GitLab cluster,
+      each repository is replicated to multiple nodes for availability
+      and fault-tolerance.
+    \item Praefect --- A proxy and transaction manager (TM) for Gitaly. It handles
+      incoming RPC requests to Gitaly and redirect it to correct one.
+      Also, it works as a TM in two phase commit transaction by exposing
+      \code{vote} methods for RMs.
+    \item Git --- a git process performing repository updates, it's started by
+      Gitaly on RPC calls and trigger some hooks which helps with transaction
+      management. It's located on same node as Gitaly process.
+    \item Hook --- git reference transaction hook, it's triggers by Git,
+      notify transaction status to Gitaly, and blocking wait to signal from
+      Gitaly to exit and unlock the Git process on transaction.
+\end{enumerate}
+
+
+\begin{figure}
+  \begin{center}
+    \begin{tikzpicture}[
+        wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1.2cm},
+        half-wide-block/.style={rectangle, draw=black, fill=white, thick, minimum width=2cm, minimum height=1.2cm},
+        group-node/.style={rectangle, draw=gray, inner sep=0.3cm}
+      ]
+      \node[wide-block]        (cli)                           {Client};
+      \node[wide-block]        (shell)[right=of cli]           {Shell};
+      \node[wide-block]        (rails)[right=of shell]         {Rails};
+      \node[wide-block]        (pkt)[below=of rails]           {Praefect};
+      \node[wide-block]        (pg)[right=of pkt]              {Postgres};
+      \node[wide-block]        (gly)[below=of pkt]             {Gitaly};
+      \node[wide-block]        (git)[right=of gly]             {Git};
+      \node[wide-block]        (hook)[below=of git]            {Hook};
+      \node[group-node]        (rm)    [fit=(gly)(git)(hook), label={}] {};
+      \draw[->]                ($(cli.east)+(0,0.2)$)            -- node[above] {1}     ($(shell.west)+(0,0.2)$);
+      \draw[->]                ($(shell.east)+(0,0.2)$)            -- node[below] {2}     ($(rails.west)+(0,0.2)$);
+      \draw[->]                ($(shell.south)+(0.5,0)$)            -- node[above] {3}     ($(pkt.west)+(0,0.2)$);
+      \draw[->]                ($(pkt.east)+(0,0.2)$)            -- node[above] {4}     ($(pg.west)+(0,0.2)$);
+      \draw[->]                ($(pkt.south)+(-0.6,0)$)            -- node[left] {5}     ($(gly.north)+(-0.6,0)$);
+      \draw[->]                ($(gly.east)+(0,0.2)$)            -- node[above] {6}     ($(git.west)+(0,0.2)$);
+      \draw[->]                ($(git.south)+(-0.6,0)$)            -- node[left] {7}     ($(hook.north)+(-0.6,0)$);
+      \draw[->]                ($(hook.west)+(0,0.4)$)            -- node[above] {8}     ($(gly.south)+(0.5,0)$);
+      \draw[->]                ($(gly.north)+(-0.2,0)$)            -- node[left] {9}     ($(pkt.south)+(-0.2,0)$);
+      \draw[->]                ($(pkt.south)+(0.2,0)$)            -- node[right] {10}     ($(gly.north)+(0.2,0)$);
+      \draw[->]                ($(gly.south)+(0,0)$)            -- node[below] {11}     ($(hook.west)+(0,0)$);
+      \draw[->]                ($(hook.north)+(0,0)$)            -- node[left] {12}     ($(git.south)+(0,0)$);
+      \draw[->]                ($(git.south)+(0.6,0)$)            -- node[left] {13}     ($(hook.north)+(0.6,0)$);
+      \draw[->]                ($(hook.west)+(0,-0.4)$)            -- node[below] {14}     ($(gly.south)+(-0.5,0)$);
+      \draw[->]                ($(gly.north)+(0.6,0)$)            -- node[right] {15}     ($(pkt.south)+(0.6,0)$);
+      \draw[->]                ($(pkt.east)+(0,-0.2)$)            -- node[below] {16}     ($(pg.west)+(0,-0.2)$);
+      \draw[->]                ($(pkt.west)+(0,-0.3)$)            -- node[below] {17}     ($(shell.south)+(-0.1,0)$);
+      \draw[->]                ($(shell.west)+(0,-0.2)$)            -- node[below] {18}     ($(cli.east)+(0,-0.2)$);
+    \end{tikzpicture}
+  \end{center}
+  \caption[GitLab repository push workflow]{
+    1. Git client calls shell (or workhorse); 2. Shell find Gitaly shard in Rails; 3. Shell calls Praefect
+    to accept git pack; 4. Praefect search database for valid Gitaly nodes for repository;
+    5. Praefect calls all Gitaly RPC to accept git pack; 6. Each Gitaly node starts git process
+    to apply pack; 7. Git apply pack and exec reference transaction hook with metadata;
+    8. Hook notify Gitaly that pack could be applied with ``prepared'' message,
+    and start waiting for the response;
+    9. Each Gitaly notify Praefect by voting on transaction;
+    10. Praefect waits for quorum of Gitaly nodes with prepared vote and
+    send ``commit'' command to each of them;
+    11. Gitaly respond to Hook with commit response;
+    12. Hook exits with zero status and unlock Git, which can apply the transaction;
+    13. Git apply transaction and unlock references, notify Hook with ``commited'' message,
+    and finish the process (exit);
+    14. Hook notyfy Gitaly that transaction was commited.
+    15. Gitaly notify Praefect that transaction was commited;
+    16. Praefect increment Gitaly version in database on commit finished;
+    17. When all Gitaly nodes send ``commited'', Praefect respond to Shell with success status;
+    18. Shell respond to Git client that push was successful;
+  }\label{fig:push-workflow}
+\end{figure}
+
 
 TODO: the workflow of GitLab push: from client to Gitaly nodes.
 
@@ -98,7 +202,7 @@ stability, consistency, non-triviality, non-blocking described in
 
 \section{Recovery protocol}
 
-
+\subsection{SQL primary election strategy}
 \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/nodes/sql_elector.go}{sqlElector }}manages the primary election for one virtual storage (aka
 shard). It enables multiple, redundant Praefect processes to run,
 which is needed to eliminate a single point of failure in Gitaly High
@@ -111,7 +215,6 @@ The sqlElector is responsible for:
 \end{itemize}
 Also every Praefect node periodically performs a health check RPC with a Gitaly node.  Once the health checks are complete, 
 Praefect node does a \textit{SELECT} from \textit{node\_status} table to determine healthy nodes.
-
 The primary of each shard is listed in the
 \textit{shard\_primaries}. If the current primary is in the healthy
 node list, then \textit{sqlElector} updates its internal state to match.
@@ -119,9 +222,24 @@ node list, then \textit{sqlElector} updates its internal state to match.
 Otherwise, if there is no primary or it is unhealthy, any Praefect node
 can elect a new primary by choosing candidate from the healthy node
 list. Gitaly uses repository generations to determine the best leader to elect.  
+\subsection{Repository generations }
+
+Praefect records the expected latest generation of each repository  in \textit{repositories } table.
+
 We have generations for each repository we could use this info to determine a new primary node more efficiently and correctly. 
 The new primary is the one that has less generation delay in total for all repositories. If there is no data to determine the 
 primary in the database the \textbf{first} candidate in candidate list (healthy nodes) will be the new primary.
+
+Generation increment algo (\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/datastore/repository_store.go}{Gitaly code}}) :
+\begin{enumerate}
+\item Increment the latest generation. If no previous records exists, the generation starts from 0.
+\item Get the primary's current generation. Secondaries have to be on the primary's generation at the moment of increment. 
+This avoids any issues where a concurrent reference transaction has failed and the secondary is no longer up to date when 
+we are incrementing the generations.
+\item Filter out secondaries which participated in a transaction but failed a concurrent transaction.
+\item Combine the primary and the up to date secondaries in a list of storages to increment the generation for.
+\item Update table with new generations for this pimary and up to date secondaries.
+ \end{enumerate}
 If there are no candidate nodes, the primary is demoted by setting the \textit{demoted} flag in \textit{shard\_primaries}.
 
 In case of a failover, the virtual storage is marked as read-only until writes are manually enabled
@@ -131,17 +249,85 @@ to prevent creating new primary node before data recovery attempts have been mad
 
 The different scenarios of node failures described \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/nodes/sql_elector.go\#L401}{in the code comments}}.
 
-\todo{figure out the process of praefect (TM) backup}
+Currently Praefect (TM) don't support the failover on other Praefect node in case of its failure during the transaction.
+
+\section{Distributed fetches}
+Gitaly provides RPC access to Git repositories. It is used by GitLab to read and write Git data from repositories.
+Gitaly clients (Gitlab Rails, shell or Workhorse) make requests of the Gitaly server.  Praefect \textbf{ensures} 
+that all gRPC calls from clients, that were mentioned before, are forwarded to the correct shard by consulting the
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/coordinator.go}{coordinator}}.
+
+Gitaly RPCs are divided on groups:
+\begin{itemize}
+\item Accessor - read-only RPC, that does not modify the git repository.
+\item Mutator - an RPC that modifies the data in the git repository.
+\end{itemize}
+
+Moreover some acessor RPCs like \textit{GetObjectDirectorySize} or \textit{RepositorySize} have \textbf{\textit{forcePrimary}} flag. 
+Coordinator server router handle accessor RPCs with  
+\emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/praefect/coordinator.go\#L356}{ RouteRepositoryAccessor}}. 
+It returns the node that should serve the repository accessor request. If \textbf{\textit{forcePrimary }} is set to `true`, it returns the primary node. 
+If it set to `false`: 
+\begin{enumerate}
+\item Finds all UpToDate storages (according the generation number that is written in the database).
+\item Choose only healthy ones.
+\item Return some random node from this set.
+\end{enumerate}
+
+TODO: To unite this section with Mutator RPC handling strategy.
 
 \section{Termination protocol}
+\subsection{Transaction timeout}
+In \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/tags/v14.0.0-rc1}{ current}} 
+Gitaly version there is 5 minutes transaction timeout that is set on transaction 
+context when voting client on gitaly node votes on transaction (the voting client 
+communicates with Praefect node).
+The timeout used for all transactional actions like voting and stopping of transactions.
+ The reasons of setting of this long timeout you can find 
+In \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/gitaly/transaction/manager.go\#L21}{ source code comments}}. 
+In other words It shouldn't normally be hit, but if it is hit then it indicates that Praefect still waiting to the quorum reaching. 
 
-TODO: what is the termination strategy to finish the transaction.
+We assumed that there might be inconsistency in the situation with concurrent transaction when the Praefect 
+increments the generation of the primary node in the database. But due to the timeout on voting client, 
+the primary node did not receive a response from the Praefect and did not update its state. 
+Up to date secondaries are updated according this scenario, and have a latest generation in database table. 
+
+
+TODO: prove the possibility of previous scenario, describe the whole scenario of concurrent transaction.
+
+For gitaly clients it means that it can be waiting around for up to 5 minutes while the transaction 
+is completing if in case votes are missing to reach the quorum.
+
+There no any other timeouts on Praefect node or reference transaction hook side. 
+Hook will be waiting the any end scenario of transaction. They are :
+
+\begin{itemize}
+\item Transaction commited.
+\item Transaction stopped indicates a transaction was gracefully stopped. 
+This only happens in case the transaction was terminated because of an external condition, e.g. access checks or hooks rejected a change.
+\item Transaction aborted indicates a transaction was aborted, either because it timed out or because the vote failed to reach quorum.
+\item Invalid transaction state.
+\end{itemize}
+
 
 \section{Misc}
 \todo{to avoid this section (move facts to another section if it is possible)}
   Was noticed
   \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/2466}{Schedule replication jobs if no transactional vote happened}},
   for clarification if it will be usefull.
+\subsection{Gitaly problems}
+In this a TODO subsection. IT will describe some Gitaly issues that realated to our research topics. When some of 
+it may be classified like some scenario or problem that we can relate directly to one of our sections, it will be replaced to it.
+\begin{itemize}
+\item  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/3605}{ Failed changes when primary is down still increment 
+generation and cause repo to become read-only}}. It describes the scenario when Gitaly node has gone down but is still 
+considered primary by Praefect, mutator requests received during this period will increment the generation column 
+in \textit{storage repositories} table. The solution of this issue probably can help us to prove the possibility of transaction timeout inconsistency.
+\item  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/merge_requests/3494}{ MR about considering the primary node modified}}. 
+The ideas in this MR can be studied to find inconsistency scenarios that changes cannot solve.
+\item  \emph{\href{//gitlab.com/gitlab-org/gitaly/-/blob/master/doc/virtual\_storage.md\#known-problems}{Gitaly team known problems}} 
+that connected with sql primary election strategy. 
+\end{itemize}
 
 TODO: add references (see bibtex).
 \end{document}
