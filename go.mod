@@ -8,7 +8,8 @@ go 1.14
 require (
 	github.com/g4s8/go-bundle v0.0.1
 	github.com/g4s8/go-matchers v0.0.0-20201209072131-8aaefc3fcb9c
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.2
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/multiformats/go-multiaddr v0.3.2
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/stretchr/testify v1.7.0
