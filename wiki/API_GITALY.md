@@ -41,13 +41,13 @@ catfile = cat-file --batch-check &  cat-file --batch
 
 branchName = for-each-ref --format=%(refname) refs/heads
 
-RPC | map to Git | execution way | written in
-----|---|---|---
-GetBlob | catfile | cmd | Go
+RPC | map to Git | execution way | written in | implemented and testes with Go latest (13-12) | implemented and testes with Go 13-9-stable
+----|---|---|---|---|---
+GetBlob | catfile | cmd | Go | | |
 GetBlobs | catfile  | cmd | Go
-GetLFSPointers | https://git-lfs.github.com | rugged? | Go
-ApplyBfgObjectMapStream | catfile & for-each-ref --format &  update-ref -z --stdin & (After https://rtyley.github.io/bfg-repo-cleaner/ OR filter-repo) | cmd | Go
-CommitIsAncestor | merge-base --is-ancestor | cmd | Go
+GetLFSPointers | https://git-lfs.github.com | cmd | Go
+ApplyBfgObjectMapStream | catfile & for-each-ref --format &  update-ref -z --stdin & (After https://rtyley.github.io/bfg-repo-cleaner/ OR filter-repo) | cmd | Go | test deleted | +
+CommitIsAncestor | merge-base --is-ancestor | cmd | Go | 
 TreeEntry | catfile | cmd | Go
 CommitsBetween | log --pretty=%H --reverse | cmd | Go
 CountCommits | rev-list --count | cmd | Go
@@ -70,28 +70,29 @@ GetCommitSignatures | catfile | cmd | Go
 GetCommitMessages | catfile | cmd | Go
 ListConflictFiles | ? | rugged? | Go
 ResolveConflicts | ? | rugged? | Go
-CommitDiff | diff --patch --raw --abbrev=40 --full-index --find-renames=30% -c diff.noprefix=false | cmd | Go
-CommitDelta | diff --raw --abbrev=40 --full-index --find-renames -c diff.noprefix=false | cmd | Go
-RawDiff | diff --full-index | cmd | Go
-RawPatch | format-patch --stdout --signature GitLab | cmd | Go
-DiffStats | diff --numstat -z
-PreReceiveHook | https://gitlab.com/gitlab-org/gitaly/-/tree/master/cmd/gitaly-hooks
-PostReceiveHook | 
-UpdateHook | 
-ReferenceTransactionHook | 
-WalkRepos | doesn't call git | - | -
-AddNamespace | doesn't call git | - | -
-RemoveNamespace | doesn't call git | - | -
-RenameNamespace | doesn't call git | - | -
-NamespaceExists | doesn't call git | - | -
-CreateObjectPool | clone --quiet --bare --local & config | cmd | Go
-DeleteObjectPool | doesn't call git | - | -
-LinkRepositoryToObjectPool | init --bare | cmd | Go
-UnlinkRepositoryFromObjectPool | remote remove | cmd | Go
-ReduplicateRepository | repack --quiet -a | cmd | Go
-DisconnectGitAlternates | fsck --connectivity-only | cmd | Go
-FetchIntoObjectPool | remote & remote (set-url or add) & fetch --quiet & pack-refs --all & count-objects --verbose | cmd | Go
-GetObjectPool | doesn't call git | - | -
+CommitDiff | diff --patch --raw --abbrev=40 --full-index --find-renames=30% -c diff.noprefix=false | cmd | Go | + | +
+CommitDelta | diff --raw --abbrev=40 --full-index --find-renames -c diff.noprefix=false | cmd | Go | + | +
+RawDiff | diff --full-index | cmd | Go | + | + 
+RawPatch | format-patch --stdout --signature GitLab | cmd | Go | + | +
+DiffStats | diff --numstat -z | cmd | Go | + | + 
+PackObjectsHook | | | Go | + | +
+PreReceiveHook | https://gitlab.com/gitlab-org/gitaly/-/tree/master/cmd/gitaly-hooks | cmd | Go | + | +
+PostReceiveHook | | | Go | + | +
+UpdateHook | | | Go | + | +
+ReferenceTransactionHook | | | Go | + | +
+WalkRepos | doesn't call git | - | Go | + | +
+AddNamespace | doesn't call git | - | Go | + | +
+RemoveNamespace | doesn't call git | - | Go | + | +
+RenameNamespace | doesn't call git | - | Go | + | +
+NamespaceExists | doesn't call git | - | Go | + | +
+CreateObjectPool | clone --quiet --bare --local & config | cmd | Go | + | +
+DeleteObjectPool | doesn't call git | - | Go | + | +  
+LinkRepositoryToObjectPool | init --bare | cmd | Go | + | +
+UnlinkRepositoryFromObjectPool | remote remove | cmd | Go | + | +
+ReduplicateRepository | repack --quiet -a | cmd | Go | + | +
+DisconnectGitAlternates | fsck --connectivity-only | cmd | Go | + | +
+FetchIntoObjectPool | remote & remote (set-url or add) & fetch --quiet & pack-refs --all & count-objects --verbose | cmd | Go | + | + 
+GetObjectPool | doesn't call git | - | Go | + | +
 UserCreateBranch | | | Go
 UserUpdateBranch | | | Go (with Feature flag)
 UserDeleteBranch | | | Go
@@ -111,24 +112,25 @@ RepositoryReplicas | doesn't call git | - | -
 ConsistencyCheck | doesn't call git | - | -
 DatalossCheck | doesn't call git | - | -
 SetAuthoritativeStorage | doesn't call git | - | -
-FindDefaultBranchName | branchName & rev-parse --symbolic-full-name | cmd | Go
-FindAllBranchNames | for-each-ref --format=%(refname) refs/heads | cmd | Go
-FindAllTagNames | for-each-ref --format=%(refname) refs/tags | cmd | Go
-FindRefName | for-each-ref --format=%(refname)  --count=1 --contains | cmd | Go
-FindLocalBranches | catfile | cmd | Go
-FindAllBranches | catfile & for-each-ref refs/heads, refs/remotes | cmd | Go
-FindAllTags | catfile for-each-ref refs/tags| cmd | Go
-FindTag | catfile & tag --format | cmd | Go
-FindAllRemoteBranches | catfile & for-each-ref refs/remotes/ | cmd | Go
-RefExists | show-ref --verify --quiet | cmd | Go
-FindBranch | for-each-ref refs/heads/ | cmd | Go
-DeleteRefs | update-ref -z --stdin & for-each-ref | cmd | Go
-ListBranchNamesContainingCommit | for-each-ref refs/heads | cmd | Go
-ListTagNamesContainingCommit | for-each-ref refs/taga | cmd | Go
-GetTagMessages | catfile | cmd | Go
-ListNewCommits | rev-list --not --all & catfile | cmd | Go
-ListNewBlobs | catfile & rev-list --objects --all --not | cmd | Go
-PackRefs | pack-refs --all | cmd | Go
+FindDefaultBranchName | branchName & rev-parse --symbolic-full-name | cmd | Go | + | +
+FindAllBranchNames | for-each-ref --format=%(refname) refs/heads | cmd | Go | + | +
+FindAllTagNames | for-each-ref --format=%(refname) refs/tags | cmd | Go | + | +
+FindRefName | for-each-ref --format=%(refname)  --count=1 --contains | cmd | Go | + | +
+FindLocalBranches | catfile | cmd | Go | + | + 
+FindAllBranches | catfile & for-each-ref refs/heads, refs/remotes | cmd | Go | + | +
+FindAllTags | catfile for-each-ref refs/tags| cmd | Go | + | +
+FindTag | catfile & tag --format | cmd | Go | + | +
+FindAllRemoteBranches | catfile & for-each-ref refs/remotes/ | cmd | Go | + | +
+RefExists | show-ref --verify --quiet | cmd | Go | + | +
+FindBranch | for-each-ref refs/heads/ | cmd | Go | + | + 
+DeleteRefs | update-ref -z --stdin & for-each-ref | cmd | Go | + | +
+ListBranchNamesContainingCommit | for-each-ref refs/heads | cmd | Go | + | +
+ListTagNamesContainingCommit | for-each-ref refs/taga | cmd | Go | + | +
+GetTagMessages | catfile | cmd | Go | + | +
+ListNewCommits | rev-list --not --all & catfile | cmd | Go | + | +
+ListNewBlobs | catfile & rev-list --objects --all --not | cmd | Go | + | +
+PackRefs | pack-refs --all | cmd | Go | + | +
+FindChangedPath | diff-tree -z -stdin -m -r --name-status --no-renames --no-commit-id --diff-filter=AMDTC | cmd | Go | + | + 
 AddRemote | | | Go
 FetchInternalRemote | fetch --prune (upload-pack?) --git-dir repoPath | cmd | Go
 RemoveRemote | remote remove | cmd | Go
@@ -136,15 +138,15 @@ UpdateRemoteMirror | | | Ruby (Go version is implemented)
 FindRemoteRepository | ls-remote "HEAD" | cmd | Go
 FindRemoteRootRef | remote show | cmd | Go
 ListRemotes | remote -v | cmd | Go
-ServerInfo | doesn't call git | - | -
-DiskStatistics | doesn't call git | - | -
-InfoRefsUploadPack | upload-pack --stateless-rpc --advertise-refs | cmd | Go
-InfoRefsReceivePack | receive-pack --stateless-rpc --advertise-refs | cmd | Go
-PostUploadPack | upload-pack -c uploadpack.allowFilter=true -c uploadpack.allowAnySHA1InWant=true --stateless-rpc | cmd | Go
-PostReceivePack | receive-pack -c receive.fsck.badTimezone=ignore -c core.alternateRefsCommand=exit 0 # -c core.hooksPath=hooks.Path --stateless-rpc | cmd | Go
-SSHUploadPack | upload-pack -c uploadpack.allowFilter=true -c uploadpack.allowAnySHA1InWant=true | cmd | Go
-SSHReceivePack | receive-pack -c receive.fsck.badTimezone=ignore -c core.alternateRefsCommand=exit 0 # -c core.hooksPath=hooks.Path | cmd | Go
-SSHUploadArchive | upload-archive | cmd | Go
+ServerInfo | doesn't call git | - | Go | + | +
+DiskStatistics | doesn't call git | - | Go | + | +
+InfoRefsUploadPack | upload-pack --stateless-rpc --advertise-refs | cmd | Go | + | +
+InfoRefsReceivePack | receive-pack --stateless-rpc --advertise-refs | cmd | Go | + | + 
+PostUploadPack | upload-pack -c uploadpack.allowFilter=true -c uploadpack.allowAnySHA1InWant=true --stateless-rpc | cmd | Go | + | +
+PostReceivePack | receive-pack -c receive.fsck.badTimezone=ignore -c core.alternateRefsCommand=exit 0 # -c core.hooksPath=hooks.Path --stateless-rpc | cmd | Go | + | +
+SSHUploadPack | upload-pack -c uploadpack.allowFilter=true -c uploadpack.allowAnySHA1InWant=true | cmd | Go | + | +
+SSHReceivePack | receive-pack -c receive.fsck.badTimezone=ignore -c core.alternateRefsCommand=exit 0 # -c core.hooksPath=hooks.Path | cmd | Go | + | +
+SSHUploadArchive | upload-archive | cmd | Go | + | +
 VoteTransaction | doesn't call git | - | -
 WikiGetPageVersions | | | Ruby
 WikiWritePage | | | Ruby
