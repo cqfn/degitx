@@ -43,33 +43,33 @@ branchName = for-each-ref --format=%(refname) refs/heads
 
 RPC | map to Git | execution way | written in | implemented and testes with Go latest (13-12) | implemented and testes with Go 13-9-stable
 ----|---|---|---|---|---
-GetBlob | catfile | cmd | Go | | |
-GetBlobs | catfile  | cmd | Go
-GetLFSPointers | https://git-lfs.github.com | cmd | Go
+GetBlob | catfile | cmd | Go | + | + 
+GetBlobs | catfile  | cmd | Go | + | +
+GetLFSPointers | https://git-lfs.github.com | cmd | Go | + | +
 ApplyBfgObjectMapStream | catfile & for-each-ref --format &  update-ref -z --stdin & (After https://rtyley.github.io/bfg-repo-cleaner/ OR filter-repo) | cmd | Go | test deleted | +
-CommitIsAncestor | merge-base --is-ancestor | cmd | Go | 
-TreeEntry | catfile | cmd | Go
-CommitsBetween | log --pretty=%H --reverse | cmd | Go
-CountCommits | rev-list --count | cmd | Go
-CountDivergingCommits | rev-list --count --left-right | cmd | Go
-GetTreeEntries | catfile | cmd | Go
-ListFiles | log --max-count=1 & ls-tree -z -r --full-tree --full-name | cmd | Go
-FindCommit | catfile | cmd | Go
-CommitStats | catfile & diff --numstat | cmd | Go
-FindAllCommits | branchName & log --pretty=%H | cmd | Go
-FindCommits | branchName & log & catfile | cmd | Go
-CommitLanguages | branchName & rev-parse & https://github.com/github/linguist | cmd | Go
-RawBlame | blame -p | cmd | Go
-LastCommitForPath | catfile & log --format=%H --max-count=1 | cmd | Go
-ListLastCommitsForTree | ls-tree -z --full-name & catfile & log --format=%H --max-count=1 | cmd | Go
-CommitsByMessage | branchName & log --grep={inputQuery} --regexp-ignore-case | cmd | Go
-ListCommitsByOid | catfile | cmd | Go
-ListCommitsByRefName | catfile | cmd | Go
-FilterShasWithSignatures | catfile | cmd | Go
-GetCommitSignatures | catfile | cmd | Go
-GetCommitMessages | catfile | cmd | Go
-ListConflictFiles | ? | rugged? | Go
-ResolveConflicts | ? | rugged? | Go
+CommitIsAncestor | merge-base --is-ancestor | cmd | Go | + | +
+TreeEntry | catfile | cmd | Go | + | +
+CommitsBetween | log --pretty=%H --reverse | cmd | Go | + | +
+CountCommits | rev-list --count | cmd | Go | + | +
+CountDivergentCommits | rev-list --count --left-right | cmd | Go | + | +
+GetTreeEntries | catfile | cmd | Go | + | +
+ListFiles | log --max-count=1 & ls-tree -z -r --full-tree --full-name | cmd | Go | + | +
+FindCommit | catfile | cmd | Go | + | +
+CommitStats | catfile & diff --numstat | cmd | Go | + | +
+FindAllCommits | branchName & log --pretty=%H | cmd | Go | + | +
+FindCommits | branchName & log & catfile | cmd | Go | + | +
+CommitLanguages | branchName & rev-parse & https://github.com/github/linguist | cmd | Go | + | +
+RawBlame | blame -p | cmd | Go | + | +
+LastCommitForPath | catfile & log --format=%H --max-count=1 | cmd | Go | + | +
+ListLastCommitsForTree | ls-tree -z --full-name & catfile & log --format=%H --max-count=1 | cmd | Go | + | +
+CommitsByMessage | branchName & log --grep={inputQuery} --regexp-ignore-case | cmd | Go | + | +
+ListCommitsByOid | catfile | cmd | Go | + | +
+ListCommitsByRefName | catfile | cmd | Go | + | +
+FilterShasWithSignatures | catfile | cmd | Go | + | +
+GetCommitSignatures | catfile | cmd | Go | + | +
+GetCommitMessages | catfile | cmd | Go | + | +
+ListConflictFiles | ? | git2go | Go | + | +
+ResolveConflicts | ? | git2go | Go | + | +
 CommitDiff | diff --patch --raw --abbrev=40 --full-index --find-renames=30% -c diff.noprefix=false | cmd | Go | + | +
 CommitDelta | diff --raw --abbrev=40 --full-index --find-renames -c diff.noprefix=false | cmd | Go | + | +
 RawDiff | diff --full-index | cmd | Go | + | + 
@@ -93,24 +93,24 @@ ReduplicateRepository | repack --quiet -a | cmd | Go | + | +
 DisconnectGitAlternates | fsck --connectivity-only | cmd | Go | + | +
 FetchIntoObjectPool | remote & remote (set-url or add) & fetch --quiet & pack-refs --all & count-objects --verbose | cmd | Go | + | + 
 GetObjectPool | doesn't call git | - | Go | + | +
-UserCreateBranch | | | Go
-UserUpdateBranch | | | Go (with Feature flag)
-UserDeleteBranch | | | Go
-UserCreateTag | | | Go
-UserDeleteTag | | | Go
-UserMergeToRef | | | Go
-UserMergeBranch | | | Go (Ruby is not removed)
-UserFFBranch | | | Go (Ruby is not removed)
-UserCherryPick | | | Go (Ruby is not removed)
-UserCommitFiles | | | Go
-UserRebaseConfirmable | | | Go (with Feature flag)
-UserRevert | | | Go
-UserSquash | | | Go
-UserApplyPatch | | | Ruby (Go version is implemented)
-UserUpdateSubmodule | | | Go
-RepositoryReplicas | doesn't call git | - | -
-ConsistencyCheck | doesn't call git | - | -
-DatalossCheck | doesn't call git | - | -
+UserCreateBranch | | | Go | + | +
+UserUpdateBranch | | | Go (with Feature flag) | + | +
+UserDeleteBranch | | | Go | + | +
+UserCreateTag | | | Go | + | +
+UserDeleteTag | | | Go | + | +
+UserMergeToRef | | | Go | + | +
+UserMergeBranch | | | Go (Ruby is not removed) | + | +
+UserFFBranch | | | Go (Ruby is not removed) | + | +
+UserCherryPick | | | Go (Ruby is not removed) | + | +
+UserCommitFiles | | | Go | + | + 
+UserRebaseConfirmable | | | Go (with Feature flag) | + | +
+UserRevert | | | Go | + | +
+UserSquash | | | Go | + | +
+UserApplyPatch | | | Ruby (Go version is implemented) | + | +
+UserUpdateSubmodule | | | Go | + | +
+RepositoryReplicas | doesn't call git | - | - | + | +
+ConsistencyCheck | doesn't call git | - | - | + | +
+DatalossCheck | doesn't call git | - | - | + | +
 SetAuthoritativeStorage | doesn't call git | - | -
 FindDefaultBranchName | branchName & rev-parse --symbolic-full-name | cmd | Go | + | +
 FindAllBranchNames | for-each-ref --format=%(refname) refs/heads | cmd | Go | + | +
@@ -131,14 +131,14 @@ ListNewCommits | rev-list --not --all & catfile | cmd | Go | + | +
 ListNewBlobs | catfile & rev-list --objects --all --not | cmd | Go | + | +
 PackRefs | pack-refs --all | cmd | Go | + | +
 FindChangedPath | diff-tree -z -stdin -m -r --name-status --no-renames --no-commit-id --diff-filter=AMDTC | cmd | Go | + | + 
-AddRemote | | | Go
-FetchInternalRemote | fetch --prune (upload-pack?) --git-dir repoPath | cmd | Go
-RemoveRemote | remote remove | cmd | Go
-UpdateRemoteMirror | | | Ruby (Go version is implemented)
-FindRemoteRepository | ls-remote "HEAD" | cmd | Go
-FindRemoteRootRef | remote show | cmd | Go
-ListRemotes | remote -v | cmd | Go
-ServerInfo | doesn't call git | - | Go | + | +
+AddRemote | | | Go | + | +
+FetchInternalRemote | fetch --prune (upload-pack?) --git-dir repoPath | cmd | Go | + | +
+RemoveRemote | remote remove | cmd | Go | + | +
+UpdateRemoteMirror | | | Ruby (Go version is implemented) | + | +
+FindRemoteRepository | ls-remote "HEAD" | cmd | Go | + | +
+FindRemoteRootRef | remote show | cmd | Go | + | +
+ListRemotes | remote -v | cmd | Go | + | +
+ServerInfo | doesn't call git | - | Go | + | + 
 DiskStatistics | doesn't call git | - | Go | + | +
 InfoRefsUploadPack | upload-pack --stateless-rpc --advertise-refs | cmd | Go | + | +
 InfoRefsReceivePack | receive-pack --stateless-rpc --advertise-refs | cmd | Go | + | + 
@@ -147,7 +147,7 @@ PostReceivePack | receive-pack -c receive.fsck.badTimezone=ignore -c core.altern
 SSHUploadPack | upload-pack -c uploadpack.allowFilter=true -c uploadpack.allowAnySHA1InWant=true | cmd | Go | + | +
 SSHReceivePack | receive-pack -c receive.fsck.badTimezone=ignore -c core.alternateRefsCommand=exit 0 # -c core.hooksPath=hooks.Path | cmd | Go | + | +
 SSHUploadArchive | upload-archive | cmd | Go | + | +
-VoteTransaction | doesn't call git | - | -
+VoteTransaction | doesn't call git | - | Go | + | +
 WikiGetPageVersions | | | Ruby
 WikiWritePage | | | Ruby
 WikiUpdatePage | | | Ruby
@@ -156,49 +156,49 @@ WikiFindPage | | | Ruby
 WikiFindFile | | | Ruby
 WikiGetAllPages | | | Ruby
 WikiListPages | | | Ruby
-RepositoryExists | doesn't call git | - | -
-RepackIncremental | repack (4x -c from config) -d | cmd | Go
-RepackFull | repack (4x -c from config) -d -A --pack-kept-objects -l | cmd | Go
-GarbageCollect | worktree remove --force & worktree prune & update-ref & gc & config core.commitGraph=true & commit-graph write --reachable & count-objects --verbose | cmd | Go
-WriteCommitGraph | commit-graph write --reachable | cmd | Go
-RepositorySize | du -sk | cmd | Go
-ApplyGitattributes | catfile | cmd | Go
-FetchRemote | | | Go
-CreateRepository | init --bare --quiet / cmd / Go
-GetArchive | archive | cmd | Go
-HasLocalBranches | for-each-ref --count=1 refs/heads | cmd | Go
-FetchSourceBranch | upload-pack --git-dir fetch --prune | cmd | Go
-Fsck | --git-dir & fsck | cmd | Go
-WriteRef | symbolic-ref & update-ref -z --stdin | cmd | Go
-FindMergeBase | merge-base | cmd | Go
-CreateFork | clone --bare --no-local & remote remove origin & init --bare --quiet| cmd | Go
-IsRebaseInProgress | doesn't call git | - | -
-IsSquashInProgress | doesn't call git | - | -
-CreateRepositoryFromURL | clone --bare --quiet -c http.followRedirects=false & init --bare --quiet & remote remove origin| cmd | Go
-CreateBundle | worktree remove --force & worktree prune | cmd | Go
-CreateRepositoryFromBundle | clone --bare --quiet & fetch --quiet refs/*:refs/* & init --bare --quiet | cmd | Go
-SetConfig | | | Ruby
-DeleteConfig / config --unset-all | cmd | Go
-FindLicense | | | Ruby (Go version is implemented)
-GetInfoAttributes | doesn't call git | - | -
-CalculateChecksum | show-ref --head | cmd | Go
-Cleanup | worktree remove --force & worktree prune | cmd | Go
-GetSnapshot | doesn't call git | - | -
-CreateRepositoryFromSnapshot | doesn't call git | - | -
-GetRawChanges | catfile & diff --raw -z | cmd | Go
-SearchFilesByContent | grep ... | cmd | Go
-SearchFilesByName | ls-tree --full-tree --name-status -r | cmd | Go
-RestoreCustomHooks | tar -xf - -C | cmd | Go
-BackupCustomHooks | tar -c -f - -C | cmd | Go
+RepositoryExists | doesn't call git | - | Go | + | +
+RepackIncremental | repack (4x -c from config) -d | cmd | Go | + | +
+RepackFull | repack (4x -c from config) -d -A --pack-kept-objects -l | cmd | Go | + | +
+GarbageCollect | worktree remove --force & worktree prune & update-ref & gc & config core.commitGraph=true & commit-graph write --reachable & count-objects --verbose | cmd | Go | + | +
+WriteCommitGraph | commit-graph write --reachable | cmd | Go | + | +
+RepositorySize | du -sk | cmd | Go | + | +
+ApplyGitattributes | catfile | cmd | Go | + | +
+FetchRemote | | | Go | + | + 
+CreateRepository | init --bare --quiet | cmd | Go | + | +
+GetArchive | archive | cmd | Go | + | +
+HasLocalBranches | for-each-ref --count=1 refs/heads | cmd | Go | + | +
+FetchSourceBranch | upload-pack --git-dir fetch --prune | cmd | Go | + | +
+Fsck | --git-dir & fsck | cmd | Go | + | +
+WriteRef | symbolic-ref & update-ref -z --stdin | cmd | Go | + | +
+FindMergeBase | merge-base | cmd | Go | + | +
+CreateFork | clone --bare --no-local & remote remove origin & init --bare --quiet| cmd | Go | + | +
+IsRebaseInProgress | doesn't call git | - | Go | + | +
+IsSquashInProgress | doesn't call git | - | Go | + | +
+CreateRepositoryFromURL | clone --bare --quiet -c http.followRedirects=false & init --bare --quiet & remote remove origin| cmd | Go | + | +
+CreateBundle | worktree remove --force & worktree prune | cmd | Go | + | +
+CreateRepositoryFromBundle | clone --bare --quiet & fetch --quiet refs/*:refs/* & init --bare --quiet | cmd | Go | + | +
+SetConfig | | | Ruby | + | +
+DeleteConfig / config --unset-all | cmd | Go | + | +
+FindLicense | | | Ruby (Go version is implemented) | + | +
+GetInfoAttributes | doesn't call git | - | - | + | +
+CalculateChecksum | show-ref --head | cmd | Go | + | +
+Cleanup | worktree remove --force & worktree prune | cmd | Go | + | +
+GetSnapshot | doesn't call git | - | - | + | +
+CreateRepositoryFromSnapshot | doesn't call git | - | - | + | +
+GetRawChanges | catfile & diff --raw -z | cmd | Go | + | +
+SearchFilesByContent | grep ... | cmd | Go | + | +
+SearchFilesByName | ls-tree --full-tree --name-status -r | cmd | Go | + | +
+RestoreCustomHooks | tar -xf - -C | cmd | Go | + | +
+BackupCustomHooks | tar -c -f - -C | cmd | Go | + | +
 FetchHTTPRemote | Unimplemented | - | -
-GetObjectDirectorySize | doesn't call git | - | -
-CloneFromPool | clone --bare --shared + Ruby | cmd + ? | Go + Ruby
-CloneFromPoolInternal | clone --bare --shared & fetch --prune (upload-pack?) --git-dir repoPath | cmd | Go
-RemoveRepository | doesn't call git | - | -
-RenameRepository | doesn't call git | - | -
-ReplicateRepository | init --bare --quiet & tar -C -xvf - | cmd | Go
-OptimizeRepository | repack -A --pack-kept-objects -l -d | cmd | Go
-
+GetObjectDirectorySize | doesn't call git | - | - | + | +
+CloneFromPool | clone --bare --shared + Ruby | cmd + ? | Go + Ruby | + | +
+CloneFromPoolInternal | clone --bare --shared & fetch --prune (upload-pack?) --git-dir repoPath | cmd | Go | + | +
+RemoveRepository | doesn't call git | - | - | + | +
+RenameRepository | doesn't call git | - | - | + | +
+ReplicateRepository | init --bare --quiet & tar -C -xvf - | cmd | Go | + | +
+OptimizeRepository | repack -A --pack-kept-objects -l -d | cmd | Go | + | +
+ 
 ## Related issues for under development ruby/go RPCs
 
 gRPC | Feature Flag | Go | Ruby | related issue/MR
