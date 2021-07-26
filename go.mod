@@ -10,7 +10,7 @@ require (
 	github.com/g4s8/go-matchers v0.0.0-20201209072131-8aaefc3fcb9c
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/multiformats/go-multiaddr v0.3.3
+	github.com/multiformats/go-multiaddr v0.4.0
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.2.0
