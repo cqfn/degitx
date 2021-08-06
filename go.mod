@@ -17,9 +17,9 @@ require (
 	gitlab.com/gitlab-org/gitaly-proto/go/gitalypb v0.0.0-20190424173140-c9b311f06511
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20201125193152-8a03d2e9614b
 	go.uber.org/zap v1.17.0
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/grpc v1.27.0
+	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	google.golang.org/grpc v1.39.1
+	google.golang.org/grpc/examples v0.0.0-20210805213004-fc30d5b571f5 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
