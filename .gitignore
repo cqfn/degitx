@@ -22,3 +22,4 @@ degitx
 degitx-gitaly
 /simulator/simulator.iml
 /simulator/target/**
+target/**
