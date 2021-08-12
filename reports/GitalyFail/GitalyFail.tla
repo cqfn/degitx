@@ -25,13 +25,16 @@
 ------------------------------ MODULE GitalyFail ------------------------------
 EXTENDS TLC, Naturals, FiniteSets, Sequences
 
-CONSTANT RM
+\* CONSTANT RM
 
 VARIABLES rmState, rmVotedYes, rmVotedNo, rmAck, rmPrepared, rmCommitted, rmAborted, 
     rmGenerations, targetGeneration
 
+MasterNode == {"r0"}
+RM == MasterNode \cup { "r1", "r2", "r3", "r4", "r5" }
+
 \* Invariants
-TypeOK == \A r \in RM: rmState[r] \in [RM -> {"init", "working", "prepared", "committed", "aborted"}]
+TypeOK == \A r \in RM: rmState[r] \in {"init", "working", "prepared", "committed", "aborted"}
 
 Consistent == \A r \in RM : ~( \/ (/\ rmState[r] = "aborted"
                                    /\ rmGenerations[r] = 1)
@@ -39,10 +42,8 @@ Consistent == \A r \in RM : ~( \/ (/\ rmState[r] = "aborted"
                                    /\ rmGenerations[r] = 0)
                               )
 
--------------------------------------------------------------------------------
-========
 
-MasterNode = Head(RM)
+\*MasterNode == RM[0]
             
 GFInit ==   /\ rmState = [r \in RM |-> "init"]            
             /\ rmGenerations = [r \in RM |-> 0]
@@ -57,6 +58,7 @@ GFInit ==   /\ rmState = [r \in RM |-> "init"]
 \* Step 1.1 Preafect call RM and swith it to working state
 RMRcvPack(r) == /\ rmState[r] = "init"
                 /\ rmState' = [rmState EXCEPT ![r] = "working"] \* All the Nodes are answered
+                /\ UNCHANGED << rmAborted, rmAck, rmCommitted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration >>
                 
 \* Step 2.1 Node calls Preafect and send Vote
 NodeVote(r) == /\ r \notin rmVotedYes
@@ -64,31 +66,36 @@ NodeVote(r) == /\ r \notin rmVotedYes
                /\ rmState[r] = "working"
                /\ (\/ (/\ rmState' = [rmState EXCEPT ![r] = "prepared"]
                        /\ rmVotedYes' = rmVotedYes \union r
-                       /\ rmPrepared' = rmPrepared \union r) \* Prepared
+                       /\ rmPrepared' = rmPrepared \union r
+                       /\ UNCHANGED << rmVotedNo, rmAborted >>) \* Prepared
                    \/ (/\ rmState' = [rmState EXCEPT ![r] = "aborted"]
                        /\ rmVotedNo' = rmVotedNo \union r
-                       /\ rmAborted' = rmAborted \union r)  \* Aborted
-                   )            
+                       /\ rmAborted' = rmAborted \union r
+                       /\ UNCHANGED << rmVotedYes, rmPrepared >>)  \* Aborted
+                   )  
+               /\ /\ UNCHANGED << rmAck, rmCommitted, rmGenerations,  targetGeneration >>              
 
 \* Step 2.2 Preafect await for Quorum and send its decision
 isQuorumYes == /\ MasterNode \in rmVotedYes
                /\ rmState[MasterNode] = "prepared" \* Doublecheck
-               /\ Len(rmVotedYes) * 2 > Len(RM)
+               /\ Cardinality(rmVotedYes) * 2 > Cardinality(RM)
 
 isQuorumNo  == \/ (/\ MasterNode \in rmVotedNo
-                   /\ rmState[MasterNode] = "aborted" \* Doublecheck
-               \/ Len(rmVotedNo) * 2 > Len(RM)              
+                   /\ rmState[MasterNode] = "aborted") \* Doublecheck
+               \/ Cardinality(rmVotedNo) * 2 > Cardinality(RM)              
 
 RMRcvCommit(r) == /\ isQuorumYes
                   /\ rmState' = [rmState EXCEPT ![r] = "committed"]
                   \* Send Ack or not send
                   /\ (\/ rmAck' = rmAck \union r \* Answered to Preafect and counted by it
                       \/ UNCHANGED << rmAck >>) \* Preafect didn't receive acknowlege
-
+                  /\ UNCHANGED << rmAborted, rmCommitted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration >>
+     
 RMRcvAbort(r) == /\ isQuorumNo
                  /\ rmState' = [rmState EXCEPT ![r] = "aborted"]
                  /\ (\/ rmAck' = rmAck \union r \* Answered to Preafect and counted by it
-                      \/ UNCHANGED << rmAck >>) \* Preafect didn't receive acknowlege
+                     \/ UNCHANGED << rmAck >>) \* Preafect didn't receive acknowlege
+                 /\ UNCHANGED << rmAborted, rmCommitted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration >>
 
 \* Step 3.1 Preafect await all acks and calls DB and increase generations.
 
@@ -99,19 +106,20 @@ isTimeOut == \A r \in RM:
 
 ProcessGeneration == /\ isTimeOut \* All nodes voted
                      /\ targetGeneration' = 1
-                     /\ \E r \in rmAck: /\ rmState[r] = "committed"
-                                        /\ rmGenerations(r) = 0
-                                        /\ rmGenerations' = 1
+                     /\ \E r \in rmAck: (/\ rmState[r] = "committed"
+                                        /\ rmGenerations[r] = 0
+                                        /\ rmGenerations' = 1)
 
-------------------------------------------------------------------------
 
 GFNext == \E r \in RM:
             RMRcvPack(r) \/ NodeVote(r) \/ RMRcvCommit(r) \/ RMRcvAbort(r) \/ ProcessGeneration
 
-GFSpec == GFInit /\ [][GFNext]_rmState
+\* GFSpec == GFInit /\ [][GFNext]_<<rmState, rmVotedYes, rmVotedNo, rmAck, rmPrepared, rmCommitted, rmAborted, 
+\*    rmGenerations, targetGeneration>>
 
-THEOREM == GFSpec => [](TypeOK /\ Consistent)
+\* THEOREM == GFSpec => [](TypeOK /\ Consistent)
 =============================================================================
 \* Modification History
-\* Last modified Mon Aug 09 10:43:09 MSK 2021 by i00544730
+\* Last modified Thu Aug 12 18:00:46 MSK 2021 by i00544730
 \* Created Wed Jan 20 15:30:37 MSK 2021 by i00544730
+
