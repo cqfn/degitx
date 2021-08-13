@@ -61,57 +61,76 @@ NodeVote(r) == /\ rmState[r] = "working"
                        /\ rmAborted' = rmAborted \cup {r}
                        /\ UNCHANGED << rmVotedYes, rmPrepared >>)  \* Aborted
                    )  
-               /\ UNCHANGED << rmAck, rmCommitted, rmGenerations,  targetGeneration, MasterNode >>              
+               /\ UNCHANGED << rmAck, rmCommitted, rmGenerations, targetGeneration, MasterNode >>              
 
 \* Step 2.2 Preafect await for Quorum and send its decision
 isQuorumYes == /\ MasterNode \in rmVotedYes
-               /\ rmState[MasterNode] \in {"prepared", "committed"} \* Doublecheck
                /\ Cardinality(rmVotedYes) * 2 >= Cardinality(RM)
 
-isQuorumNo  == \/ (/\ MasterNode \in rmVotedNo
-                   /\ rmState[MasterNode] = "aborted") \* Doublecheck
+isQuorumNo  == \/ MasterNode \in rmVotedNo
                \/ Cardinality(rmVotedNo) * 2 > Cardinality(RM)              
 
 RMRcvCommit(r) == /\ isQuorumYes
-                  \* /\ rmState[r] /= "aborted"
-                  /\ r \in rmPrepared  
+                  /\ rmState[r] \notin {"committed", "aborted"}
+                  /\ r \in rmPrepared                  
                   /\ rmState' = [rmState EXCEPT ![r] = "committed"]
-                  \* Send Ack or not send
+                  /\ rmCommitted' = rmCommitted \cup {r}
+                  \* Send Ack or do not send - THIS IT WHAT WE CHECK HERE!
                   /\ (\/ rmAck' = rmAck \cap {r} \* Answered to Preafect and counted by it
-                      \/ UNCHANGED << rmAck >>) \* Preafect didn't receive acknowlege
-                  /\ UNCHANGED << rmAborted, rmCommitted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration, MasterNode >>
+                      \/ UNCHANGED << rmAck >>)  \* Preafect didn't receive acknowlege                  
+                  /\ UNCHANGED << rmAborted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration, MasterNode >>
+                  
+RMRcvCommitSilently(r) == /\ isQuorumYes
+                  /\ rmState[r] \notin {"committed", "aborted"}
+                  /\ r \in rmPrepared                  
+                  /\ rmState' = [rmState EXCEPT ![r] = "committed"]
+                  /\ rmCommitted' = rmCommitted \cup {r}
+                  \* Send Ack or do not send - THIS IT WHAT WE CHECK HERE!                  
+                  \*\/ UNCHANGED << rmAck >>) \* Preafect didn't receive acknowlege
+                  /\ UNCHANGED << rmAck, rmAborted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration, MasterNode >>                  
      
 RMRcvAbort(r) == /\ isQuorumNo
+                 /\ rmState[r] \notin {"committed", "aborted"}
                  /\ rmState' = [rmState EXCEPT ![r] = "aborted"]
-                 /\ (\/ rmAck' = rmAck \cap {r} \* Answered to Preafect and counted by it
-                     \/ UNCHANGED << rmAck >>) \* Preafect didn't receive acknowlege
-                 /\ UNCHANGED << rmAborted, rmCommitted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration, MasterNode >>
+                 /\ rmAborted' = rmAborted \cup {r}
+                 /\ UNCHANGED << rmAck, rmCommitted, rmGenerations, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration, MasterNode >>
 
 \* Step 3.1 Preafect await all acks and calls DB and increase generations.
 
 \* A trick to wait for all nodes are done their work
 isTimeOut == \A r \in RM: rmState[r] \in {"committed", "aborted"}
 
-ProcessGeneration == /\ isTimeOut \* All nodes voted
-                     /\ targetGeneration' = 1
-                     /\ rmGenerations = [r \in rmAck |-> 1]
+ProcessGeneration == /\ isTimeOut \* All nodes voted       
+                     /\ isQuorumYes                                   
+                     /\ \E r \in rmAck: (/\ rmGenerations[r] = 0                       
+                                         /\ rmGenerations' = 1 )
+                     /\ UNCHANGED << rmAck, rmState, rmAborted, rmCommitted, rmPrepared, rmVotedNo, rmVotedYes, targetGeneration, MasterNode >>
+
+\* The last part of DB transaction - update target Generation. In fact it is atomic method with bulk ProcessGeneration run
+IncrementTargetGeneration == /\ isQuorumYes
+                             /\ isTimeOut
+                             /\ \A r \in rmAck: rmGenerations[r] = 1
+                             /\ Cardinality(rmAck) * 2 > Cardinality(RM)
+                             /\ targetGeneration' = 1
+                             /\ UNCHANGED << rmAck, rmState, rmAborted, rmCommitted, rmPrepared, rmVotedNo, rmVotedYes, rmGenerations, MasterNode >>
 
 
 GFNext == \/ ProcessGeneration
+          \/ IncrementTargetGeneration  
           \/  \E r \in RM:  \/ RMRcvPack(r) 
                             \/ NodeVote(r) 
                             \/ RMRcvCommit(r) 
                             \/ RMRcvAbort(r) 
 
-
 \* Invariants
 TypeOK == \A r \in RM: rmState[r] \in {"init", "working", "prepared", "committed", "aborted"}
 
-SavedNoAck == ~\E r \in RM: /\ r \notin rmAck
-                            /\ rmGenerations[r] = 1                            
+SavedNoAck == ~\E r \in RM: /\ rmState[r] = "committed"
+                            /\ rmGenerations[r] = 0
+                            /\ targetGeneration = 1
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Aug 13 15:25:42 MSK 2021 by i00544730
+\* Last modified Fri Aug 13 17:08:21 MSK 2021 by i00544730
 \* Created Wed Jan 20 15:30:37 MSK 2021 by i00544730
 
