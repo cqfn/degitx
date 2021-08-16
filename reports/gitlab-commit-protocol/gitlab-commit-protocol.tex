@@ -371,7 +371,7 @@ the vote failed to reach quorum.
 
 \section{Gitaly problems}
 This section introduces some Gitaly issues that realated to our research topics. Some 
-of this scenarios can be useful for future protocol testing different scenarios. 
+of this scenarios can be useful for future protocol testing different scenarios.
 \begin{itemize}
 \item  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/issues/3605}{ Failed changes when primary is down still increment 
 generation and cause repo to become read-only}}. It describes the scenario when Gitaly node has gone down but is still 
@@ -379,13 +379,30 @@ considered primary by Praefect, mutator requests received during this period wil
 in \textit{storage repositories} table.
 \item  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/merge_requests/3494}{ MR about considering the primary node modified}}. 
 The ideas in this MR can be studied to find inconsistency scenarios that changes cannot solve.
-\item  \emph{\href{//gitlab.com/gitlab-org/gitaly/-/blob/master/doc/virtual\_storage.md\#known-problems}{Gitaly team known problems}} 
+\item  \emph{\href{https://gitlab.com/gitlab-org/gitaly/-/blob/master/doc/virtual\_storage.md\#known-problems}{Gitaly team known problems}} 
 that connected with sql primary election strategy. 
 \end{itemize}
 
+After Gitaly commit protocol analysis, was noticed that the incrementing of generation in \textit{repositories}
+ and \textit{store\_repositories} tables happens after Praefect (TM) response to Gitaly (RM) 
+ on \textit{VoteTransactionRequest}. If the TM crashes after sending \textit{Commit} response 
+ to Gitaly nodes and before transaction finalizer that calls incrementing mentioned above we can hit 
+ the situation:
+	
+\begin{enumerate}
+\item The Quorum of Gitaly nodes prepared and voted for the transaction to commit (send vote message to Praefect).
+\item At least one Gitaly node aborted transaction, and became outdated.
+\item Praefect responds to Gitaly vote requests with commit message and crashes after responding on this request.
+\item Generations of all Gitaly nodes that was participated in transaction remained the same, because of Praefect 
+failure before its incrementing.
+\item The result: all the participated Gitaly nodes that sent abort or commit messages have the \textbf{same} an 
+old generation number. In other words some Gitaly nodes have different data but the same generation.
+\end{enumerate}
+
+
 \section{Conclusion and future work}
 
-Analysis of Gitlab commit protocol and Gitaly workflow shows that Gitlab commit protocol 
+Analysis of Gitlab commit protocol and Gitaly workflow shows that Gitlab commit protocol in most cases
 copes with achieving strong consistency. Despite that 
 fact, some disadvantages can be noticed in Gitaly approach:
 \begin{itemize}
@@ -396,5 +413,4 @@ fact, some disadvantages can be noticed in Gitaly approach:
 The future research will be aimed to possibility of replacing Giltaly commit protocol (modified 2pc) 
 with the \emph{\href{https://en.wikipedia.org/wiki/Paxos_(computer_science)}{Paxos}}. This approach can help us to achieve 
 a strong consistency in an easier way in distributed git repository manager Degitx.
-
 \end{document}
