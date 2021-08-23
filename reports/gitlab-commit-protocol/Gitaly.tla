@@ -1,180 +1,150 @@
-(* 
-    MIT License Copyright (c) 2020 CQFN
-    https://github.com/cqfn/degitx/blob/master/LICENSE
-    
-    DeGit Tech Report. Appendix 1. Gitaly implementation of the Consensus algorithm.
-    
-    During the research, it was found out Gitaly implements Two-Phase commit protocol.
-    Moddeling of its behavior show the protocol is correct and inconcistance was not reached.
-    It means that is is not possible to get one node in committed state and another node 
-    in aborted state in the same transaction. 
-    The biggest issue of such implementation is block of Git branch in case of network fail
-    with unreacheble consensus (based on majority rule).
-    At the same time, recovery procedure is not supported at the protocol level. 
-    There are a set of external modules supply turning back repositories to the same version.
-        
- *)
----- MODULE Gitaly ----
+------------------------------- MODULE Gitaly -------------------------------
 EXTENDS TLC, Naturals, FiniteSets, Sequences
 
-(*--algorithm GitalyCommit
+CONSTANT    RM,                 \* resource managers set
+            TimeoutEnabled,     \* TRUE if RM timeout enabled
+            TMFailEnabled,      \* TRUE if TM can crash
+            MasterRM            \* Master RM node
 
-variables 
 
-    \* Resource managers - complete list of nodes.
-    RM = << "r0", "r1", "r2", "r3", "r4", "r5" >>;
+VARIABLES
+    rmState,
+    tmState,
+    messages,
+    dbState,
+    tmPrepared,
+    tmCommitted
 
-    Nodes = Tail(RM); \* Assumed r0 is the master node.
- 
-    (*
-       Set os states of Resourse Managers. Transaction we interesting in start
-       at Master Node and switch it to "prepared" state. 
-       If it is no possible - it will not go further and out of the scope of this task.
-       Possible RM states: "working", "prepared", "committed", "aborted".    
-     *)
-    rmState = <<"prepared">> \o [n \in DOMAIN Nodes |-> "working"];
+Messages == [type: {"receive-pack", "vote", "commited", "commit"}, rm: RM]
 
-    \* Sets of nodes what answered to request from MasterNode. 
-    \* Used to calculate consensus votes.
-    preparedNodes = {};
-    committedNodes = {};
-    abortedNodes = {};
+TypeOK ==   /\ rmState \in [RM -> {"working", "prepared", "commited", "aborted"}]
+            /\ tmState \in {"up", "crash", "done"}
+            /\ tmPrepared \subseteq RM
+            /\ tmCommitted \subseteq RM
+            /\ messages \subseteq Messages
+            /\ dbState \in [RM -> {0, 1, 2}]
 
-process atomicCommit = 1
-begin 
-    (*
-      Loop till consensus is reached. The condition to exit is majority of votes
-      for commit or abort transaction.
-      Here modulated the case, when Master Node is already prepared 
-      (ready to write commit) and waiting for acknoledge from follower nodes.
-      In reality there can be more votes than Nodes/2, but it does not metter
-      to make a decision. 
-    *)
-    mainLoop:
-    while Cardinality(committedNodes) * 2 < Len(RM) 
-       /\ Cardinality(abortedNodes)   * 2 < Len(RM) do
-        prepareNodes:
-            \* Every node can eiter process the Trx or fail.
-            with node \in 2..Len(RM) do
-                either
-                    rmState[node] := "prepared";
-                    preparedNodes := preparedNodes \union {RM[node]};
-                or
-                    rmState[node] := "aborted";
-                    abortedNodes := abortedNodes \union {RM[node]};
-                end either;
-            end with;
-        (*
-            Technical step:
-            All nodes are able to vote and move from working stage to 
-            prepared or aborted. Whel all voted, MasterNode has to decide. 
-        *)    
-        nextStep:
-            \* Nodes iterator
-            if \E n \in DOMAIN RM : rmState[n] = "working" then
-                goto prepareNodes;
-            else
-                goto masterDecide;
-            end if;
-        (*
-            All nodes are voted, MasterNode calculates the magority.
-        *)                            
-        masterDecide:          
-            either
-                await Cardinality(preparedNodes) * 2 >= Len(Nodes) 
-                   /\ rmState[1] = "prepared";
-                rmState[1] := "committed";            
-            or
-                await Cardinality(abortedNodes) * 2 > Len(Nodes);
-                rmState[1] := "aborted";
-            end either;
-        (*
-            The final step: every Node executes the order came from MAsterNode. 
-        *)    
-        nodesWrite:
-            with node \in 2..Len(RM) do
-                await rmState[1] \in {"committed", "aborted"} 
-                   /\ rmState[node] \notin {"committed", "aborted"};
-                rmState[node] := rmState[1];
-            end with;        
-    end while;    
-end process;
+Init ==     /\ rmState = [r \in RM |-> "working"]
+            /\ tmState = "up"
+            /\ messages = {}
+            /\ dbState = [r \in RM |-> 0]
+            /\ tmPrepared = {}
+            /\ tmCommitted = {}
 
-end algorithm;*)
+(***********************************************************************)
+(*                              HELPER                                 *)
+(***********************************************************************)
 
-VARIABLES RM, Nodes, rmState, preparedNodes, committedNodes, abortedNodes, pc
+Quorum(rms) ==
+    \* Gitaly reaches the quorum if primary (first) RM voted for commit and at least a half of other RMs too
+    (MasterRM \in rms) /\ (Cardinality(rms \intersect RM) * 2 > Cardinality(RM))
 
-vars == << RM, Nodes, rmState, preparedNodes, committedNodes, abortedNodes, 
-           pc >>
+(***********************************************************************)
+(*                              STEPS                                  *)
+(***********************************************************************)
 
-ProcSet == {1}
+(* TM sends a message with receive pack command to one RM *)
+TMSendInit ==   /\ tmState = "up"
+                /\ \E rm \in RM: LET msg == [type |-> "receive-pack", rm |-> rm] IN
+                    /\ msg \notin messages
+                    /\ messages' = messages \cup {msg}
+                /\ UNCHANGED <<rmState, tmState, dbState, tmPrepared, tmCommitted>>
 
-Init == (* Global variables *)
-        /\ RM = << "r0", "r1", "r2", "r3", "r4", "r5" >>
-        /\ Nodes = Tail(RM)
-        /\ rmState = <<"prepared">> \o [n \in DOMAIN Nodes |-> "working"]
-        /\ preparedNodes = {}
-        /\ committedNodes = {}
-        /\ abortedNodes = {}
-        /\ pc = [self \in ProcSet |-> "mainLoop"]
+RMPrepare(rm) == /\ rmState' = [rmState EXCEPT ![rm] = "prepared"]
+                 /\ messages' = messages \cup {[type |-> "vote", rm |-> rm]}
 
-mainLoop == /\ pc[1] = "mainLoop"
-            /\ IF    Cardinality(committedNodes) * 2 < Len(RM)
-                  /\ Cardinality(abortedNodes)   * 2 < Len(RM)
-                  THEN /\ pc' = [pc EXCEPT ![1] = "prepareNodes"]
-                  ELSE /\ pc' = [pc EXCEPT ![1] = "Done"]
-            /\ UNCHANGED << RM, Nodes, rmState, preparedNodes, committedNodes, 
-                            abortedNodes >>
+RMAbort(rm) == /\ rmState' = [rmState EXCEPT ![rm] = "aborted"]
+               /\ UNCHANGED <<messages>>
 
-prepareNodes == /\ pc[1] = "prepareNodes"
-                /\ \E node \in 2..Len(RM):
-                     \/ /\ rmState' = [rmState EXCEPT ![node] = "prepared"]
-                        /\ preparedNodes' = (preparedNodes \union {RM[node]})
-                        /\ UNCHANGED abortedNodes
-                     \/ /\ rmState' = [rmState EXCEPT ![node] = "aborted"]
-                        /\ abortedNodes' = (abortedNodes \union {RM[node]})
-                        /\ UNCHANGED preparedNodes
-                /\ pc' = [pc EXCEPT ![1] = "nextStep"]
-                /\ UNCHANGED << RM, Nodes, committedNodes >>
+(****************************************************************)
+(* One particular RM receives a message with receive-pack       *)
+(* command. It either prepare or abort, if prepare, then vote   *)
+(* by sending vote message to RM                                *)
+(****************************************************************)
+RMRcvInit == \E r \in {rm \in RM: rmState[rm] = "working"}:
+            /\ [type |-> "receive-pack", rm |-> r] \in messages
+            /\ (RMAbort(r) \/ RMPrepare(r))
+            /\ UNCHANGED <<tmState, dbState, tmPrepared, tmCommitted>>
 
-nextStep == /\ pc[1] = "nextStep"
-            /\ IF \E n \in DOMAIN RM : rmState[n] = "working"
-                  THEN /\ pc' = [pc EXCEPT ![1] = "prepareNodes"]
-                  ELSE /\ pc' = [pc EXCEPT ![1] = "masterDecide"]
-            /\ UNCHANGED << RM, Nodes, rmState, preparedNodes, committedNodes, 
-                            abortedNodes >>
+(* TM received vote message *)
+TMRcvVote ==    /\ tmState = "up"
+                /\ \E r \in {rm \in RM: rm \notin tmPrepared}: 
+                    /\ [type |-> "vote", rm |-> r] \in messages
+                    /\ tmPrepared' = tmPrepared \cup {r}
+                /\ UNCHANGED <<rmState, tmState, messages, dbState, tmCommitted>>
 
-masterDecide == /\ pc[1] = "masterDecide"
-                /\ \/ /\    Cardinality(preparedNodes) * 2 >= Len(Nodes)
-                         /\ rmState[1] = "prepared"
-                      /\ rmState' = [rmState EXCEPT ![1] = "committed"]
-                   \/ /\ Cardinality(abortedNodes) * 2 > Len(Nodes)
-                      /\ rmState' = [rmState EXCEPT ![1] = "aborted"]
-                /\ pc' = [pc EXCEPT ![1] = "nodesWrite"]
-                /\ UNCHANGED << RM, Nodes, preparedNodes, committedNodes, 
-                                abortedNodes >>
+(*************************************************************************)
+(* The TM commits the transaction; enabled iff the TM is in its initial  *)
+(* state and quorum of RM has sent a "Prepared" message.                 *)
+(*************************************************************************)
+TMSendCommit == /\ tmState = "up"
+                /\ Quorum(tmPrepared)
+                /\ \E rm \in RM: LET msg == [type |-> "commit", rm |-> rm] IN
+                    /\ msg \notin messages
+                    /\ messages' = messages \cup {msg}
+                /\ UNCHANGED <<rmState, dbState, tmPrepared, tmCommitted, tmState>>
 
-nodesWrite == /\ pc[1] = "nodesWrite"
-              /\ \E node \in 2..Len(RM):
-                   /\    rmState[1] \in {"committed", "aborted"}
-                      /\ rmState[node] \notin {"committed", "aborted"}
-                   /\ rmState' = [rmState EXCEPT ![node] = rmState[1]]
-              /\ pc' = [pc EXCEPT ![1] = "mainLoop"]
-              /\ UNCHANGED << RM, Nodes, preparedNodes, committedNodes, 
-                              abortedNodes >>
+(* RM received commit comand and responds with committed message *)
+RMRcvCommit == \E r \in {rm \in RM: rmState[rm] = "prepared"}:
+            /\ [type |-> "commit", rm |-> r] \in messages
+            /\ rmState' = [rmState EXCEPT ![r] = "commited"]
+            /\ messages' = messages \cup {[type |-> "commited", rm |-> r]}
+            /\ UNCHANGED <<tmState, dbState, tmPrepared, tmCommitted>>
 
-atomicCommit == mainLoop \/ prepareNodes \/ nextStep \/ masterDecide
-                   \/ nodesWrite
+(*******************************************************************)
+(* If TM doesn't respond for Gitaly vote (prepared) message in     *)
+(* some period of time, then Gitaly (RM) decide to abort           *)
+(* the transaction.                                                *)
+(*******************************************************************)
+RMTimeoutAbort ==
+            /\ TimeoutEnabled
+            /\ \E r \in {rm \in RM: rmState[rm] = "prepared"}:
+                rmState' = [rmState EXCEPT ![r] = "aborted"]
+                \* TODO: check if Praefect handle timeout abort messages somehow or just ignore it
+            /\ UNCHANGED <<tmState, messages, dbState, tmPrepared, tmCommitted>>
 
-(* Allow infinite stuttering to prevent deadlock on termination. *)
-Terminating == /\ \A self \in ProcSet: pc[self] = "Done"
-               /\ UNCHANGED vars
+(* TM receives commit command and update db state *)
+TMRcvCommitted ==   /\ tmState = "up"
+                    /\ \E rm \in {r \in RM: r \notin tmCommitted}:
+                        /\ [type |-> "commited", rm |-> rm] \in messages
+                        /\ tmCommitted' = tmCommitted \cup {rm}
+                        /\ LET state == dbState[rm] IN dbState' = [dbState EXCEPT ![rm] = state + 1]
+                        /\ UNCHANGED <<rmState, tmState, messages, tmPrepared>>
 
-Next == atomicCommit
-           \/ Terminating
+TMDone ==   /\ tmState = "up"
+            /\ \A rm \in RM: rm \in tmPrepared => rm \in tmCommitted
+            /\ tmState' = "done"
+            /\ UNCHANGED <<rmState, messages, dbState, tmPrepared, tmCommitted>>
 
-Spec == Init /\ [][Next]_vars
+TMFail == /\ TMFailEnabled
+          /\ tmState = "up"
+          /\ tmState' = "crash"
+          /\ UNCHANGED <<rmState, messages, dbState, tmPrepared, tmCommitted>>
 
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
+Next ==     \/ TMSendInit
+            \/ RMRcvInit
+            \/ TMRcvVote
+            \/ TMSendCommit
+            \/ RMRcvCommit
+            \/ RMTimeoutAbort
+            \/ TMRcvCommitted
+            \/ TMFail
+            \/ TMDone
 
-====
+(*
+    invariant: consistency in Gitaly model is:
+    all resource managers with highest generation
+    has the same state.
+*)
+
+MaxGeneration == LET g == {dbState[rm]: rm \in RM} IN
+            CHOOSE max \in g: \A x \in g: x <= max
+
+RMConsistency(gen) ==  LET rms == {rm \in RM: dbState[rm] = gen} IN
+                       \A rm1 \in rms: \A rm2 \in rms:
+                           rmState[rm1] = "commited" => rmState[rm2] /= "aborted"
+
+Consistency ==  \/ tmState = "up"
+                \/ (tmState \in {"done", "crash"} /\ RMConsistency(MaxGeneration))
+
+=============================================================================
