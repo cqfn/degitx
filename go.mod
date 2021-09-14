@@ -18,8 +18,8 @@ require (
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20201125193152-8a03d2e9614b
 	go.uber.org/zap v1.19.1
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.40.0
+	google.golang.org/grpc/examples v0.0.0-20210913185052-5bfc05fb0cf0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
