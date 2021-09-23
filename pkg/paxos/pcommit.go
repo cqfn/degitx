@@ -23,7 +23,7 @@ type tmClient struct {
 
 // NewTMClient creates a client interface for TM(s) using Paxos commit protocol
 // for communication. On begin, this client proposes vote as a Paxos proposal to
-// all acceptors and waits for promise message from acceptors. When vote is acceptors by
+// all acceptors and waits for promise message from acceptors. When vote is accepted by
 // acceptors, it performs `begin` TM remote call. Finish remote call goes directly to
 // remote TM.
 func NewTMClient(accs []Acceptor, tmRemote tcommit.Manager, node tcommit.NodeID) tcommit.Manager {
