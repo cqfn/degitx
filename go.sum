@@ -33,6 +33,8 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/g4s8/go-bundle v0.0.1 h1:QxMYZukbihZ9gg+nxDeWIMJN6mQEhMi1/fnAnqRZbQc=
 github.com/g4s8/go-bundle v0.0.1/go.mod h1:T0ohXpvvFWn7Hw+4l+Ml8e0U9I7cpkgZaXzyetLTvsA=
+github.com/g4s8/go-bundle v0.1.1 h1:KzqGsUdbVF4udAK4mbHnKeTdcF6F9cA0H78pKhn6STs=
+github.com/g4s8/go-bundle v0.1.1/go.mod h1:T0ohXpvvFWn7Hw+4l+Ml8e0U9I7cpkgZaXzyetLTvsA=
 github.com/g4s8/go-matchers v0.0.0-20201209072131-8aaefc3fcb9c h1:TmkNYOvLjDue/qg9fS9eBbtMmP3Xv7MXxCB1E0svrRk=
 github.com/g4s8/go-matchers v0.0.0-20201209072131-8aaefc3fcb9c/go.mod h1:DHT9ggtm4yPn9m1IJMRZtyBGVY9k44vhjs6VfU7V1ks=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=

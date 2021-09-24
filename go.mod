@@ -6,7 +6,7 @@ module cqfn.org/degitx
 go 1.14
 
 require (
-	github.com/g4s8/go-bundle v0.0.1
+	github.com/g4s8/go-bundle v0.1.1 // indirect
 	github.com/g4s8/go-matchers v0.0.0-20201209072131-8aaefc3fcb9c
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1

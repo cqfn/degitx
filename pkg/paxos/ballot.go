@@ -15,7 +15,7 @@ type Proposal struct {
 	Ballot
 	// Proposer ID, it should be unique number for each
 	// proposer participating in the transaction.
-	Proposer uint16
+	Proposer uint32
 }
 
 // Compare two proposals
