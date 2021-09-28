@@ -35,8 +35,8 @@ func NewTMClient(accs []Acceptor, tmRemote tcommit.Manager, node tcommit.NodeID)
 	}
 }
 
-func (tmc *tmClient) Begin(ctx context.Context, tid tcommit.TxID,
-	vote map[tcommit.NodeID]tcommit.Vote) error {
+func (tmc *tmClient) Begin(ctx context.Context, vote tcommit.Votes,
+	meta tcommit.Meta) error {
 	tmc.mux.Lock()
 	defer tmc.mux.Unlock()
 
@@ -67,6 +67,7 @@ func (tmc *tmClient) mergeVotes(vote map[tcommit.NodeID]tcommit.Vote) {
 	}
 }
 
-func (tmc *tmClient) Finish(ctx context.Context, node tcommit.NodeID) error {
-	return tmc.remote.Finish(ctx, node)
+func (tmc *tmClient) Finish(ctx context.Context, node tcommit.NodeID,
+	meta tcommit.Meta) error {
+	return tmc.remote.Finish(ctx, node, meta)
 }

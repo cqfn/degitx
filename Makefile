@@ -35,8 +35,12 @@ all: build
 
 # build binaries
 .PHONY: build
-build: proto
+build: proto gen
 	${Q}go install ${GOFLAGS} $(addprefix ${PKG}/cmd/, $(call find_cmd))
+
+.PHONY: gen
+gen:
+	${Q}go generate ./...
 
 # tests
 .PHONY: test

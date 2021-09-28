@@ -77,6 +77,13 @@ func testForCase(tcase *testCase) func(t *testing.T) {
 		wg.Add(len(rms))
 		for _, rm := range rms {
 			go func(rm *rmStub, v tc.Vote) {
+				defer func() {
+					if rec := recover(); rec != nil {
+						t.Helper()
+						t.Logf("Test `%s` failed: %s", tcase.name, rec)
+						panic(rec)
+					}
+				}()
 				rm.run(v)
 				wg.Done()
 			}(rm, tcase.votes[rm.id])
@@ -101,14 +108,14 @@ type rmStub struct {
 	mux      sync.Mutex
 }
 
-func (rm *rmStub) Commit(ctx context.Context, tid tc.TxID) error {
+func (rm *rmStub) Commit(ctx context.Context) error {
 	rm.mux.Lock()
 	rm.decision = "commit"
 	rm.mux.Unlock()
 	return nil
 }
 
-func (rm *rmStub) Abort(ctx context.Context, tid tc.TxID) error {
+func (rm *rmStub) Abort(ctx context.Context) error {
 	rm.mux.Lock()
 	rm.decision = "abort"
 	rm.mux.Unlock()
@@ -118,7 +125,7 @@ func (rm *rmStub) Abort(ctx context.Context, tid tc.TxID) error {
 func (rm *rmStub) run(v tc.Vote) {
 	vts := make(map[tc.NodeID]tc.Vote)
 	vts[rm.id] = v
-	if err := rm.tm.Begin(context.Background(), tc.TxID("txn"), vts); err != nil {
+	if err := rm.tm.Begin(context.Background(), vts, ""); err != nil {
 		panic(err)
 	}
 }
