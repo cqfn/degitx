@@ -36,6 +36,7 @@ func NewGrpcSeed(maddr ma.Multiaddr, node *locators.Node,
 }
 
 type hostService struct {
+	pb.UnimplementedDiscoveryServiceServer
 	ctx   context.Context
 	peers *Peers
 }
@@ -95,7 +96,7 @@ func (s *hostService) Ping(req context.Context, coord *pb.NodeCoord) (*pb.PingRe
 
 func (s *grpcSeed) Start(ctx context.Context) error {
 	srv := grpc.NewServer()
-	svc := &hostService{ctx, s.peers}
+	svc := &hostService{ctx: ctx, peers: s.peers}
 	pb.RegisterDiscoveryServiceServer(srv, svc)
 
 	log.Printf("Starting discovery seed host on %s - %s", s.addr.Network(), s.addr)

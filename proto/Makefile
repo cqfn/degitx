@@ -27,7 +27,7 @@ $(OUT):
 
 # target location of protoc-gen-go tool
 $(PROTOC_GEN_GO):
-	$(GOGET) google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
+	$(GOGET) google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
 	$(GOGET) google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 # clean target directory
 clean:
