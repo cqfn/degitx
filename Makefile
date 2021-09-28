@@ -33,9 +33,6 @@ export PATH := ${BUILD_DIR}/bin:${PATH}
 .PHONY: all
 all: build
 
-debug:
-	go env
-
 # build binaries
 .PHONY: build
 build: proto
