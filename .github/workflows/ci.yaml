@@ -18,6 +18,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - uses: arduino/setup-protoc@v1.1.2
+      - run: go get golang.org/x/tools/cmd/stringer
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:

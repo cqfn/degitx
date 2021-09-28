@@ -19,11 +19,11 @@ type Manager interface {
 	// It receives a quorum of `prepared` votes for each RM,
 	// it can decide to commit; or if it receives a quorum
 	// of `abort` at least for one RM, it can decide to abort.
-	Begin(context.Context, TxID, map[NodeID]Vote) error
+	Begin(context.Context, Votes, Meta) error
 
 	// Finish a transaction. RM notifies about finished transaction.
 	// TM counts finished RM to send synchronous response to the client
 	// when all RMs are finished. TM already know the state of the transaction,
 	// so it needs only a notification hint from RMs without state parameters.
-	Finish(context.Context, NodeID) error
+	Finish(context.Context, NodeID, Meta) error
 }

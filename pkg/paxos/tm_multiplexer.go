@@ -33,15 +33,16 @@ func (tmm *tmMultiplexer) multiplex(call func(tcommit.Manager) error) error {
 	return me.ErrorOrNil()
 }
 
-func (tmm *tmMultiplexer) Begin(ctx context.Context, tid tcommit.TxID,
-	vote map[tcommit.NodeID]tcommit.Vote) error {
+func (tmm *tmMultiplexer) Begin(ctx context.Context, votes tcommit.Votes,
+	meta tcommit.Meta) error {
 	return tmm.multiplex(func(tm tcommit.Manager) error {
-		return tm.Begin(ctx, tid, vote)
+		return tm.Begin(ctx, votes, meta)
 	})
 }
 
-func (tmm *tmMultiplexer) Finish(ctx context.Context, node tcommit.NodeID) error {
+func (tmm *tmMultiplexer) Finish(ctx context.Context, node tcommit.NodeID,
+	meta tcommit.Meta) error {
 	return tmm.multiplex(func(tm tcommit.Manager) error {
-		return tm.Finish(ctx, node)
+		return tm.Finish(ctx, node, meta)
 	})
 }

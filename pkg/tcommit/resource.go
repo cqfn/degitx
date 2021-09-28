@@ -8,8 +8,8 @@ import "context"
 // Resource manager API
 type Resource interface {
 	// Commit the transaction
-	Commit(context.Context, TxID) error
+	Commit(context.Context) error
 
 	// Abort the transaction
-	Abort(context.Context, TxID) error
+	Abort(context.Context) error
 }

@@ -18,7 +18,7 @@ import (
 type TmNode struct {
 	mux   sync.Mutex
 	rms   map[tcommit.NodeID]tcommit.Resource
-	votes map[tcommit.TxID]map[tcommit.NodeID]tcommit.Vote
+	votes tcommit.Votes
 }
 
 // NewManager node for resource managers
@@ -28,7 +28,7 @@ func NewManager(rms map[tcommit.NodeID]tcommit.Resource) *TmNode {
 	for k, v := range rms {
 		tm.rms[k] = v
 	}
-	tm.votes = make(map[tcommit.TxID]map[tcommit.NodeID]tcommit.Vote)
+	tm.votes = make(map[tcommit.NodeID]tcommit.Vote)
 	return tm
 }
 
@@ -49,41 +49,40 @@ func (err *ErrVoteConflict) Error() string {
 }
 
 // Begin transaction, see tcommit.Manager intercace
-func (tm *TmNode) Begin(ctx context.Context, tid tcommit.TxID,
-	votes map[tcommit.NodeID]tcommit.Vote) error {
+func (tm *TmNode) Begin(ctx context.Context, votes tcommit.Votes,
+	meta tcommit.Meta) error {
 	tm.mux.Lock()
 	defer tm.mux.Unlock()
-	var cpy map[tcommit.NodeID]tcommit.Vote
-	if val, has := tm.votes[tid]; has {
-		cpy = make(map[tcommit.NodeID]tcommit.Vote, len(val))
-		for k, v := range val {
-			cpy[k] = v
-		}
-	} else {
-		cpy = make(map[tcommit.NodeID]tcommit.Vote, len(votes))
-		for id := range tm.rms {
-			cpy[id] = tcommit.VoteUnkown
-		}
+
+	cpy := make(map[tcommit.NodeID]tcommit.Vote, len(tm.votes))
+	for k, v := range tm.votes {
+		cpy[k] = v
 	}
+
 	for node, vte := range votes {
 		if old := cpy[node]; conflicts(old, vte) {
-			return &ErrVoteConflict{Node: node, Votes: []tcommit.Vote{old, vte}}
+			return &ErrVoteConflict{
+				Node:  node,
+				Votes: []tcommit.Vote{old, vte},
+			}
 		}
 		cpy[node] = vte
 	}
-	tm.votes[tid] = cpy
-	return tm.decide(ctx, tid)
+	tm.votes = cpy
+
+	return tm.decide(ctx)
 }
 
 // Finish transaction, see tcommit.Manager intercace
-func (tm *TmNode) Finish(ctx context.Context, id tcommit.NodeID) error {
+func (tm *TmNode) Finish(ctx context.Context, node tcommit.NodeID,
+	meta tcommit.Meta) error {
 	return nil
 }
 
-func (tm *TmNode) decide(ctx context.Context, tid tcommit.TxID) error {
+func (tm *TmNode) decide(ctx context.Context) error {
 	anyAbort := false
 	allPrepared := true
-	for _, vote := range tm.votes[tid] {
+	for _, vote := range tm.votes {
 		if vote == tcommit.VoteAborted {
 			anyAbort = true
 			break
@@ -94,12 +93,12 @@ func (tm *TmNode) decide(ctx context.Context, tid tcommit.TxID) error {
 	}
 	if anyAbort {
 		return tm.performAsync(ctx, func(rm tcommit.Resource) error {
-			return rm.Abort(ctx, tid)
+			return rm.Abort(ctx)
 		})
 	}
 	if allPrepared {
 		return tm.performAsync(ctx, func(rm tcommit.Resource) error {
-			return rm.Commit(ctx, tid)
+			return rm.Commit(ctx)
 		})
 	}
 	return nil
