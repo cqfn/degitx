@@ -2,7 +2,6 @@ OUT := ${CURDIR}/go/
 GOPATH := $(shell go env GOPATH)
 PROTOC_GEN_GO := $(GOPATH)/bin/protoc-gen-go
 PROTOC := env PATH="$(GOPATH)/bin:${PATH}" protoc
-GOGET := env GO111MODULE=off go get -v
 PREFIX := cqfn.org/degitx/proto/go
 GOOPT := module=$(PREFIX)
 # directories where the .proto files are located.
@@ -27,8 +26,8 @@ $(OUT):
 
 # target location of protoc-gen-go tool
 $(PROTOC_GEN_GO):
-	$(GOGET) google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
-	$(GOGET) google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+	go install -v google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
+	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 # clean target directory
 clean:
 	$(RMFR) $(OUT)

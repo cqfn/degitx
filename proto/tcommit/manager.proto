@@ -4,7 +4,8 @@ import "tcommit.proto";
 
 package degitx.tcommit;
 
-option go_package = "cqfn.org/degitx/proto/go/tcommitpb";
+option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
+
 
 message BeginRequest {
   Votes votes = 1;
@@ -14,7 +15,7 @@ message BeginRequest {
 message BeginResponse {}
 
 message FinishRequest {
-  uint32 NodeID = 1;
+  string node_id = 1;
   Meta meta = 2;
 }
 

@@ -2,7 +2,8 @@ syntax = "proto3";
 
 package degitx.tcommit;
 
-option go_package = "cqfn.org/degitx/proto/go/tcommitpb";
+
+option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
 
 message CommitRequest {}
 
