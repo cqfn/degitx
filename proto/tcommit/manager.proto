@@ -7,6 +7,7 @@ package degitx.tcommit;
 option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
 
 
+
 message BeginRequest {
   Votes votes = 1;
   Meta meta = 2;

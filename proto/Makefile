@@ -26,8 +26,9 @@ $(OUT):
 
 # target location of protoc-gen-go tool
 $(PROTOC_GEN_GO):
-	go install -v google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
-	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+	GO111MODULE=on
+	go install -v google.golang.org/protobuf/cmd/protoc-gen-go
+	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc
 # clean target directory
 clean:
 	$(RMFR) $(OUT)
