@@ -4,6 +4,7 @@
 package discovery
 
 import (
+	"errors"
 	"fmt"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -23,6 +24,8 @@ func (n *MaNetworkAddr) Network() string {
 func (n *MaNetworkAddr) String() string {
 	return n.addr
 }
+
+var errInvalidSeedAddr = errors.New("invalid seed address")
 
 // Parse multiaddr into network addr
 func (n *MaNetworkAddr) Parse(addr ma.Multiaddr) error {

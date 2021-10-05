@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package degitx.discovery;
 
-option go_package = "cqfn.org/degitx/proto/go/degitxpb";
-
+option go_package = "cqfn.org/degitx/internal/discovery/grpc/pb";
 
 // NodeCoord - coordinate of node
 message NodeCoord {
@@ -29,5 +28,5 @@ message PingResponse {
 service DiscoveryService {
   // Ping - send ping request to discovery service to propagate self coordinates
   //  and receive known peers of service.
-  rpc Ping(NodeCoord) returns (PingResponse) {}
+  rpc Ping(NodeCoord) returns (PingResponse);
 }

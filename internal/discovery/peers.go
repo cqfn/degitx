@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"cqfn.org/degitx/internal/locators"
+	"cqfn.org/degitx/pkg/locators"
 	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 )

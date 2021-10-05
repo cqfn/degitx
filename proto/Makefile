@@ -1,11 +1,11 @@
-OUT := ${CURDIR}/go/
+OUT := ${CURDIR}/..
 GOPATH := $(shell go env GOPATH)
 PROTOC_GEN_GO := $(GOPATH)/bin/protoc-gen-go
 PROTOC := env PATH="$(GOPATH)/bin:${PATH}" protoc
-PREFIX := cqfn.org/degitx/proto/go
+PREFIX := cqfn.org/degitx
 GOOPT := module=$(PREFIX)
 # directories where the .proto files are located.
-PATHS := tcommit/ .
+PATHS := tcommit/ discovery/
 # set -I(alias to --proto_path) flag for each path.
 PROTO_PATHS_FLAGS := $(foreach pth,$(PATHS),-I=$(pth))
 # protoc input files
@@ -31,7 +31,7 @@ $(PROTOC_GEN_GO):
 	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc
 # clean target directory
 clean:
-	$(RMFR) $(OUT)
+	@echo "nothing to clean"
 
 # install required dependencies
 install-deps: $(PROTOC_GEN_GO)

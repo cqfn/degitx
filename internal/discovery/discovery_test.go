@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"cqfn.org/degitx/internal/locators"
+	"cqfn.org/degitx/pkg/locators"
 
 	m "github.com/g4s8/go-matchers"
 	ma "github.com/multiformats/go-multiaddr"

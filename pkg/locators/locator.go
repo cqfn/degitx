@@ -59,12 +59,14 @@ func FromKeys(pub, priv []byte) (*Node, error) {
 	}, nil
 }
 
-type unsupportedHashError struct {
-	name string
+// UnsupportedHashError if hashing algorithm specified is not supported
+type UnsupportedHashError struct {
+	// Name of hash algorithm
+	Name string
 }
 
-func (e *unsupportedHashError) Error() string {
-	return fmt.Sprintf("Unsupported hash-func name: `%s`", e.name)
+func (e *UnsupportedHashError) Error() string {
+	return fmt.Sprintf("Unsupported hash-func name: `%s`", e.Name)
 }
 
 func hashFunc(name string) (hash.Hash, error) {
@@ -73,6 +75,6 @@ func hashFunc(name string) (hash.Hash, error) {
 	case "SHA1":
 		return sha1.New(), nil //nolint:gosec //testing
 	default:
-		return nil, &unsupportedHashError{name}
+		return nil, &UnsupportedHashError{name}
 	}
 }

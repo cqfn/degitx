@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"cqfn.org/degitx/internal/locators"
 	"cqfn.org/degitx/internal/meta"
+	"cqfn.org/degitx/pkg/locators"
 
 	mh "github.com/multiformats/go-multihash"
 )

@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	"cqfn.org/degitx/internal/locators"
 	"cqfn.org/degitx/internal/meta"
+	"cqfn.org/degitx/pkg/locators"
 	m "github.com/g4s8/go-matchers"
 )
 

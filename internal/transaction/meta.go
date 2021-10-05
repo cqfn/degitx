@@ -3,7 +3,7 @@
 
 package transaction
 
-import "cqfn.org/degitx/internal/locators"
+import "cqfn.org/degitx/pkg/locators"
 
 // Vote of RM
 type Vote uint8

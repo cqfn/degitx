@@ -4,26 +4,37 @@ import "tcommit.proto";
 
 package degitx.tcommit;
 
-option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
+option go_package = "cqfn.org/degitx/pkg/tcommit/grpc/pb";
 
-
-
+// BeginRequest for transaction manager
 message BeginRequest {
+  // votes for transaction known by resource manager
   Votes votes = 1;
+
+  // additional metadata
   Meta meta = 2;
 }
 
+// BeginResponse from transaction manager
 message BeginResponse {}
 
+// FinishRequest for transaction manager
 message FinishRequest {
+  // resource manager node identifier
   string node_id = 1;
+
+  // additional metadata
   Meta meta = 2;
 }
 
+// FinishResponse from transaction manager
 message FinishResponse {}
 
 // ManagerService - transaction manager service
 service ManagerService {
+  // Begin transaction
   rpc Begin(BeginRequest) returns (BeginResponse);
+
+  // Finish transaction
   rpc Finish(FinishRequest) returns (FinishResponse);
 }

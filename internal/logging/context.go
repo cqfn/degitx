@@ -6,7 +6,7 @@ package logging
 import (
 	"sync"
 
-	"cqfn.org/degitx/internal/locators"
+	"cqfn.org/degitx/pkg/locators"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"cqfn.org/degitx/internal/discovery"
-	"cqfn.org/degitx/internal/locators"
+	"cqfn.org/degitx/pkg/locators"
 )
 
 // Start DeGitX node or return error

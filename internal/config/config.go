@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"cqfn.org/degitx/internal/locators"
 	"cqfn.org/degitx/internal/logging"
+	"cqfn.org/degitx/pkg/locators"
 
 	"gopkg.in/yaml.v2"
 )

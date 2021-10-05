@@ -27,11 +27,17 @@ func (n *Node) MarshalBinary() ([]byte, error) {
 	return out.MarshalBinary()
 }
 
-type errUnsupportedVersion struct {
+// ErrUnsupportedVersion error if binary versio is not supported
+type ErrUnsupportedVersion struct {
 	version []byte
 }
 
-func (e *errUnsupportedVersion) Error() string {
+// Version which is not supported
+func (e *ErrUnsupportedVersion) Version() []byte {
+	return e.version
+}
+
+func (e *ErrUnsupportedVersion) Error() string {
 	return fmt.Sprintf("Unsupported version `%s`", e.version)
 }
 
@@ -52,7 +58,7 @@ func (n *Node) UnmarshalBinary(data []byte) error {
 	}
 
 	if !bytes.Equal(version[:], v) {
-		return &errUnsupportedVersion{v}
+		return &ErrUnsupportedVersion{v}
 	}
 
 	loc, err := mh.Cast(rawID)

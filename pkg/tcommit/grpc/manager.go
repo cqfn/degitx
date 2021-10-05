@@ -1,14 +1,14 @@
 // MIT License. Copyright (c) 2020 CQFN
 // https://github.com/cqfn/degitx/blob/master/LICENSE
 
-// Package tclient implements transaction commit clients for remote procedure calls.
-package tclient
+// Package grpc implements transaction protocols using gRPC
+package grpc
 
 import (
 	"context"
 
 	"cqfn.org/degitx/pkg/tcommit"
-	pb "cqfn.org/degitx/proto/go/tcommit/pb"
+	"cqfn.org/degitx/pkg/tcommit/grpc/pb"
 )
 
 // ManagerClient implemets tcommit.Manager interface.

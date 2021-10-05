@@ -2,19 +2,25 @@ syntax = "proto3";
 
 package degitx.tcommit;
 
+option go_package = "cqfn.org/degitx/pkg/tcommit/grpc/pb";
 
-option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
-
+// CommitRequest command to resource manager
 message CommitRequest {}
 
+// AbortRequest command to resource manager
 message AbortRequest {}
 
+// CommitResponse from resource manager
 message CommitResponse {}
 
+// AbortResponse from resource manager
 message AbortResponse {}
 
 // ResourceService - resource manager service
 service ResourceService {
-  rpc Commit(CommitRequest) returns (CommitResponse) {}
-  rpc Abort(AbortRequest) returns (AbortResponse) {}
+  // Commit transaction command
+  rpc Commit(CommitRequest) returns (CommitResponse);
+
+  // Abort transaction command
+  rpc Abort(AbortRequest) returns (AbortResponse);
 }

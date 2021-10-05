@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package degitx.tcommit;
 
-option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
-
+option go_package = "cqfn.org/degitx/pkg/tcommit/grpc/pb";
 
 // TxID is unique identifier of the transacion
 message TxID {

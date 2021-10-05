@@ -78,30 +78,33 @@ func cmdRun(ctx *cli.Context) error {
 	logging.Init(node, cfg.LogConfig)
 	peers := discovery.NewPeers(ctx.Context)
 	dps := make([]discovery.Provider, 0)
-	peer := ctx.String("peer-host")
-	seed := ctx.String("peer-seed")
-	if peer != "" { //nolint:nestif // TODO: refactor it later
-		addr, err := ma.NewMultiaddr(peer)
-		if err != nil {
-			return err
-		}
-		seed, err := discovery.NewGrpcSeed(addr, node, peers)
-		if err != nil {
-			return err
-		}
-		if err := seed.Start(ctx.Context); err != nil {
-			return err
-		}
-	}
-	if seed != "" {
-		addr, err := ma.NewMultiaddr(seed)
-		if err != nil {
-			return err
-		}
-		dsc := discovery.NewGrpcSeedProvider(ctx.Context,
-			addr, node, peers)
-		dps = append(dps, dsc)
-	}
+	// TODO: fix discovery implementation and enable seed
+	// host start in main.
+	//
+	// peer := ctx.String("peer-host")
+	// seed := ctx.String("peer-seed")
+	// if peer != "" { //nolint:nestif // TODO: refactor it later
+	// 	addr, err := ma.NewMultiaddr(peer)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	seed, err := discovery.NewGrpcSeed(addr, node, peers)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if err := seed.Start(ctx.Context); err != nil {
+	// 		return err
+	// 	}
+	// }
+	// if seed != "" {
+	// 	addr, err := ma.NewMultiaddr(seed)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	dsc := discovery.NewGrpcSeedProvider(ctx.Context,
+	// 		addr, node, peers)
+	// 	dps = append(dps, dsc)
+	// }
 	dsc := discovery.NewDiscovery(peers, discovery.NewProviderChain(dps...),
 		new(discovery.NopRegistry))
 	node.Addr, err = ma.NewMultiaddr(ctx.String("gitaly-host"))

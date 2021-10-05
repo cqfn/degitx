@@ -6,7 +6,7 @@ package logging
 import (
 	"testing"
 
-	"cqfn.org/degitx/internal/locators"
+	"cqfn.org/degitx/pkg/locators"
 	"github.com/stretchr/testify/assert"
 )
 
