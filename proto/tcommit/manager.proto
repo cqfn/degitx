@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+import "tcommit.proto";
+
+package degitx.tcommit;
+
+option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
+
+
+
+message BeginRequest {
+  Votes votes = 1;
+  Meta meta = 2;
+}
+
+message BeginResponse {}
+
+message FinishRequest {
+  string node_id = 1;
+  Meta meta = 2;
+}
+
+message FinishResponse {}
+
+// ManagerService - transaction manager service
+service ManagerService {
+  rpc Begin(BeginRequest) returns (BeginResponse);
+  rpc Finish(FinishRequest) returns (FinishResponse);
+}

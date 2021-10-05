@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package degitx.tcommit;
+
+option go_package = "cqfn.org/degitx/proto/go/tcommit/pb";
+
+
+// TxID is unique identifier of the transacion
+message TxID {
+  string tx_id = 1;
+}
+
+// Vote of RM
+message Vote {
+  uint32 vote = 1;
+}
+
+// Meta is an optional additional transaction metadata that could be sent by RM
+// and used by TM.
+message Meta {
+  string meta = 1;
+}
+
+// Votes is a map of votes by node
+message Votes {
+  map<string, Vote> votes =1;
+}
+
