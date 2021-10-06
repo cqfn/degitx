@@ -12,6 +12,7 @@ PROTO_PATHS_FLAGS := $(foreach pth,$(PATHS),-I=$(pth))
 INPUT_FILES := $(foreach pth,$(PATHS),$(pth)/*.proto)
 RMFR := rm -fr
 MKDIR := mkdir -pv
+GOGET := env GO111MODULE=off go get -v
 
 .PHONY: all clean install-deps
 
@@ -26,9 +27,8 @@ $(OUT):
 
 # target location of protoc-gen-go tool
 $(PROTOC_GEN_GO):
-	GO111MODULE=on
-	go install -v google.golang.org/protobuf/cmd/protoc-gen-go
-	go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	$(GOGET) google.golang.org/protobuf/cmd/protoc-gen-go
+	$(GOGET) google.golang.org/grpc/cmd/protoc-gen-go-grpc
 # clean target directory
 clean:
 	@echo "nothing to clean"
