@@ -12,7 +12,6 @@ import (
 	"hash"
 	"strings"
 
-	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -21,7 +20,6 @@ type Node struct {
 	ID      mh.Multihash
 	PubKey  []byte
 	PrivKey []byte
-	Addr    ma.Multiaddr
 }
 
 func (n *Node) String() string {
@@ -30,8 +28,8 @@ func (n *Node) String() string {
 
 // GoString returns debug information for `%#v` format option
 func (n *Node) GoString() string {
-	return fmt.Sprintf("Node(ID(%#v), PubKey(%#v), Addr(%#v))",
-		n.ID, n.PubKey, n.Addr)
+	return fmt.Sprintf("Node(ID(%#v), PubKey(%#v))",
+		n.ID, n.PubKey)
 }
 
 const hname = "sha1"

@@ -7,10 +7,10 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 
-	"cqfn.org/degitx/internal/discovery"
 	"cqfn.org/degitx/internal/front-end/gitaly/service/blob"
 	"cqfn.org/degitx/internal/front-end/gitaly/service/cleanup"
 	"cqfn.org/degitx/internal/front-end/gitaly/service/commit"
@@ -29,6 +29,7 @@ import (
 	"cqfn.org/degitx/internal/front-end/gitaly/service/wiki"
 	"cqfn.org/degitx/internal/front-end/healthcheckstub"
 	"cqfn.org/degitx/internal/logging"
+	"cqfn.org/degitx/internal/misc"
 	"cqfn.org/degitx/internal/version"
 
 	"gitlab.com/gitlab-org/gitaly-proto/go/gitalypb"
@@ -51,9 +52,9 @@ type grpcServer struct {
 
 // NewGrpcServer for Gitaly gRPC
 func NewGrpcServer(maddr ma.Multiaddr) (Server, error) {
-	addr := new(discovery.MaNetworkAddr)
-	if err := addr.Parse(maddr); err != nil {
-		return nil, err
+	addr, err := misc.MultiAddrToNet(maddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse multiaddr: %w", err)
 	}
 	srv := new(grpcServer)
 	srv.addr = addr

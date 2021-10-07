@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	m "github.com/g4s8/go-matchers"
-	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -18,8 +17,6 @@ func panicerr(err error) {
 
 func Test_Encode(t *testing.T) {
 	assert := m.Assert(t)
-	addr, err := ma.NewMultiaddr("/ip4/1.1.1.1")
-	panicerr(err)
 	loc, err := mh.Encode([]byte{0x01}, mh.IDENTITY)
 	panicerr(err)
 	kpub, kpriv := []byte{0xa0}, []byte{0xb0}
@@ -27,7 +24,6 @@ func Test_Encode(t *testing.T) {
 		ID:      loc,
 		PubKey:  kpub,
 		PrivKey: kpriv,
-		Addr:    addr,
 	}
 	enc, err := node.MarshalBinary()
 	assert.That("Node encoded without error", err, m.Nil())
@@ -40,6 +36,4 @@ func Test_Encode(t *testing.T) {
 		dec.PubKey, m.EqBytes([]byte{0xa0}))
 	assert.That("Ignores private-key",
 		dec.PrivKey, m.Nil())
-	assert.That("Decodes address correctly",
-		dec.Addr.Bytes(), m.EqBytes(addr.Bytes()))
 }

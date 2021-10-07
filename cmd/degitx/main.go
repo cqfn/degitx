@@ -9,10 +9,8 @@ import (
 	"os"
 
 	"cqfn.org/degitx/internal/config"
-	"cqfn.org/degitx/internal/discovery"
 	"cqfn.org/degitx/internal/logging"
 
-	ma "github.com/multiformats/go-multiaddr"
 	"github.com/urfave/cli/v2"
 )
 
@@ -76,8 +74,6 @@ func cmdRun(ctx *cli.Context) error {
 		return err
 	}
 	logging.Init(node, cfg.LogConfig)
-	peers := discovery.NewPeers(ctx.Context)
-	dps := make([]discovery.Provider, 0)
 	// TODO: fix discovery implementation and enable seed
 	// host start in main.
 	//
@@ -105,14 +101,8 @@ func cmdRun(ctx *cli.Context) error {
 	// 		addr, node, peers)
 	// 	dps = append(dps, dsc)
 	// }
-	dsc := discovery.NewDiscovery(peers, discovery.NewProviderChain(dps...),
-		new(discovery.NopRegistry))
-	node.Addr, err = ma.NewMultiaddr(ctx.String("gitaly-host"))
-	if err != nil {
-		return err
-	}
 
-	return Start(ctx.Context, node, dsc)
+	return Start(ctx.Context, node)
 }
 
 func printID(ctx *cli.Context) error {

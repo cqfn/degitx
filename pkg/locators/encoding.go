@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/g4s8/go-bundle"
-	ma "github.com/multiformats/go-multiaddr"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -23,7 +22,6 @@ func (n *Node) MarshalBinary() ([]byte, error) {
 	out.PutBytes(version[:])
 	out.PutBytes(n.ID)
 	out.PutBytes(n.PubKey)
-	out.PutBinary(n.Addr)
 	return out.MarshalBinary()
 }
 
@@ -47,11 +45,10 @@ func (n *Node) UnmarshalBinary(data []byte) error {
 	if err := inp.UnmarshalBinary(data); err != nil {
 		return err
 	}
-	var v, rawID, pk, rawAddr []byte
+	var v, rawID, pk []byte
 	inp.GetBytes(&v)
 	inp.GetBytes(&rawID)
 	inp.GetBytes(&pk)
-	inp.GetBytes(&rawAddr)
 
 	if err := inp.Error(); err != nil {
 		return err
@@ -65,12 +62,7 @@ func (n *Node) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	addr, err := ma.NewMultiaddrBytes(rawAddr)
-	if err != nil {
-		return err
-	}
 	n.ID = loc
 	n.PubKey = pk
-	n.Addr = addr
 	return nil
 }
