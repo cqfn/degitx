@@ -7,7 +7,6 @@ import (
 	"context"
 	"log"
 
-	"cqfn.org/degitx/internal/discovery"
 	"cqfn.org/degitx/pkg/locators"
 )
 
@@ -15,7 +14,6 @@ import (
 func Start(
 	ctx context.Context,
 	node *locators.Node,
-	disc *discovery.Discovery,
 ) error {
 	log.Printf("Starting %s", node)
 
