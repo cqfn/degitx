@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import "paxos.proto";
+
+package degitx.paxos;
+
+option go_package = "cqfn.org/degitx/pkg/paxos/grpc/pb";
+
+// PrepareRequest to acceptor
+message PrepareRequest {
+  paxos.Px1A msg = 1;
+}
+
+// PrepareResponse from acceptor
+message PrepareResponse {}
+
+// AcceptRequest to acceptor
+message AcceptRequest {
+  paxos.Px2A msg = 1;
+}
+
+// AcceptResponse from acceptor
+message AcceptResponse {}
+
+// AcceptorService - paxos acceptor service
+service AcceptorService {
+  // Prepare message
+  rpc Prepare(PrepareRequest) returns (PrepareResponse);
+
+  // Accept message
+  rpc Accept(AcceptRequest) returns (AcceptResponse);
+}

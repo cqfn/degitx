@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "paxos.proto";
+
+package degitx.paxos;
+
+option go_package = "cqfn.org/degitx/pkg/paxos/grpc/pb";
+
+// PromiseRequest to proposer
+message PromiseRequest {
+  paxos.Px1B msg = 1;
+}
+
+// PromiseResponse from proposer
+message PromiseResponse {}
+
+// AcceptedRequest to proposer
+message AcceptedRequest {
+  paxos.Px2B msg = 1;
+}
+
+// AcceptedResponse from proposer
+message AcceptedResponse {}
+
+// RejectRequest to proposer
+message RejectRequest {
+  paxos.Ballot ballot = 1;
+}
+
+// RejectResponse from proposer
+message RejectResponse {}
+
+// ProposerService - paxos proposer servise
+service ProposerService {
+  // Promise message
+  rpc Promise(PromiseRequest) returns (PromiseResponse);
+
+  // Accepted message
+  rpc Accepted(AcceptedRequest) returns (AcceptedResponse);
+
+  // Reject message
+  rpc Reject(RejectRequest) returns (RejectResponse);
+}

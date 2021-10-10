@@ -5,7 +5,7 @@ PROTOC := env PATH="$(GOPATH)/bin:${PATH}" protoc
 PREFIX := cqfn.org/degitx
 GOOPT := module=$(PREFIX)
 # directories where the .proto files are located.
-PATHS := tcommit/ discovery/
+PATHS := tcommit/ discovery/ paxos/
 # set -I(alias to --proto_path) flag for each path.
 PROTO_PATHS_FLAGS := $(foreach pth,$(PATHS),-I=$(pth))
 # protoc input files
