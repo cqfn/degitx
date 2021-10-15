@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package degitx.paxos;
+
+option go_package = "cqfn.org/degitx/pkg/paxos/grpc/pb";
+
+// Ballot number of proposals in Paxos algorithm
+message Ballot {
+  uint32 ballot = 1;
+}
+
+// Proposal for Paxos protocol
+message Proposal {
+  Ballot ballot = 1;
+  uint32 Proposer = 2;
+}
+
+// Px1A - Paxos 1A message sent from proposer to acceptor
+message Px1A {
+  Proposal proposal = 1;
+}
+
+// Px2A - Paxos 2A message sent from proposer to acceptor
+message Px2A {
+  Proposal proposal = 1;
+  bytes value = 2;
+}
+
+// Px1B - Paxos 1B message sent from acceptor to proposer,
+// it contains maximum and accepted proposal and optional value
+message Px1B {
+  Proposal max = 1;
+  Proposal acc =2;
+  bytes value = 3;
+}
+
+// Px2B - Paxos 2B message sent from acceptor to proposer
+message Px2B {
+  Ballot ballot = 1;
+}
+
