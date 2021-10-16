@@ -10,9 +10,16 @@
 // but it's not required.
 package tcommit
 
+import (
+	"errors"
+)
+
 // Vote of RM
 //go:generate stringer -type=Vote
 type Vote uint8
+
+// ErrInvalidVote is thrown in case of a vote is not valid
+var ErrInvalidVote = errors.New("invalid Vote")
 
 const (
 	// VoteUnkown means that RM was not decided yet
@@ -22,6 +29,16 @@ const (
 	// VoteAborted means that RM failed to prepare
 	VoteAborted
 )
+
+// Validate the vote value
+// Returns ErrInvalidVote in case if the Value is invalid
+func (v Vote) Validate() error {
+	if v > VoteAborted {
+		return ErrInvalidVote
+	}
+
+	return nil
+}
 
 // TxID is unique identifier of the transacion
 type TxID string
