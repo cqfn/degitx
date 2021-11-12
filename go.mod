@@ -11,7 +11,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/multiformats/go-multiaddr v0.4.1
-	github.com/multiformats/go-multihash v0.0.16
+	github.com/multiformats/go-multihash v0.1.0
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.2.0
 	gitlab.com/gitlab-org/gitaly-proto/go/gitalypb v0.0.0-20190424173140-c9b311f06511
