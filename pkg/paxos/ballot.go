@@ -20,8 +20,7 @@ type Proposal struct {
 
 // Compare two proposals
 func (p Proposal) Compare(o Proposal) int {
-	var r int
-	r = int(p.Ballot - o.Ballot)
+	r := int(p.Ballot - o.Ballot)
 	if r == 0 {
 		r = int(p.Proposer - o.Proposer)
 	}

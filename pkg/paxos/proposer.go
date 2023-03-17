@@ -10,7 +10,7 @@ import (
 // Proposer - Paxos proposer API for acceptor
 type Proposer interface {
 	// Promise is a 1B message from acceptor.
-	// was prepared succesffully, it includes a proposal ballot
+	// was prepared successfully, it includes a proposal ballot
 	// number. Promise means that acceptor promises to proposer
 	// to reject all next messages if ballot number of such message
 	// are less than ballot number of promise.
